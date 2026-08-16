@@ -1,0 +1,98 @@
+{% extends "app_base.html" %}
+{% block title %}{% if record %}Edit feeding record{% else %}Log feeding{% endif %} - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mx-auto max-w-2xl rounded-2xl border border-stone-200 bg-white p-8">
+    <h1 class="text-xl font-extrabold text-stone-900">{% if record %}Edit feeding record{% else %}Log a feeding record{% endif %}</h1>
+    <p class="mt-1 text-sm text-stone-500">Pick the block, then select which cows were fed.</p>
+
+    {% if form.non_field_errors %}
+    <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="mt-6" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-4">
+            <label for="{{ form.block.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Block / Paddock *</label>
+            {{ form.block }}
+            {% for error in form.block.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-4">
+            <div>
+                <label for="{{ form.date.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Date *</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ form.session.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Session *</label>
+                {{ form.session }}
+                {% for error in form.session.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Cows fed *</label>
+            <p class="mb-2 text-xs text-stone-400">Only cows in the selected block are shown here.</p>
+            <div id="cow-chip-grid" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {% for cow in farm_cows %}
+                <label data-block="{{ cow.block_id }}"
+                    class="cow-chip flex cursor-pointer items-center gap-2 rounded-xl border-2 border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-600 transition has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-800 has-[:checked]:font-bold">
+                    <input type="checkbox" name="cows" value="{{ cow.id }}"
+                        class="h-4 w-4 shrink-0 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                        {% if cow.id in selected_cow_ids %}checked{% endif %}>
+                    <span>{{ cow.tag_id }}{% if cow.name %} · {{ cow.name }}{% endif %}</span>
+                </label>
+                {% empty %}
+                <p class="col-span-full text-sm text-stone-400">No active cows on this farm yet.</p>
+                {% endfor %}
+            </div>
+            {% for error in form.cows.errors %}<p class="mt-2 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="mb-6 grid grid-cols-2 gap-4">
+            <div>
+                <label for="{{ form.dairy_meal_kg.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Dairy meal (kg)</label>
+                {{ form.dairy_meal_kg }}
+                {% for error in form.dairy_meal_kg.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ form.silage_hay_kg.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Silage/Hay (kg)</label>
+                {{ form.silage_hay_kg }}
+                {% for error in form.silage_hay_kg.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <button type="submit" class="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-emerald-950 hover:bg-amber-400">
+            Save record →
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        var blockSelect = document.getElementById('{{ form.block.id_for_label }}');
+        var chips = document.querySelectorAll('#cow-chip-grid .cow-chip');
+        function syncVisibility() {
+            if (!blockSelect) return;
+            var selected = blockSelect.value;
+            chips.forEach(function (chip) {
+                var matches = chip.dataset.block === selected;
+                chip.style.display = matches ? '' : 'none';
+                if (!matches) {
+                    var input = chip.querySelector('input[type="checkbox"]');
+                    if (input) { input.checked = false; }
+                }
+            });
+        }
+        if (blockSelect) {
+            blockSelect.addEventListener('change', syncVisibility);
+            syncVisibility();
+        }
+    })();
+</script>
+{% endblock %}

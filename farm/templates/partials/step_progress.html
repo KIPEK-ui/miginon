@@ -1,0 +1,15 @@
+<div class="mb-6 flex items-center justify-center gap-2">
+    {% for label in labels %}
+    <div class="flex items-center gap-2">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold
+            {% if forloop.counter < step %} bg-emerald-500 text-white
+            {% elif forloop.counter == step %} bg-white text-emerald-700 ring-2 ring-emerald-400
+            {% else %} bg-white/15 text-white/70 {% endif %}">
+            {% if forloop.counter < step %}<ion-icon name="checkmark-outline"></ion-icon>{% else %}{{ forloop.counter }}{% endif %}
+        </div>
+        {% if not forloop.last %}
+        <div class="h-0.5 w-6 {% if forloop.counter < step %}bg-emerald-400{% else %}bg-white/20{% endif %}"></div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>

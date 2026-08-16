@@ -1,0 +1,59 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="h-full bg-stone-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Miginon Farm{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐄</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] },
+            colors: {
+              emerald: {
+                50:'#eefbf3',100:'#d7f5e3',200:'#b1eaca',300:'#7ed9ac',400:'#48bf89',
+                500:'#25a56f',600:'#17835a',700:'#146a4a',800:'#14543c',900:'#124533'
+              },
+              amber: {
+                50:'#fffbeb',100:'#fef1c8',200:'#fde28c',300:'#fbcd4f',400:'#f9b525',
+                500:'#f2990f',600:'#d6760a',700:'#b1560c',800:'#8f4310',900:'#763810'
+              },
+            },
+            boxShadow: { soft: '0 10px 40px -12px rgba(20, 84, 60, 0.18)' },
+          }
+        }
+      }
+    </script>
+    <style>
+      body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui; }
+      .bg-farm-gradient { background: radial-gradient(circle at 15% 0%, #1f6b4a 0%, #0f4531 55%, #0a2e21 100%); }
+      .otp-input:focus { letter-spacing: 0.6em; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full text-stone-900 antialiased">
+    {% if messages %}
+    <div class="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2 px-4 sm:px-0">
+        {% for message in messages %}
+        <div class="rounded-xl border px-4 py-3 text-sm shadow-soft backdrop-blur
+            {% if message.tags == 'success' %} border-emerald-200 bg-emerald-50 text-emerald-800
+            {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-700
+            {% elif message.tags == 'warning' %} border-amber-200 bg-amber-50 text-amber-800
+            {% else %} border-stone-200 bg-white text-stone-700 {% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block body %}{% endblock %}
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

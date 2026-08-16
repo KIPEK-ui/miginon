@@ -1,0 +1,39 @@
+{% extends "app_base.html" %}
+{% block title %}Set up your blocks - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+    <div class="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-emerald-600">
+        <span class="rounded-full bg-emerald-600 px-2.5 py-1 text-white">1</span> Blocks
+        <span class="text-stone-300">→</span>
+        <span class="rounded-full bg-stone-200 px-2.5 py-1 text-stone-500">2</span> Cows
+    </div>
+    <h1 class="text-2xl font-extrabold text-stone-900">Add your blocks / paddocks</h1>
+    <p class="mt-1 text-sm text-stone-500">These are the physical groups you manage cows in, e.g. "Block A". Add as many as you need.</p>
+
+    <div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% include "partials/form_fields.html" %}
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" name="add_another" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 hover:bg-emerald-100">
+                    + Add block
+                </button>
+                <button type="submit" name="finish" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">
+                    Continue to cows →
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if blocks %}
+    <div class="mt-6">
+        <p class="mb-2 text-xs font-bold uppercase tracking-wide text-stone-400">Added so far</p>
+        <div class="flex flex-wrap gap-2">
+            {% for b in blocks %}
+            <span class="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-sm font-semibold text-stone-700">{{ b.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

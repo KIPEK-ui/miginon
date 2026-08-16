@@ -1,0 +1,22 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Enter your code - Miginon Farm{% endblock %}
+{% block icon %}<ion-icon name="lock-closed-outline"></ion-icon>{% endblock %}
+{% block heading %}Enter your code{% endblock %}
+{% block subheading %}We sent a 6-digit code to <span class="font-semibold text-stone-700">{{ email }}</span>.{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-stone-900 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-stone-800">
+        Verify & sign in →
+    </button>
+</form>
+<form method="post" action="{% url 'accounts:resend_admin_otp' %}" class="mt-4 text-center">
+    {% csrf_token %}
+    {% if can_resend %}
+    <button type="submit" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">Resend code</button>
+    {% else %}
+    <span class="text-sm text-stone-400">You can request a new code shortly.</span>
+    {% endif %}
+</form>
+{% endblock %}

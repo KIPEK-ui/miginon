@@ -1,0 +1,25 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Verify your email - Miginon Farm{% endblock %}
+{% block progress %}
+{% include "partials/step_progress.html" with step=4 labels="1234"|make_list %}
+{% endblock %}
+{% block icon %}<ion-icon name="lock-closed-outline"></ion-icon>{% endblock %}
+{% block heading %}Verify your email{% endblock %}
+{% block subheading %}Enter the 6-digit code we sent to <span class="font-semibold text-stone-700">{{ email }}</span>.{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
+        Verify & create farm →
+    </button>
+</form>
+<form method="post" action="{% url 'accounts:resend_signup_otp' %}" class="mt-4 text-center">
+    {% csrf_token %}
+    {% if can_resend %}
+    <button type="submit" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">Resend code</button>
+    {% else %}
+    <span class="text-sm text-stone-400">You can request a new code shortly.</span>
+    {% endif %}
+</form>
+{% endblock %}

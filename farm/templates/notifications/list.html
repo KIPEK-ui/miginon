@@ -1,0 +1,39 @@
+{% extends "app_base.html" %}
+{% block title %}Notifications - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Notifications</h1>
+    <p class="mt-1 text-sm text-stone-500">
+        {% if active_membership.can_view_all_notifications %}
+        Every record added, changed or removed on {{ active_farm_obj.name }}.
+        {% else %}
+        Activity from your own actions on {{ active_farm_obj.name }}.
+        {% endif %}
+    </p>
+</div>
+
+<div class="rounded-2xl border border-stone-200 bg-white">
+    <div class="divide-y divide-stone-100">
+        {% for n in notifications %}
+        <div class="flex items-start gap-3 px-6 py-4">
+            <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm
+                {% if n.verb == 'created' %}bg-emerald-50 text-emerald-600
+                {% elif n.verb == 'deleted' %}bg-red-50 text-red-600
+                {% else %}bg-amber-50 text-amber-600{% endif %}">
+                {% if n.verb == 'created' %}<ion-icon name="add-outline"></ion-icon>{% elif n.verb == 'deleted' %}<ion-icon name="trash-outline"></ion-icon>{% else %}<ion-icon name="create-outline"></ion-icon>{% endif %}
+            </span>
+            <div class="flex-1 text-sm">
+                <p class="text-stone-700">
+                    <span class="font-semibold text-stone-900">{{ n.actor.get_full_name|default:"Someone" }}</span>
+                    {{ n.get_verb_display }} {{ n.kind }}
+                    <span class="font-medium text-stone-600">"{{ n.description }}"</span>
+                </p>
+                <p class="mt-0.5 text-xs text-stone-400">{{ n.created_at|date:"d M Y, H:i" }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <p class="px-6 py-10 text-center text-sm text-stone-400">No notifications yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

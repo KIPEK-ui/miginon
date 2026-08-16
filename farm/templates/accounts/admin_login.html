@@ -1,0 +1,19 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Platform Admin - Miginon Farm{% endblock %}
+{% block icon %}<ion-icon name="shield-checkmark-outline"></ion-icon>{% endblock %}
+{% block heading %}Platform Admin{% endblock %}
+{% block subheading %}Enter your admin email to receive a 6-digit login code.{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-stone-900 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-stone-800">
+        Send login code →
+    </button>
+</form>
+{% endblock %}
+{% block below_card %}
+<div class="mt-6 text-center text-sm text-emerald-50/90">
+    <a href="{% url 'accounts:login_farm' %}" class="text-emerald-100/70 hover:text-white">← Back to farm sign in</a>
+</div>
+{% endblock %}

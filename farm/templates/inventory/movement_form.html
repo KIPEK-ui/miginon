@@ -1,0 +1,15 @@
+{% extends "app_base.html" %}
+{% block title %}Record stock movement - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mx-auto max-w-lg rounded-2xl border border-stone-200 bg-white p-8">
+    <h1 class="text-xl font-extrabold text-stone-900">Record a stock movement</h1>
+    <p class="mt-1 text-sm text-stone-500">Log a restock, usage, or a correction to the current stock level.</p>
+    <form method="post" class="mt-6" novalidate>
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit" class="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-emerald-950 hover:bg-amber-400">
+            Save movement →
+        </button>
+    </form>
+</div>
+{% endblock %}

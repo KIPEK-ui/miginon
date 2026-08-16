@@ -1,0 +1,126 @@
+{% extends "app_base.html" %}
+{% block title %}Analysis - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Analysis</h1>
+    <p class="mt-1 text-sm text-stone-500">Trends and performance for {{ active_farm_obj.name }}.</p>
+</div>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk, last 7 days</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ milk_week_total }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk, last 30 days</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ milk_month_total }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Avg / cow / week</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ avg_per_cow_week|floatformat:1 }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
+        <p class="mt-1 text-xs text-stone-400">{{ active_cow_count }} active cow{{ active_cow_count|pluralize }}</p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net, last 30 days</p>
+        <p class="mt-2 text-2xl font-extrabold {% if net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ net }}</p>
+    </div>
+</div>
+
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="font-bold text-stone-900">Daily milk yield - last 7 days</h2>
+    <div class="mt-6 flex items-end justify-between gap-3 border-b border-stone-100 pb-2" style="height: 10rem;">
+        {% for row in milk_trend %}
+        <div class="flex h-full flex-1 flex-col items-center justify-end gap-2">
+            <span class="text-xs font-semibold text-stone-500">{{ row.total|default:0 }}</span>
+            <div class="w-full rounded-t-lg bg-emerald-500" style="height: {% widthratio row.total max_milk 100 %}%; min-height: 2px;"></div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="mt-2 flex justify-between gap-3">
+        {% for row in milk_trend %}
+        <span class="flex-1 text-center text-xs font-medium text-stone-400">{{ row.date|date:"D" }}</span>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 class="font-bold text-stone-900">Top producing cows (30 days)</h2>
+        <div class="mt-4 space-y-2">
+            {% for cow in top_cows %}
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
+                <a href="{% url 'cows:cow_detail' cow.id %}" class="font-semibold text-stone-700 hover:text-emerald-700">
+                    {{ cow.tag_id }}{% if cow.name %} · {{ cow.name }}{% endif %}
+                </a>
+                <span class="font-bold text-emerald-700">{{ cow.total_liters }} L</span>
+            </div>
+            {% empty %}
+            <p class="text-sm text-stone-400">No milk records in the last 30 days.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 class="font-bold text-stone-900">Milk by block (7 days)</h2>
+        <div class="mt-4 space-y-2">
+            {% for block in block_totals %}
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
+                <a href="{% url 'farms:block_detail' block.id %}" class="font-semibold text-stone-700 hover:text-emerald-700">{{ block.name }}</a>
+                <span class="font-bold text-emerald-700">{{ block.week_liters|default:0 }} L</span>
+            </div>
+            {% empty %}
+            <p class="text-sm text-stone-400">No blocks yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 class="font-bold text-stone-900">Feed usage, last 7 days</h2>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+            <div class="rounded-xl bg-amber-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Dairy meal</p>
+                <p class="mt-1 text-xl font-extrabold text-amber-800">{{ feed_meal_week }} kg</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Silage/Hay</p>
+                <p class="mt-1 text-xl font-extrabold text-amber-800">{{ feed_silage_week }} kg</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 class="font-bold text-stone-900">Low stock alerts</h2>
+        <div class="mt-4 space-y-2">
+            {% for item in low_stock_items %}
+            <a href="{% url 'inventory:item_detail' item.id %}" class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm hover:border-red-200">
+                <span class="font-semibold text-red-700">{{ item.name }}</span>
+                <span class="text-red-600">{{ item.current_stock }} {{ item.get_unit_display }} left</span>
+            </a>
+            {% empty %}
+            <p class="text-sm text-stone-400">Nothing is running low.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="font-bold text-stone-900">Finance, last 30 days</h2>
+    <div class="mt-4 grid grid-cols-3 gap-3">
+        <div class="rounded-xl bg-stone-50 p-4 text-center">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Income</p>
+            <p class="mt-1 text-xl font-extrabold text-emerald-700">{{ income }}</p>
+        </div>
+        <div class="rounded-xl bg-stone-50 p-4 text-center">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Expense</p>
+            <p class="mt-1 text-xl font-extrabold text-red-600">{{ expense }}</p>
+        </div>
+        <div class="rounded-xl bg-stone-50 p-4 text-center">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net</p>
+            <p class="mt-1 text-xl font-extrabold {% if net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ net }}</p>
+        </div>
+    </div>
+    <a href="{% url 'finance:transaction_list' %}" class="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all transactions →</a>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "app_base.html" %}
+{% block title %}{% if activity %}Edit crop activity{% else %}Log crop activity{% endif %} - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mx-auto max-w-lg rounded-2xl border border-stone-200 bg-white p-8">
+    <h1 class="text-xl font-extrabold text-stone-900">{% if activity %}Edit crop activity{% else %}Log a crop activity{% endif %}</h1>
+
+    {% if form.non_field_errors %}
+    <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="mt-6" novalidate>
+        {% csrf_token %}
+        <div class="mb-4">
+            <label for="{{ form.crop.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Crop *</label>
+            {{ form.crop }}
+            {% for error in form.crop.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="mb-4 grid grid-cols-2 gap-4">
+            <div>
+                <label for="{{ form.date.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Date *</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ form.activity_type.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Activity *</label>
+                {{ form.activity_type }}
+                {% for error in form.activity_type.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+        </div>
+        <div id="harvest-qty-field" class="mb-4 hidden">
+            <label for="{{ form.quantity_harvested_kg.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Harvested (kg)</label>
+            {{ form.quantity_harvested_kg }}
+            {% for error in form.quantity_harvested_kg.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="mb-6">
+            <label for="{{ form.notes.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Notes</label>
+            {{ form.notes }}
+            {% for error in form.notes.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <button type="submit" class="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-emerald-950 hover:bg-amber-400">
+            Save activity →
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        var typeSelect = document.getElementById('{{ form.activity_type.id_for_label }}');
+        var qtyField = document.getElementById('harvest-qty-field');
+        function syncHarvestField() {
+            if (!typeSelect || !qtyField) return;
+            qtyField.classList.toggle('hidden', typeSelect.value !== 'harvesting');
+        }
+        if (typeSelect) {
+            typeSelect.addEventListener('change', syncHarvestField);
+            syncHarvestField();
+        }
+    })();
+</script>
+{% endblock %}

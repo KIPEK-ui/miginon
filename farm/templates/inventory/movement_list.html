@@ -1,0 +1,58 @@
+{% extends "app_base.html" %}
+{% block title %}Stock movements - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Stock movements</h1>
+        <p class="mt-1 text-sm text-stone-500">Restocks, usage and corrections across all inventory items.</p>
+    </div>
+    {% if active_membership.can_record_production %}
+    <a href="{% url 'inventory:movement_create' %}" class="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-bold text-emerald-950 hover:bg-amber-400">+ Record movement</a>
+    {% endif %}
+</div>
+
+<div class="rounded-2xl border border-stone-200 bg-white">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400">
+                <tr>
+                    <th class="px-6 py-3">Date</th>
+                    <th class="px-6 py-3">Item</th>
+                    <th class="px-6 py-3">Type</th>
+                    <th class="px-6 py-3">Quantity</th>
+                    <th class="px-6 py-3">Note</th>
+                    {% if active_membership.can_edit_or_delete %}<th class="px-6 py-3"></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-100">
+                {% for m in movements %}
+                <tr>
+                    <td class="px-6 py-3 text-stone-600">{{ m.date }}</td>
+                    <td class="px-6 py-3 font-semibold text-stone-800">
+                        <a href="{% url 'inventory:item_detail' m.item_id %}" class="hover:text-emerald-700">{{ m.item.name }}</a>
+                    </td>
+                    <td class="px-6 py-3">
+                        <span class="rounded-full px-2.5 py-1 text-xs font-bold
+                            {% if m.movement_type == 'in' %}bg-emerald-50 text-emerald-700
+                            {% elif m.movement_type == 'out' %}bg-amber-50 text-amber-700
+                            {% else %}bg-stone-100 text-stone-600{% endif %}">
+                            {{ m.get_movement_type_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-3 text-stone-600">{{ m.quantity }} {{ m.item.get_unit_display }}</td>
+                    <td class="px-6 py-3 text-stone-500">{{ m.note|default:"—" }}</td>
+                    {% if active_membership.can_edit_or_delete %}
+                    <td class="px-6 py-3 text-right">
+                        {% url 'inventory:movement_delete' m.id as delete_url %}
+                        {% include "partials/delete_button.html" with url=delete_url label="stock movement" %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="px-6 py-8 text-center text-stone-400">No movements recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

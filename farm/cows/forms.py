@@ -1,0 +1,97 @@
+from django import forms
+
+from core.formhelpers import TailwindFormMixin
+from farms.models import Block
+
+from .models import Cow, FeedingRecord, MilkRecord
+
+
+class CowForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = Cow
+        fields = ['block', 'tag_id', 'name', 'breed', 'date_of_birth', 'status']
+        widgets = {
+            'tag_id': forms.TextInput(attrs={'placeholder': 'e.g. C-014'}),
+            'name': forms.TextInput(attrs={'placeholder': 'Optional'}),
+            'breed': forms.TextInput(attrs={'placeholder': 'e.g. Friesian'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if farm is not None:
+            self.fields['block'].queryset = farm.blocks.all()
+
+
+class CowChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, cow):
+        label = f'{cow.tag_id} - {cow.name}' if cow.name else cow.tag_id
+        return f'{label} ({cow.block.name})'
+
+
+class FeedingRecordForm(TailwindFormMixin, forms.ModelForm):
+    cows = forms.ModelMultipleChoiceField(
+        queryset=Cow.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        error_messages={'required': 'Select at least one cow that was fed.'},
+    )
+
+    class Meta:
+        model = FeedingRecord
+        fields = ['block', 'date', 'session', 'cows', 'dairy_meal_kg', 'silage_hay_kg']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if farm is not None:
+            self.fields['block'].queryset = farm.blocks.all()
+            self.fields['block'].empty_label = None
+            self.fields['cows'].queryset = (
+                farm.cows.filter(status=Cow.Status.ACTIVE).select_related('block').order_by('block__name', 'tag_id')
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        block = cleaned.get('block')
+        cows = cleaned.get('cows')
+        if block and cows:
+            mismatched = [c for c in cows if c.block_id != block.id]
+            if mismatched:
+                names = ', '.join(c.tag_id for c in mismatched)
+                raise forms.ValidationError(
+                    f'{names} does not belong to {block.name}. Pick cows from the selected block only.'
+                )
+        return cleaned
+
+
+class MilkRecordForm(TailwindFormMixin, forms.ModelForm):
+    cow = CowChoiceField(queryset=Cow.objects.none())
+
+    class Meta:
+        model = MilkRecord
+        fields = ['cow', 'date', 'session', 'liters']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if farm is not None:
+            self.fields['cow'].queryset = (
+                farm.cows.filter(status=Cow.Status.ACTIVE).select_related('block').order_by('block__name', 'tag_id')
+            )
+
+
+class CowTransferForm(TailwindFormMixin, forms.Form):
+    to_block = forms.ModelChoiceField(queryset=Block.objects.none(), label='Move to block')
+    note = forms.CharField(
+        max_length=255, required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Optional reason, e.g. calving, herd rebalancing'})
+    )
+
+    def __init__(self, *args, cow=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if cow is not None:
+            self.fields['to_block'].queryset = cow.farm.blocks.exclude(id=cow.block_id)

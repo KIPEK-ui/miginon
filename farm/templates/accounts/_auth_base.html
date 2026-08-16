@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="flex min-h-screen flex-col bg-farm-gradient">
+    <div class="pointer-events-none absolute inset-0 opacity-[0.12]" style="background-image: radial-gradient(circle, rgba(255,255,255,.6) 1px, transparent 1px); background-size: 26px 26px;"></div>
+    {% include "partials/public_nav.html" %}
+
+    <main class="relative z-10 flex flex-1 items-center justify-center px-4 pb-16">
+        <div class="w-full max-w-md">
+            {% block progress %}{% endblock %}
+            <div class="rounded-3xl border border-white/10 bg-white p-8 shadow-soft sm:p-10">
+                <div class="mb-6 text-center">
+                    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-2xl text-emerald-700">
+                        {% block icon %}<ion-icon name="leaf-outline"></ion-icon>{% endblock %}
+                    </div>
+                    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">{% block heading %}{% endblock %}</h1>
+                    <p class="mt-2 text-sm text-stone-500">{% block subheading %}{% endblock %}</p>
+                </div>
+                {% block form_content %}{% endblock %}
+            </div>
+            {% block below_card %}{% endblock %}
+        </div>
+    </main>
+</div>
+{% endblock %}

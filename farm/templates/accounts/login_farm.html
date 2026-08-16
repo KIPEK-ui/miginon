@@ -1,0 +1,22 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Sign in - Miginon Farm{% endblock %}
+{% block progress %}
+{% include "partials/step_progress.html" with step=1 labels="123"|make_list %}
+{% endblock %}
+{% block heading %}Sign in to your farm{% endblock %}
+{% block subheading %}Enter your Farm ID to get started. It's the 8-character code you received when the farm was set up.{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
+        Continue →
+    </button>
+</form>
+{% endblock %}
+{% block below_card %}
+<div class="mt-6 space-y-2 text-center text-sm text-emerald-50/90">
+    <p>New to Miginon Farm? <a href="{% url 'accounts:signup_account' %}" class="font-bold text-white underline underline-offset-2">Create your farm</a></p>
+    <p><a href="{% url 'accounts:admin_login' %}" class="text-emerald-100/70 hover:text-white">Platform admin sign in</a></p>
+</div>
+{% endblock %}

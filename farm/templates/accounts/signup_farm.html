@@ -1,0 +1,22 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Tell us about your farm - Miginon Farm{% endblock %}
+{% block progress %}
+{% include "partials/step_progress.html" with step=2 labels="1234"|make_list %}
+{% endblock %}
+{% block icon %}<ion-icon name="business-outline"></ion-icon>{% endblock %}
+{% block heading %}Tell us about your farm{% endblock %}
+{% block subheading %}We'll generate a unique Farm ID from your farm's name.{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
+        Continue →
+    </button>
+</form>
+{% endblock %}
+{% block below_card %}
+<div class="mt-6 text-center text-sm text-emerald-50/90">
+    <a href="{% url 'accounts:signup_account' %}" class="text-emerald-100/70 hover:text-white">← Back</a>
+</div>
+{% endblock %}

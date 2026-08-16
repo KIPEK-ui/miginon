@@ -1,0 +1,465 @@
+from django.contrib import messages
+from django.contrib.auth import login as django_login
+from django.contrib.auth import logout as django_logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
+from farms.models import Farm, FarmMembership, FarmRole
+
+from .forms import (
+    EmailChangeForm,
+    EmailLoginForm,
+    FarmCodeForm,
+    OTPForm,
+    ProfileForm,
+    SignupAccountForm,
+    SignupFarmForm,
+)
+from .models import EmailOTP, User
+from .services import can_resend, issue_otp
+
+SIGNUP_ACCOUNT_KEY = 'signup_account'
+SIGNUP_FARM_KEY = 'signup_farm'
+EMAIL_CHANGE_KEY = 'pending_new_email'
+
+
+def _already_authenticated_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('farms:dashboard')
+    return None
+
+
+# ---------------------------------------------------------------- farm login
+
+def login_farm(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    form = FarmCodeForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        code = form.cleaned_data['code']
+        try:
+            farm = Farm.objects.get(code=code, is_active=True)
+        except Farm.DoesNotExist:
+            form.add_error('code', "We couldn't find a farm with that ID. Double-check the code and try again.")
+        else:
+            request.session['login_farm_id'] = farm.id
+            request.session['login_farm_code'] = farm.code
+            request.session['login_farm_name'] = farm.name
+            request.session.pop('login_email', None)
+            request.session.pop('login_role', None)
+            return redirect('accounts:login_email')
+
+    return render(request, 'accounts/login_farm.html', {'form': form, 'step': 1})
+
+
+def login_email(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    farm_id = request.session.get('login_farm_id')
+    if not farm_id:
+        return redirect('accounts:login_farm')
+    farm = Farm.objects.filter(id=farm_id, is_active=True).first()
+    if not farm:
+        return redirect('accounts:login_farm')
+
+    form = EmailLoginForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        email = form.cleaned_data['email']
+        membership = (
+            FarmMembership.objects.filter(
+                farm=farm, user__email=email, status=FarmMembership.Status.ACTIVE
+            )
+            .select_related('user')
+            .first()
+        )
+        if not membership:
+            form.add_error(
+                'email',
+                f"No account found for this email at {farm.name}. "
+                "Ask the farm owner to add you as a worker, or sign up to create your own farm."
+            )
+        else:
+            issue_otp(email, EmailOTP.Purpose.LOGIN, farm=farm)
+            request.session['login_email'] = email
+            request.session['login_role'] = membership.get_role_display()
+            messages.success(request, f'A 6-digit code was sent to {email}.')
+            return redirect('accounts:login_otp')
+
+    return render(request, 'accounts/login_email.html', {'form': form, 'farm': farm, 'step': 2})
+
+
+def login_otp(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    farm_id = request.session.get('login_farm_id')
+    email = request.session.get('login_email')
+    if not farm_id or not email:
+        return redirect('accounts:login_farm')
+    farm = Farm.objects.filter(id=farm_id, is_active=True).first()
+    if not farm:
+        return redirect('accounts:login_farm')
+
+    form = OTPForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        code = form.cleaned_data['code']
+        otp = (
+            EmailOTP.objects.filter(email=email, farm=farm, purpose=EmailOTP.Purpose.LOGIN, is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+        if not otp or not otp.is_valid():
+            form.add_error('code', 'That code has expired. Request a new one below.')
+        elif otp.code != code:
+            otp.register_failed_attempt()
+            form.add_error('code', 'Incorrect code. Please try again.')
+        else:
+            otp.is_used = True
+            otp.save(update_fields=['is_used'])
+            user = User.objects.get(email=email)
+            user.last_login_at = timezone.now()
+            user.save(update_fields=['last_login_at'])
+            django_login(request, user)
+            request.session['active_farm_id'] = farm.id
+            for key in ('login_farm_id', 'login_farm_code', 'login_farm_name', 'login_email', 'login_role'):
+                request.session.pop(key, None)
+            messages.success(request, f'Welcome back, {user.get_short_name()}!')
+            return redirect('farms:dashboard')
+
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=farm, purpose=EmailOTP.Purpose.LOGIN)
+        .order_by('-created_at')
+        .first()
+    )
+    context = {
+        'form': form,
+        'farm': farm,
+        'email': email,
+        'role': request.session.get('login_role'),
+        'step': 3,
+        'can_resend': can_resend(last_otp),
+    }
+    return render(request, 'accounts/login_otp.html', context)
+
+
+def resend_login_otp(request):
+    if request.method != 'POST':
+        return redirect('accounts:login_farm')
+    farm_id = request.session.get('login_farm_id')
+    email = request.session.get('login_email')
+    if not farm_id or not email:
+        return redirect('accounts:login_farm')
+    farm = Farm.objects.filter(id=farm_id).first()
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=farm, purpose=EmailOTP.Purpose.LOGIN)
+        .order_by('-created_at')
+        .first()
+    )
+    if can_resend(last_otp):
+        issue_otp(email, EmailOTP.Purpose.LOGIN, farm=farm)
+        messages.success(request, 'A new code is on its way.')
+    else:
+        messages.warning(request, 'Please wait a little before requesting another code.')
+    return redirect('accounts:login_otp')
+
+
+# ------------------------------------------------------------ platform admin
+
+def admin_login(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    form = EmailLoginForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        email = form.cleaned_data['email']
+        user = User.objects.filter(email=email).first()
+        if not user or not user.is_platform_admin:
+            form.add_error('email', 'No platform admin account matches this email.')
+        else:
+            issue_otp(email, EmailOTP.Purpose.LOGIN, farm=None)
+            request.session['admin_login_email'] = email
+            messages.success(request, f'A 6-digit code was sent to {email}.')
+            return redirect('accounts:admin_login_otp')
+
+    return render(request, 'accounts/admin_login.html', {'form': form})
+
+
+def admin_login_otp(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    email = request.session.get('admin_login_email')
+    if not email:
+        return redirect('accounts:admin_login')
+
+    form = OTPForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        code = form.cleaned_data['code']
+        otp = (
+            EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.LOGIN, is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+        if not otp or not otp.is_valid():
+            form.add_error('code', 'That code has expired. Request a new one below.')
+        elif otp.code != code:
+            otp.register_failed_attempt()
+            form.add_error('code', 'Incorrect code. Please try again.')
+        else:
+            otp.is_used = True
+            otp.save(update_fields=['is_used'])
+            user = User.objects.get(email=email)
+            django_login(request, user)
+            request.session.pop('admin_login_email', None)
+            return redirect('farms:dashboard')
+
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.LOGIN)
+        .order_by('-created_at')
+        .first()
+    )
+    context = {'form': form, 'email': email, 'can_resend': can_resend(last_otp)}
+    return render(request, 'accounts/admin_login_otp.html', context)
+
+
+def resend_admin_otp(request):
+    if request.method != 'POST':
+        return redirect('accounts:admin_login')
+    email = request.session.get('admin_login_email')
+    if not email:
+        return redirect('accounts:admin_login')
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.LOGIN)
+        .order_by('-created_at')
+        .first()
+    )
+    if can_resend(last_otp):
+        issue_otp(email, EmailOTP.Purpose.LOGIN, farm=None)
+        messages.success(request, 'A new code is on its way.')
+    else:
+        messages.warning(request, 'Please wait a little before requesting another code.')
+    return redirect('accounts:admin_login_otp')
+
+
+# --------------------------------------------------------------------- logout
+
+def logout_view(request):
+    django_logout(request)
+    messages.success(request, 'You have been signed out.')
+    return redirect('core:landing')
+
+
+# ---------------------------------------------------------------- signup wizard
+
+def signup_step_account(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+
+    initial = request.session.get(SIGNUP_ACCOUNT_KEY)
+    form = SignupAccountForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        request.session[SIGNUP_ACCOUNT_KEY] = form.cleaned_data
+        return redirect('accounts:signup_farm')
+    return render(request, 'accounts/signup_account.html', {'form': form, 'step': 1})
+
+
+def signup_step_farm(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+    if SIGNUP_ACCOUNT_KEY not in request.session:
+        return redirect('accounts:signup_account')
+
+    initial = request.session.get(SIGNUP_FARM_KEY)
+    form = SignupFarmForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        request.session[SIGNUP_FARM_KEY] = form.cleaned_data
+        return redirect('accounts:signup_review')
+    return render(request, 'accounts/signup_farm.html', {'form': form, 'step': 2})
+
+
+def signup_review(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+    account = request.session.get(SIGNUP_ACCOUNT_KEY)
+    farm = request.session.get(SIGNUP_FARM_KEY)
+    if not account or not farm:
+        return redirect('accounts:signup_account')
+
+    if request.method == 'POST':
+        issue_otp(account['email'], EmailOTP.Purpose.SIGNUP, farm=None)
+        messages.success(request, f"A 6-digit code was sent to {account['email']}.")
+        return redirect('accounts:signup_otp')
+
+    return render(request, 'accounts/signup_review.html', {'account': account, 'farm': farm, 'step': 3})
+
+
+def signup_otp(request):
+    redirect_resp = _already_authenticated_redirect(request)
+    if redirect_resp:
+        return redirect_resp
+    account = request.session.get(SIGNUP_ACCOUNT_KEY)
+    farm_data = request.session.get(SIGNUP_FARM_KEY)
+    if not account or not farm_data:
+        return redirect('accounts:signup_account')
+
+    email = account['email']
+    form = OTPForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        code = form.cleaned_data['code']
+        otp = (
+            EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.SIGNUP, is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+        if not otp or not otp.is_valid():
+            form.add_error('code', 'That code has expired. Request a new one below.')
+        elif otp.code != code:
+            otp.register_failed_attempt()
+            form.add_error('code', 'Incorrect code. Please try again.')
+        else:
+            otp.is_used = True
+            otp.save(update_fields=['is_used'])
+
+            user = User.objects.create_user(
+                email=email,
+                first_name=account['first_name'],
+                last_name=account.get('last_name', ''),
+                phone=account.get('phone', ''),
+            )
+            farm = Farm.objects.create(
+                name=farm_data['farm_name'],
+                owner=user,
+                location=farm_data.get('location', ''),
+                county=farm_data.get('county', ''),
+            )
+            FarmMembership.objects.create(
+                user=user, farm=farm, role=FarmRole.FARMER, status=FarmMembership.Status.ACTIVE,
+            )
+            django_login(request, user)
+            request.session['active_farm_id'] = farm.id
+            request.session['new_farm_id'] = farm.id
+            for key in (SIGNUP_ACCOUNT_KEY, SIGNUP_FARM_KEY):
+                request.session.pop(key, None)
+            return redirect('farms:signup_complete')
+
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.SIGNUP)
+        .order_by('-created_at')
+        .first()
+    )
+    context = {'form': form, 'email': email, 'step': 4, 'can_resend': can_resend(last_otp)}
+    return render(request, 'accounts/signup_otp.html', context)
+
+
+def resend_signup_otp(request):
+    if request.method != 'POST':
+        return redirect('accounts:signup_account')
+    account = request.session.get(SIGNUP_ACCOUNT_KEY)
+    if not account:
+        return redirect('accounts:signup_account')
+    email = account['email']
+    last_otp = (
+        EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.SIGNUP)
+        .order_by('-created_at')
+        .first()
+    )
+    if can_resend(last_otp):
+        issue_otp(email, EmailOTP.Purpose.SIGNUP, farm=None)
+        messages.success(request, 'A new code is on its way.')
+    else:
+        messages.warning(request, 'Please wait a little before requesting another code.')
+    return redirect('accounts:signup_otp')
+
+
+# --------------------------------------------------------------------- settings
+
+@login_required
+def settings_view(request):
+    form = ProfileForm(request.POST or None, instance=request.user)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Profile updated.')
+        return redirect('accounts:settings')
+    return render(request, 'accounts/settings.html', {'form': form})
+
+
+@login_required
+def settings_email(request):
+    form = EmailChangeForm(request.POST or None, user=request.user)
+    if request.method == 'POST' and form.is_valid():
+        new_email = form.cleaned_data['new_email']
+        issue_otp(new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None)
+        request.session[EMAIL_CHANGE_KEY] = new_email
+        messages.success(request, f'A 6-digit code was sent to {new_email}.')
+        return redirect('accounts:settings_email_otp')
+    return render(request, 'accounts/settings_email.html', {'form': form})
+
+
+@login_required
+def settings_email_otp(request):
+    new_email = request.session.get(EMAIL_CHANGE_KEY)
+    if not new_email:
+        return redirect('accounts:settings_email')
+
+    form = OTPForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        code = form.cleaned_data['code']
+        otp = (
+            EmailOTP.objects.filter(email=new_email, farm=None, purpose=EmailOTP.Purpose.EMAIL_CHANGE, is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+        if not otp or not otp.is_valid():
+            form.add_error('code', 'That code has expired. Request a new one below.')
+        elif otp.code != code:
+            otp.register_failed_attempt()
+            form.add_error('code', 'Incorrect code. Please try again.')
+        elif User.objects.filter(email=new_email).exists():
+            form.add_error(None, 'That email was just taken by another account.')
+        else:
+            otp.is_used = True
+            otp.save(update_fields=['is_used'])
+            request.user.email = new_email
+            request.user.save(update_fields=['email'])
+            request.session.pop(EMAIL_CHANGE_KEY, None)
+            messages.success(request, 'Your email address has been updated.')
+            return redirect('accounts:settings')
+
+    last_otp = (
+        EmailOTP.objects.filter(email=new_email, farm=None, purpose=EmailOTP.Purpose.EMAIL_CHANGE)
+        .order_by('-created_at')
+        .first()
+    )
+    context = {'form': form, 'email': new_email, 'can_resend': can_resend(last_otp)}
+    return render(request, 'accounts/settings_email_otp.html', context)
+
+
+@login_required
+def resend_settings_email_otp(request):
+    if request.method != 'POST':
+        return redirect('accounts:settings_email')
+    new_email = request.session.get(EMAIL_CHANGE_KEY)
+    if not new_email:
+        return redirect('accounts:settings_email')
+    last_otp = (
+        EmailOTP.objects.filter(email=new_email, farm=None, purpose=EmailOTP.Purpose.EMAIL_CHANGE)
+        .order_by('-created_at')
+        .first()
+    )
+    if can_resend(last_otp):
+        issue_otp(new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None)
+        messages.success(request, 'A new code is on its way.')
+    else:
+        messages.warning(request, 'Please wait a little before requesting another code.')
+    return redirect('accounts:settings_email_otp')

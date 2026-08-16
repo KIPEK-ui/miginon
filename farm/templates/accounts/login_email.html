@@ -1,0 +1,22 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Sign in - Miginon Farm{% endblock %}
+{% block progress %}
+{% include "partials/step_progress.html" with step=2 labels="123"|make_list %}
+{% endblock %}
+{% block icon %}<ion-icon name="mail-outline"></ion-icon>{% endblock %}
+{% block heading %}What's your email?{% endblock %}
+{% block subheading %}Signing in to <span class="font-semibold text-stone-700">{{ farm.name }}</span> ({{ farm.code }}).{% endblock %}
+{% block form_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
+        Send login code →
+    </button>
+</form>
+{% endblock %}
+{% block below_card %}
+<div class="mt-6 text-center text-sm text-emerald-50/90">
+    <a href="{% url 'accounts:login_farm' %}" class="text-emerald-100/70 hover:text-white">← Use a different Farm ID</a>
+</div>
+{% endblock %}
