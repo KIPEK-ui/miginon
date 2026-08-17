@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
+.env.local
 media/
 staticfiles/
+.vercel
 .DS_Store

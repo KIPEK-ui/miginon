@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+
 import environ
 from pathlib import Path
 
@@ -17,7 +19,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, True))
-environ.Env.read_env(BASE_DIR / '.env')
+# `vercel pull` writes secrets to .env.local (see Vercel's Django docs); use
+# that when present, otherwise fall back to the regular gitignored .env used
+# for local development.
+_env_file = BASE_DIR / '.env.local'
+if not _env_file.exists():
+    _env_file = BASE_DIR / '.env'
+environ.Env.read_env(_env_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -29,6 +37,24 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-f&m&sa@54lk4e$o^)n(8lh!9
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+# Vercel assigns every deployment (production + each preview) its own
+# <name>.vercel.app host, exposed to the running app via VERCEL_URL - accept
+# it automatically so previews don't need ALLOWED_HOSTS updated by hand.
+_vercel_url = os.environ.get('VERCEL_URL')
+if _vercel_url:
+    ALLOWED_HOSTS.append(_vercel_url)
+
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+if _vercel_url:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_vercel_url}')
+
+# Vercel terminates TLS and proxies to the app over HTTP, forwarding the
+# original scheme in this header - without it, request.is_secure() and every
+# request.build_absolute_uri() call (used throughout the email templates for
+# login/dashboard links) would wrongly resolve to http:// in production.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 # Application definition
@@ -90,12 +116,10 @@ WSGI_APPLICATION = 'farm.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# DATABASE_URL is set by Vercel (Neon integration) in production; falls back
+# to the local SQLite file when it's absent, e.g. plain `manage.py runserver`.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
 
 
@@ -135,6 +159,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+# Vercel runs `collectstatic` into STATIC_ROOT automatically during the build
+# and serves the result from its CDN - no extra config needed on our side.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -154,15 +181,17 @@ LOGOUT_REDIRECT_URL = 'core:landing'
 
 # Email
 # In development (no .env), OTP/welcome/report emails just print to the
-# console. Production sends through Zoho Mail - see .env.example for the
-# real credentials, which live only in .env (gitignored), never here.
+# console. Production sends through ZeptoMail (Zoho's transactional email
+# API/SMTP service, built for automated app sending unlike a regular Zoho
+# Mail mailbox) - see .env.example for the real credentials, which live only
+# in .env / .env.local, never here.
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.zoho.com')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.zeptomail.com')
 EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <info@farmiq.solutions>')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <noreply@farmiq.solutions>')
 
 OTP_VALIDITY_MINUTES = 10
 OTP_MAX_ATTEMPTS = 5
