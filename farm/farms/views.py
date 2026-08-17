@@ -1,15 +1,21 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
+from core.email import send_styled_email_safely
 from cows.models import Cow, FeedingRecord, MilkRecord
+from crops.models import Crop, CropActivity
+from finance.models import Transaction
+from inventory.models import InventoryItem, StockMovement
 from notifications.models import Notification
 from notifications.services import notify
 
 from .forms import BlockForm, FarmForm, FarmSettingsForm, WorkerInviteForm, WorkerRoleForm
+from .kenya_data import COUNTY_TOWNS
 from .models import Block, Farm, FarmMembership, FarmRole
 from .permissions import (
     any_member_required,
@@ -22,8 +28,39 @@ from .permissions import (
 )
 from .services import send_worker_added_email
 
-
 # --------------------------------------------------------------------- home
+#
+# Every "log a record" action on the dashboard is driven from this one list
+# rather than a pile of copy-pasted {% if %} blocks in the template. Each
+# entry's `permission` is checked against the viewer's FarmMembership, so
+# adding a new loggable record type (or changing who may log it) is a
+# one-line change here instead of a template edit - this is the same
+# role-abstraction pattern as FarmMembership.can_record_production itself,
+# just applied to "which buttons does this role see" rather than "can this
+# request proceed".
+QUICK_ACTIONS = [
+    {
+        'label': 'Log milk', 'url_name': 'cows:milk_create', 'icon': 'water-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': 'Log feed', 'url_name': 'cows:feeding_create', 'icon': 'nutrition-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': 'Log crop activity', 'url_name': 'crops:activity_create', 'icon': 'flower-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': 'Record stock movement', 'url_name': 'inventory:movement_create', 'icon': 'swap-horizontal-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': 'Log expense', 'url_name': 'finance:transaction_create', 'icon': 'cash-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+]
+
 
 @login_required
 def dashboard(request):
@@ -37,6 +74,7 @@ def dashboard(request):
 
     farm = membership.farm
     today = timezone.now().date()
+    month_start = today.replace(day=1)
 
     milk_today = MilkRecord.objects.filter(farm=farm, date=today).aggregate(total=Sum('liters'))['total'] or 0
     feed_today = FeedingRecord.objects.filter(farm=farm, date=today).count()
@@ -44,9 +82,26 @@ def dashboard(request):
     recent_milk = MilkRecord.objects.filter(farm=farm).select_related('cow', 'block')[:6]
     recent_feed = FeedingRecord.objects.filter(farm=farm).select_related('block')[:6]
 
+    crop_count = Crop.objects.filter(farm=farm).count()
+    recent_crop_activity = CropActivity.objects.filter(farm=farm).select_related('crop')[:6]
+
+    low_stock_items = [item for item in InventoryItem.objects.filter(farm=farm) if item.is_low_stock]
+    recent_stock_movements = StockMovement.objects.filter(farm=farm).select_related('item')[:6]
+
+    month_totals = Transaction.objects.filter(farm=farm, date__gte=month_start).aggregate(
+        income=Sum('amount', filter=Q(kind=Transaction.Kind.INCOME)),
+        expense=Sum('amount', filter=Q(kind=Transaction.Kind.EXPENSE)),
+    )
+    month_income = month_totals['income'] or 0
+    month_expense = month_totals['expense'] or 0
+    recent_transactions = Transaction.objects.filter(farm=farm)[:6]
+
+    quick_actions = [action for action in QUICK_ACTIONS if action['permission'](membership)]
+
     context = {
         'membership': membership,
         'farm': farm,
+        'quick_actions': quick_actions,
         'blocks': blocks,
         'block_count': blocks.count(),
         'cow_count': Cow.objects.filter(farm=farm, status=Cow.Status.ACTIVE).count(),
@@ -54,6 +109,14 @@ def dashboard(request):
         'feed_today': feed_today,
         'recent_milk': recent_milk,
         'recent_feed': recent_feed,
+        'crop_count': crop_count,
+        'recent_crop_activity': recent_crop_activity,
+        'low_stock_items': low_stock_items,
+        'recent_stock_movements': recent_stock_movements,
+        'month_income': month_income,
+        'month_expense': month_expense,
+        'month_net': month_income - month_expense,
+        'recent_transactions': recent_transactions,
         'worker_count': FarmMembership.objects.filter(
             farm=farm, status=FarmMembership.Status.ACTIVE
         ).exclude(role=FarmRole.FARMER).count(),
@@ -81,12 +144,24 @@ def admin_toggle_farm(request, farm_id):
     if request.method == 'POST':
         farm.is_active = not farm.is_active
         farm.save(update_fields=['is_active'])
+        # A platform admin disabling/enabling a farm is exactly the kind of
+        # thing its own team should be able to see happened, and why their
+        # farm suddenly stopped/started working - so it goes in the farm's
+        # own notification feed too, not just an admin-side log.
+        notify(
+            farm, request.user, Notification.Verb.UPDATED, 'farm',
+            f'{farm.name} was {"reactivated" if farm.is_active else "disabled"} by platform admin'
+        )
         messages.success(request, f'{farm.name} is now {"active" if farm.is_active else "disabled"}.')
     return redirect('farms:admin_dashboard')
 
 
 @platform_admin_required
 def admin_toggle_user(request, user_id):
+    # Not farm-scoped on purpose: a platform user can belong to several
+    # farms (or none), so there's no single farm feed this event belongs
+    # in - Notification always requires exactly one farm. This action stays
+    # visible via Django admin's own history instead.
     user = get_object_or_404(User, id=user_id)
     if request.method == 'POST' and user != request.user:
         user.is_active = not user.is_active
@@ -117,15 +192,16 @@ def add_farm(request):
         farm = Farm.objects.create(
             name=form.cleaned_data['farm_name'],
             owner=request.user,
-            location=form.cleaned_data['location'],
+            country=form.cleaned_data['country'],
             county=form.cleaned_data['county'],
+            location=form.cleaned_data['location'],
         )
         FarmMembership.objects.create(user=request.user, farm=farm, role=FarmRole.FARMER)
         request.session['active_farm_id'] = farm.id
         notify(farm, request.user, Notification.Verb.CREATED, 'farm', farm.name)
         messages.success(request, f'{farm.name} was created. Your farm ID is {farm.code}.')
         return redirect('farms:setup_block')
-    return render(request, 'farms/add_farm.html', {'form': form})
+    return render(request, 'farms/add_farm.html', {'form': form, 'county_towns': COUNTY_TOWNS})
 
 
 # --------------------------------------------------------------- farm settings
@@ -144,7 +220,7 @@ def farm_settings(request):
         notify(farm, request.user, Notification.Verb.UPDATED, 'farm', farm.name)
         messages.success(request, 'Farm details updated.')
         return redirect('accounts:settings')
-    return render(request, 'farms/farm_settings.html', {'form': form, 'farm': farm})
+    return render(request, 'farms/farm_settings.html', {'form': form, 'farm': farm, 'county_towns': COUNTY_TOWNS})
 
 
 # ---------------------------------------------------------- signup onboarding
@@ -164,6 +240,18 @@ def setup_block(request):
     if not membership or not membership.can_manage_herd:
         return redirect('farms:dashboard')
     farm = membership.farm
+    blocks = Block.objects.filter(farm=farm).order_by('-created_at')
+
+    wants_to_finish = request.method == 'POST' and 'finish' in request.POST
+    name_provided = request.POST.get('name', '').strip() if request.method == 'POST' else ''
+
+    # "Continue to cows" just needs at least one block to already exist - if
+    # they didn't type a new one, there's nothing to validate, they're just
+    # moving on. A blank name only blocks progress when the field is
+    # actually needed (no blocks yet, or they're using "+ Add block").
+    if wants_to_finish and not name_provided and blocks.exists():
+        return redirect('farms:setup_cow')
+
     form = BlockForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         block = form.save(commit=False)
@@ -172,12 +260,35 @@ def setup_block(request):
         block.save()
         notify(farm, request.user, Notification.Verb.CREATED, 'block', block.name)
         messages.success(request, f'{block.name} added.')
-        if 'finish' in request.POST:
+        if wants_to_finish:
             return redirect('farms:setup_cow')
         return redirect('farms:setup_block')
 
-    blocks = Block.objects.filter(farm=farm).order_by('-created_at')
     return render(request, 'farms/setup_block.html', {'form': form, 'farm': farm, 'blocks': blocks})
+
+
+def _finish_farm_setup(request, farm):
+    already_completed = farm.setup_completed
+    farm.setup_completed = True
+    farm.save(update_fields=['setup_completed'])
+    request.session.pop('new_farm_id', None)
+    if not already_completed:
+        send_styled_email_safely(
+            to=farm.owner.email,
+            subject=f'🎉 {farm.name} setup complete!',
+            template_name='emails/milestone.html',
+            context={
+                'farm': farm,
+                'title': 'Farm setup complete!',
+                'description': (
+                    f"{farm.name} now has its blocks and cows recorded on Farm IQ. "
+                    "You're ready to start logging milk and feeding records daily."
+                ),
+                'dashboard_url': request.build_absolute_uri(reverse('farms:dashboard')),
+            },
+        )
+    messages.success(request, 'Setup complete! Your dashboard is ready.')
+    return redirect('farms:dashboard')
 
 
 @login_required
@@ -191,6 +302,15 @@ def setup_cow(request):
         messages.info(request, 'Add at least one block first.')
         return redirect('farms:setup_block')
 
+    wants_to_finish = request.method == 'POST' and 'finish' in request.POST
+    tag_provided = request.POST.get('tag_id', '').strip() if request.method == 'POST' else ''
+
+    # Cows aren't a hard requirement to finish setup (unlike blocks) - if
+    # they didn't type a new tag, there's nothing to add, so "Finish setup"
+    # just finishes, whether or not any cows exist yet.
+    if wants_to_finish and not tag_provided:
+        return _finish_farm_setup(request, farm)
+
     from cows.forms import CowForm
     form = CowForm(request.POST or None, farm=farm)
     if request.method == 'POST' and form.is_valid():
@@ -200,12 +320,8 @@ def setup_cow(request):
         cow.save()
         notify(farm, request.user, Notification.Verb.CREATED, 'cow', str(cow))
         messages.success(request, f'{cow} added.')
-        if 'finish' in request.POST:
-            farm.setup_completed = True
-            farm.save(update_fields=['setup_completed'])
-            request.session.pop('new_farm_id', None)
-            messages.success(request, 'Setup complete! Your dashboard is ready.')
-            return redirect('farms:dashboard')
+        if wants_to_finish:
+            return _finish_farm_setup(request, farm)
         return redirect('farms:setup_cow')
 
     cows = Cow.objects.filter(farm=farm).order_by('-created_at')[:10]
@@ -240,7 +356,7 @@ def worker_invite(request):
             new_membership = FarmMembership.objects.create(
                 user=user, farm=request.farm, role=form.cleaned_data['role'], invited_by=request.user,
             )
-            send_worker_added_email(new_membership)
+            send_worker_added_email(new_membership, request)
             notify(
                 request.farm, request.user, Notification.Verb.CREATED, 'worker',
                 f'{user.get_full_name() or email} ({new_membership.get_role_display()})'

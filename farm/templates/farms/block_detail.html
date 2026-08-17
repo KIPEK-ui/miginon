@@ -25,6 +25,7 @@
                 <tr>
                     <th class="px-6 py-3">Tag</th>
                     <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3">Category</th>
                     <th class="px-6 py-3">Breed</th>
                     <th class="px-6 py-3">Status</th>
                 </tr>
@@ -32,15 +33,18 @@
             <tbody class="divide-y divide-stone-100">
                 {% for cow in cows %}
                 <tr>
-                    <td class="px-6 py-3 font-mono font-semibold text-stone-800">{{ cow.tag_id }}</td>
+                    <td class="px-6 py-3 font-mono font-semibold text-stone-800">
+                        <a href="{% url 'cows:cow_detail' cow.id %}" class="hover:text-emerald-700">{{ cow.tag_id }}</a>
+                    </td>
                     <td class="px-6 py-3 text-stone-600">{{ cow.name|default:"—" }}</td>
+                    <td class="px-6 py-3 text-stone-600">{{ cow.get_category_display }}</td>
                     <td class="px-6 py-3 text-stone-500">{{ cow.breed|default:"—" }}</td>
                     <td class="px-6 py-3">
                         <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{{ cow.get_status_display }}</span>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="px-6 py-8 text-center text-stone-400">No cows in this block yet.</td></tr>
+                <tr><td colspan="5" class="px-6 py-8 text-center text-stone-400">No cows in this block yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

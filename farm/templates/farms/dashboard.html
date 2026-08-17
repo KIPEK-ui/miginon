@@ -1,21 +1,23 @@
 {% extends "app_base.html" %}
 {% block title %}Dashboard - {{ farm.name }}{% endblock %}
 {% block app_content %}
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-    <div>
-        <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-stone-900">
-            Welcome back, {{ user.get_short_name }}
-            <ion-icon name="hand-right-outline" class="text-amber-500"></ion-icon>
-        </h1>
-        <p class="mt-1 text-sm text-stone-500">Here's what's happening on {{ farm.name }} today.</p>
-    </div>
-    <div class="flex flex-wrap gap-2">
-        {% if membership.can_record_production %}
-        <a href="{% url 'cows:milk_create' %}" class="rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-800">+ Log milk</a>
-        <a href="{% url 'cows:feeding_create' %}" class="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-bold text-emerald-950 shadow-sm hover:bg-amber-400">+ Log feed</a>
-        {% endif %}
-    </div>
+<div class="mb-6">
+    <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-stone-900">
+        Welcome back, {{ user.get_short_name }}
+        <ion-icon name="hand-right-outline" class="text-amber-500"></ion-icon>
+    </h1>
+    <p class="mt-1 text-sm text-stone-500">Here's what's happening on {{ farm.name }} today.</p>
 </div>
+
+{% if quick_actions %}
+<div class="mb-8 flex flex-wrap gap-2">
+    {% for action in quick_actions %}
+    <a href="{% url action.url_name %}" class="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800">
+        <ion-icon name="{{ action.icon }}"></ion-icon> {{ action.label }}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <div class="rounded-2xl border border-stone-200 bg-white p-5">
@@ -29,6 +31,22 @@
     <div class="rounded-2xl border border-stone-200 bg-white p-5">
         <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk today</p>
         <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ milk_today }}<span class="text-base font-semibold text-stone-400">L</span></p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Feed sessions today</p>
+        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ feed_today }}</p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Crops</p>
+        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ crop_count }}</p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Low stock alerts</p>
+        <p class="mt-2 text-3xl font-extrabold {% if low_stock_items %}text-red-600{% else %}text-stone-900{% endif %}">{{ low_stock_items|length }}</p>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net, this month</p>
+        <p class="mt-2 text-3xl font-extrabold {% if month_net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ month_net }}</p>
     </div>
     <div class="rounded-2xl border border-stone-200 bg-white p-5">
         <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Team members</p>
@@ -74,6 +92,109 @@
         </div>
         {% else %}
         <p class="text-sm text-stone-400">No feeding records yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-bold text-stone-900">Recent crop activity</h2>
+            <a href="{% url 'crops:activity_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+        </div>
+        {% if recent_crop_activity %}
+        <div class="space-y-2">
+            {% for a in recent_crop_activity %}
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
+                <span class="font-semibold text-stone-700">{{ a.crop.name }} · {{ a.get_activity_type_display }}</span>
+                <span class="text-stone-500">{{ a.date }}</span>
+                {% if a.quantity_harvested_kg %}<span class="font-bold text-emerald-700">{{ a.quantity_harvested_kg }}kg</span>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-stone-400">No crop activity yet.
+            {% if membership.can_manage_herd %}<a href="{% url 'crops:crop_create' %}" class="font-semibold text-emerald-700">Add a crop →</a>{% endif %}
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-bold text-stone-900">Recent stock movements</h2>
+            <a href="{% url 'inventory:movement_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+        </div>
+        {% if recent_stock_movements %}
+        <div class="space-y-2">
+            {% for m in recent_stock_movements %}
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
+                <span class="font-semibold text-stone-700">{{ m.item.name }} · {{ m.get_movement_type_display }}</span>
+                <span class="text-stone-500">{{ m.date }}</span>
+                <span class="font-bold text-amber-600">{{ m.quantity }} {{ m.item.get_unit_display }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-stone-400">No stock movements yet.
+            {% if membership.can_manage_herd %}<a href="{% url 'inventory:item_create' %}" class="font-semibold text-emerald-700">Add an item →</a>{% endif %}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-bold text-stone-900">Finance, this month</h2>
+            <a href="{% url 'finance:transaction_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+        </div>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="rounded-xl bg-stone-50 p-3">
+                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Income</p>
+                <p class="mt-1 text-lg font-extrabold text-emerald-700">{{ month_income }}</p>
+            </div>
+            <div class="rounded-xl bg-stone-50 p-3">
+                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Expense</p>
+                <p class="mt-1 text-lg font-extrabold text-red-600">{{ month_expense }}</p>
+            </div>
+            <div class="rounded-xl bg-stone-50 p-3">
+                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net</p>
+                <p class="mt-1 text-lg font-extrabold {% if month_net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ month_net }}</p>
+            </div>
+        </div>
+        {% if recent_transactions %}
+        <div class="mt-4 space-y-2">
+            {% for t in recent_transactions %}
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
+                <span class="font-semibold text-stone-700">{{ t.get_category_display }}</span>
+                <span class="text-stone-500">{{ t.date }}</span>
+                <span class="font-bold {% if t.kind == 'income' %}text-emerald-700{% else %}text-red-600{% endif %}">
+                    {% if t.kind == 'income' %}+{% else %}-{% endif %}{{ t.amount }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-4 text-sm text-stone-400">No transactions logged yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-bold text-stone-900">Low stock alerts</h2>
+            <a href="{% url 'inventory:item_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+        </div>
+        {% if low_stock_items %}
+        <div class="space-y-2">
+            {% for item in low_stock_items %}
+            <a href="{% url 'inventory:item_detail' item.id %}" class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm hover:border-red-200">
+                <span class="font-semibold text-red-700">{{ item.name }}</span>
+                <span class="text-red-600">{{ item.current_stock }} {{ item.get_unit_display }} left</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-stone-400">Nothing is running low.</p>
         {% endif %}
     </div>
 </div>

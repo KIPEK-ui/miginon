@@ -3,9 +3,14 @@ from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
+from core.email import send_styled_email_safely
+from farms.kenya_data import COUNTY_TOWNS
 from farms.models import Farm, FarmMembership, FarmRole
+from notifications.models import Notification
+from notifications.services import notify
 
 from .forms import (
     EmailChangeForm,
@@ -284,7 +289,7 @@ def signup_step_farm(request):
     if request.method == 'POST' and form.is_valid():
         request.session[SIGNUP_FARM_KEY] = form.cleaned_data
         return redirect('accounts:signup_review')
-    return render(request, 'accounts/signup_farm.html', {'form': form, 'step': 2})
+    return render(request, 'accounts/signup_farm.html', {'form': form, 'step': 2, 'county_towns': COUNTY_TOWNS})
 
 
 def signup_review(request):
@@ -301,7 +306,10 @@ def signup_review(request):
         messages.success(request, f"A 6-digit code was sent to {account['email']}.")
         return redirect('accounts:signup_otp')
 
-    return render(request, 'accounts/signup_review.html', {'account': account, 'farm': farm, 'step': 3})
+    return render(
+        request, 'accounts/signup_review.html',
+        {'account': account, 'farm': farm, 'country_name': 'Kenya', 'step': 3},
+    )
 
 
 def signup_otp(request):
@@ -340,11 +348,22 @@ def signup_otp(request):
             farm = Farm.objects.create(
                 name=farm_data['farm_name'],
                 owner=user,
-                location=farm_data.get('location', ''),
+                country=farm_data.get('country', 'KE'),
                 county=farm_data.get('county', ''),
+                location=farm_data.get('location', ''),
             )
             FarmMembership.objects.create(
                 user=user, farm=farm, role=FarmRole.FARMER, status=FarmMembership.Status.ACTIVE,
+            )
+            notify(farm, user, Notification.Verb.CREATED, 'farm', farm.name)
+            send_styled_email_safely(
+                to=user.email,
+                subject=f'Welcome to Farm IQ - your Farm ID is {farm.code}',
+                template_name='emails/welcome.html',
+                context={
+                    'user': user, 'farm': farm,
+                    'login_url': request.build_absolute_uri(reverse('accounts:login_farm')),
+                },
             )
             django_login(request, user)
             request.session['active_farm_id'] = farm.id

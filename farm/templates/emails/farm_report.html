@@ -1,0 +1,56 @@
+{% extends "emails/base_email.html" %}
+{% block title %}{{ report.period_label }} report - {{ farm.name }}{% endblock %}
+{% block preheader %}{{ report.milk.total_liters }}L milk, {{ report.finance.total_income }} income for {{ report.period_label }} - full PDF attached.{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 4px; font-size:20px; font-weight:800; color:#1c1917;">{{ farm.name }}</h1>
+<p style="margin:0 0 24px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#17835a;">{{ report.period_label }} report</p>
+
+<p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#57534e;">
+    Here's the summary for {{ report.start_date }} to {{ report.end_date }}. The full detailed report - milk, feeding, herd, crops, inventory and finance - is attached as a PDF.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td width="50%" style="padding:4px 4px 4px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+                <tr><td style="padding:14px 16px;">
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Milk</span>
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.milk.total_liters }}<span style="font-size:12px; font-weight:600; color:#a8a29e;"> L</span></span>
+                </td></tr>
+            </table>
+        </td>
+        <td width="50%" style="padding:4px 0 4px 4px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+                <tr><td style="padding:14px 16px;">
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Dairy meal</span>
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.feeding.total_dairy_meal_kg }}<span style="font-size:12px; font-weight:600; color:#a8a29e;"> kg</span></span>
+                </td></tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td width="50%" style="padding:4px 4px 4px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+                <tr><td style="padding:14px 16px;">
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Active cows</span>
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.herd.active_cows }}</span>
+                </td></tr>
+            </table>
+        </td>
+        <td width="50%" style="padding:4px 0 4px 4px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+                <tr><td style="padding:14px 16px;">
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Net</span>
+                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:{% if report.finance.net >= 0 %}#146a4a{% else %}#dc2626{% endif %};">{{ report.finance.net }}</span>
+                </td></tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% include "emails/_button.html" with url=analysis_url label="Open full analysis →" %}
+
+<p style="margin:0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    Want this delivered automatically? Reach out and we can talk about scheduling recurring reports.
+</p>
+{% endblock %}

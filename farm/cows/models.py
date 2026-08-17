@@ -15,12 +15,24 @@ class Cow(models.Model):
         SOLD = 'sold', 'Sold'
         DECEASED = 'deceased', 'Deceased'
 
+    class Category(models.TextChoices):
+        CALF = 'calf', 'Calf'
+        HEIFER = 'heifer', 'Heifer'
+        COW = 'cow', 'Cow'
+        BULL = 'bull', 'Bull'
+
+    class Gender(models.TextChoices):
+        FEMALE = 'female', 'Female'
+        MALE = 'male', 'Male'
+
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='cows')
     block = models.ForeignKey(
         'farms.Block', on_delete=models.CASCADE, related_name='cows'
     )
     tag_id = models.CharField(max_length=30, help_text='Ear tag / ID number')
     name = models.CharField(max_length=60, blank=True)
+    category = models.CharField(max_length=10, choices=Category.choices, default=Category.COW)
+    gender = models.CharField(max_length=6, choices=Gender.choices, default=Gender.FEMALE)
     breed = models.CharField(max_length=60, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)

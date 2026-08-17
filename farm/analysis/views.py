@@ -1,14 +1,23 @@
+import logging
 from datetime import timedelta
 
+from django.contrib import messages
 from django.db.models import Q, Sum
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
+from core.email import send_styled_email
 from cows.models import Cow, FeedingRecord, MilkRecord
 from farms.models import Block
 from farms.permissions import analysis_required
 from finance.models import Transaction
 from inventory.models import InventoryItem
+
+from .exporters import build_pdf_bytes, export_csv, export_pdf, export_xlsx
+from .reports import build_report, resolve_period
+
+logger = logging.getLogger(__name__)
 
 
 @analysis_required
@@ -77,5 +86,51 @@ def overview(request):
         'income': income,
         'expense': expense,
         'net': income - expense,
+        'today': today,
+        'current_month': today.strftime('%Y-%m'),
+        'export_years': range(today.year, today.year - 6, -1),
     }
     return render(request, 'analysis/overview.html', context)
+
+
+@analysis_required
+def export(request):
+    period_type = request.GET.get('period_type', 'monthly')
+    export_format = request.GET.get('export_format', 'pdf')
+    start, end, label = resolve_period(period_type, request.GET)
+    report = build_report(request.farm, start, end, label)
+
+    if export_format == 'csv':
+        return export_csv(report)
+    if export_format == 'xlsx':
+        return export_xlsx(report)
+    return export_pdf(report)
+
+
+@analysis_required
+def email_report(request):
+    if request.method != 'POST':
+        return redirect('analysis:overview')
+
+    period_type = request.POST.get('period_type', 'monthly')
+    start, end, label = resolve_period(period_type, request.POST)
+    report = build_report(request.farm, start, end, label)
+    pdf_bytes = build_pdf_bytes(report)
+
+    try:
+        send_styled_email(
+            to=request.user.email,
+            subject=f'{request.farm.name} - {label} report',
+            template_name='emails/farm_report.html',
+            context={
+                'report': report,
+                'farm': request.farm,
+                'analysis_url': request.build_absolute_uri(reverse('analysis:overview')),
+            },
+            attachments=[(f'{request.farm.code}-report.pdf', pdf_bytes, 'application/pdf')],
+        )
+        messages.success(request, f'Report emailed to {request.user.email}.')
+    except Exception:
+        logger.exception('Failed to email farm report')
+        messages.error(request, 'Could not send the report email. Please try again later.')
+    return redirect('analysis:overview')

@@ -1,0 +1,18 @@
+{% extends "emails/base_email.html" %}
+{% block title %}{{ heading }} - Farm IQ{% endblock %}
+{% block preheader %}{{ paragraphs.0|default:heading }}{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 20px; font-size:20px; font-weight:800; color:#1c1917;">{{ heading }}</h1>
+
+{% for paragraph in paragraphs %}
+<p style="margin:0 0 16px; font-size:14px; line-height:1.7; color:#57534e;">{{ paragraph }}</p>
+{% endfor %}
+
+{% if cta_url and cta_text %}
+{% include "emails/_button.html" with url=cta_url label=cta_text %}
+{% endif %}
+
+<p style="margin:16px 0 0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    Hi {{ user.first_name }} - you're getting this as a Farm IQ user. Reply to this email if you have questions.
+</p>
+{% endblock %}

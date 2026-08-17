@@ -1,24 +1,91 @@
 from django import forms
 
-from core.formhelpers import TailwindFormMixin
+from core.formhelpers import SELECT_CLASSES, TailwindFormMixin
 
+from .kenya_data import ALL_TOWN_CHOICES, COUNTY_TOWNS, KENYA_COUNTY_CHOICES
 from .models import Block, Farm, FarmRole
 
+KENYA = 'KE'
 
-class FarmForm(TailwindFormMixin, forms.Form):
+
+class KenyaLocationFieldsMixin:
+    """Adds Country -> County -> Location fields (in that order) to a plain
+    (non-Model) form. The app only supports Kenya for now, so Country is
+    fixed (a hidden field, not a dropdown) rather than pretend to be
+    editable. Location's choices span every town, and JS
+    (see partials/kenya_location_fields.html) narrows the visible options
+    to the selected county - that's just a client-side convenience, so
+    clean() re-checks the pairing is valid server-side too."""
+
+    def add_location_fields(self):
+        self.fields['country'] = forms.CharField(
+            initial=KENYA, widget=forms.HiddenInput(), required=False,
+        )
+        self.fields['county'] = forms.ChoiceField(
+            choices=KENYA_COUNTY_CHOICES, label='County', initial='Uasin Gishu',
+            widget=forms.Select(attrs={'class': SELECT_CLASSES}),
+        )
+        self.fields['location'] = forms.ChoiceField(
+            choices=ALL_TOWN_CHOICES, label='Nearest town', initial='Eldoret',
+            widget=forms.Select(attrs={'class': SELECT_CLASSES}),
+        )
+        # These were added after TailwindFormMixin's own __init__ already
+        # ran its styling pass, so the widget class had to be set above by
+        # hand; this just fixes field display order (name field first).
+        others = [f for f in self.fields if f not in ('country', 'county', 'location')]
+        self.order_fields(['country', 'county', 'location', *others])
+
+    def clean_country(self):
+        # Not user-editable - always Kenya, regardless of what a tampered
+        # request sends.
+        return KENYA
+
+    def clean(self):
+        cleaned = super().clean()
+        county = cleaned.get('county')
+        location = cleaned.get('location')
+        if county and location and location not in COUNTY_TOWNS.get(county, []):
+            self.add_error(
+                'location',
+                f'{location} is not listed under {county}. Pick a town from the dropdown for your county.'
+            )
+        return cleaned
+
+
+class FarmForm(TailwindFormMixin, KenyaLocationFieldsMixin, forms.Form):
     farm_name = forms.CharField(label='Farm name', max_length=150, widget=forms.TextInput(
         attrs={'placeholder': 'e.g. Miginon Dairy Farm'}
     ))
-    location = forms.CharField(max_length=200, required=False, widget=forms.TextInput(
-        attrs={'placeholder': 'e.g. Eldoret, Uasin Gishu'}
-    ))
-    county = forms.CharField(max_length=100, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_location_fields()
 
 
 class FarmSettingsForm(TailwindFormMixin, forms.ModelForm):
+    country = forms.CharField(initial=KENYA, widget=forms.HiddenInput(), required=False)
+    county = forms.ChoiceField(
+        choices=KENYA_COUNTY_CHOICES, label='County', initial='Uasin Gishu',
+    )
+    location = forms.ChoiceField(choices=ALL_TOWN_CHOICES, label='Nearest town', initial='Eldoret')
+
     class Meta:
         model = Farm
-        fields = ['name', 'location', 'county']
+        fields = ['name', 'country', 'county', 'location']
+
+    def clean_country(self):
+        return KENYA
+
+    def clean(self):
+        cleaned = super().clean()
+        county = cleaned.get('county')
+        location = cleaned.get('location')
+        if county and location and location not in COUNTY_TOWNS.get(county, []):
+            self.add_error(
+                'location',
+                f'{location} is not listed under {county}. Pick a town from the dropdown for your county.'
+            )
+        return cleaned
 
 
 class BlockForm(TailwindFormMixin, forms.ModelForm):

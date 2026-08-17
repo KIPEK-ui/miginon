@@ -1,6 +1,7 @@
 from django import forms
 
 from core.formhelpers import OTP_INPUT_CLASSES, TailwindFormMixin
+from farms.forms import KenyaLocationFieldsMixin
 
 
 class FarmCodeForm(TailwindFormMixin, forms.Form):
@@ -69,14 +70,14 @@ class SignupAccountForm(TailwindFormMixin, forms.Form):
         return email
 
 
-class SignupFarmForm(TailwindFormMixin, forms.Form):
+class SignupFarmForm(TailwindFormMixin, KenyaLocationFieldsMixin, forms.Form):
     farm_name = forms.CharField(label='Farm name', max_length=150, widget=forms.TextInput(
         attrs={'placeholder': 'e.g. Miginon Dairy Farm'}
     ))
-    location = forms.CharField(max_length=200, required=False, widget=forms.TextInput(
-        attrs={'placeholder': 'e.g. Eldoret, Uasin Gishu'}
-    ))
-    county = forms.CharField(max_length=100, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_location_fields()
 
 
 class ProfileForm(TailwindFormMixin, forms.ModelForm):

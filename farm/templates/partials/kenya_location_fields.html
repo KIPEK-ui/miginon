@@ -1,0 +1,65 @@
+<div class="mb-4">
+    <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Country</label>
+    <div class="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600">
+        <ion-icon name="flag-outline" class="text-stone-400"></ion-icon> Kenya
+    </div>
+    {{ form.country }}
+    {% for error in form.country.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="mb-4">
+    <label for="{{ form.county.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">County *</label>
+    {{ form.county }}
+    {% for error in form.county.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="mb-4">
+    <label for="{{ form.location.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Nearest town *</label>
+    <select name="location" id="{{ form.location.id_for_label }}"
+        class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+        {% for county, towns in county_towns.items %}
+            {% for town in towns %}
+            <option value="{{ town }}" data-county="{{ county }}" {% if form.location.value == town %}selected{% endif %}>{{ town }}</option>
+            {% endfor %}
+        {% endfor %}
+    </select>
+    <p class="mt-1 text-xs text-stone-400">Towns are filtered to the county you picked above.</p>
+    {% for error in form.location.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+</div>
+
+<script>
+    (function () {
+        var countySelect = document.getElementById('{{ form.county.id_for_label }}');
+        var locationSelect = document.getElementById('{{ form.location.id_for_label }}');
+        if (!countySelect || !locationSelect) return;
+
+        // Toggling the `hidden` attribute on <option> elements isn't
+        // reliably honored by every browser's native picker (mobile
+        // Safari/Chrome in particular), so instead this actually removes
+        // and re-inserts the option nodes - that's respected everywhere.
+        var allOptions = Array.prototype.slice.call(locationSelect.options);
+        var desiredValue = locationSelect.value;
+
+        function sync() {
+            var county = countySelect.value;
+            var matching = allOptions.filter(function (opt) { return opt.dataset.county === county; });
+
+            locationSelect.textContent = '';
+            matching.forEach(function (opt) { locationSelect.appendChild(opt); });
+
+            var stillValid = matching.some(function (opt) { return opt.value === desiredValue; });
+            if (stillValid) {
+                locationSelect.value = desiredValue;
+            } else if (matching.length) {
+                locationSelect.value = matching[0].value;
+                desiredValue = matching[0].value;
+            }
+        }
+
+        countySelect.addEventListener('change', function () {
+            desiredValue = null; // jump to the new county's first town
+            sync();
+        });
+        sync();
+    })();
+</script>

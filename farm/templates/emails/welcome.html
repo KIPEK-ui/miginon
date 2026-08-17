@@ -1,0 +1,32 @@
+{% extends "emails/base_email.html" %}
+{% block title %}Welcome to Farm IQ{% endblock %}
+{% block preheader %}Your Farm ID is {{ farm.code }} - save it, your whole team will use it to sign in.{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 12px; font-size:20px; font-weight:800; color:#1c1917;">Welcome to Farm IQ, {{ user.first_name }} 🎉</h1>
+<p style="margin:0 0 24px; font-size:14px; line-height:1.6; color:#57534e;">
+    <strong>{{ farm.name }}</strong> is ready. Here's the one thing to save before anything else - your Farm ID. You and everyone you invite will use it, along with an email address, to sign in (no passwords).
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td align="center" style="background-color:#eefbf3; border:2px dashed #7ed9ac; border-radius:12px; padding:20px;">
+            <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#17835a; margin-bottom:6px;">Farm ID</span>
+            <span style="font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:28px; font-weight:800; letter-spacing:6px; color:#0f4531;">{{ farm.code }}</span>
+        </td>
+    </tr>
+</table>
+
+{% include "emails/_button.html" with url=login_url label="Go to your dashboard →" %}
+
+<h2 style="margin:8px 0 12px; font-size:15px; font-weight:800; color:#1c1917;">Getting started takes about 5 minutes</h2>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; color:#57534e;">
+    <tr><td style="padding:4px 0;">1. Add your first block or paddock</td></tr>
+    <tr><td style="padding:4px 0;">2. Add the cows in it</td></tr>
+    <tr><td style="padding:4px 0;">3. Invite your farm manager, supervisor or workers</td></tr>
+    <tr><td style="padding:4px 0;">4. Start logging milk and feeding records</td></tr>
+</table>
+
+<p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    Keep this email somewhere safe - if you ever forget your Farm ID, it's also shown at the top of your dashboard once signed in.
+</p>
+{% endblock %}

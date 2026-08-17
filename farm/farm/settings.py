@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'django_countries',
+
     # Local apps
     'core',
     'accounts',
@@ -51,6 +53,8 @@ INSTALLED_APPS = [
     'inventory',
     'analysis',
     'notifications',
+
+    'pwa',
 ]
 
 MIDDLEWARE = [
@@ -149,16 +153,16 @@ LOGIN_REDIRECT_URL = 'farms:dashboard'
 LOGOUT_REDIRECT_URL = 'core:landing'
 
 # Email
-# In development, OTP emails print to the console. Set EMAIL_BACKEND in a
-# .env file to switch to real SMTP (e.g. Gmail app password or SendGrid) in
-# production. See .env.example.
+# In development (no .env), OTP/welcome/report emails just print to the
+# console. Production sends through Zoho Mail - see .env.example for the
+# real credentials, which live only in .env (gitignored), never here.
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.zoho.com')
 EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Miginon Farm <no-reply@miginonfarm.com>')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <info@farmiq.solutions>')
 
 OTP_VALIDITY_MINUTES = 10
 OTP_MAX_ATTEMPTS = 5
@@ -171,3 +175,73 @@ MESSAGE_TAGS = {
     30: 'warning',  # WARNING
     40: 'error',    # ERROR
 }
+
+# --- Progressive Web App (django-pwa) ---------------------------------------
+
+PWA_APP_NAME = 'Miginon Farm'
+PWA_APP_DESCRIPTION = 'Smart dairy management - milk, feeding, herd, crops, inventory and finance in one app.'
+PWA_APP_THEME_COLOR = '#047857'       # emerald-700, matches the app shell
+PWA_APP_BACKGROUND_COLOR = '#f5f5f4'  # stone-100, matches the app background
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_ORIENTATION = 'any'
+PWA_APP_START_URL = '/farm/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_DEBUG_MODE = DEBUG
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'en-US'
+
+PWA_APP_ICONS = [
+    {'src': '/static/images/icons/icon-192x192.png', 'sizes': '192x192', 'type': 'image/png'},
+    {'src': '/static/images/icons/icon-512x512.png', 'sizes': '512x512', 'type': 'image/png'},
+    {
+        'src': '/static/images/icons/icon-512x512-maskable.png', 'sizes': '512x512',
+        'type': 'image/png', 'purpose': 'maskable',
+    },
+]
+PWA_APP_ICONS_APPLE = [
+    {'src': '/static/images/icons/apple-icon-180.png', 'sizes': '180x180'},
+]
+PWA_APP_SPLASH_SCREEN = [
+    {
+        'src': '/static/images/icons/splash-640x1136.png',
+        'media': '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-750x1334.png',
+        'media': '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-1242x2208.png',
+        'media': '(device-width: 621px) and (device-height: 1104px) and (-webkit-device-pixel-ratio: 3)',
+    },
+    {
+        'src': '/static/images/icons/splash-1125x2436.png',
+        'media': '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)',
+    },
+    {
+        'src': '/static/images/icons/splash-828x1792.png',
+        'media': '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-1242x2688.png',
+        'media': '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)',
+    },
+    {
+        'src': '/static/images/icons/splash-1536x2048.png',
+        'media': '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-1668x2224.png',
+        'media': '(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-1668x2388.png',
+        'media': '(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)',
+    },
+    {
+        'src': '/static/images/icons/splash-2048x2732.png',
+        'media': '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)',
+    },
+]
+
+PWA_SERVICE_WORKER_PATH = str(BASE_DIR / 'static' / 'pwa' / 'serviceworker.js')

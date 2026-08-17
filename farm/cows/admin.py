@@ -5,8 +5,8 @@ from .models import Cow, CowTransfer, FeedingRecord, MilkRecord
 
 @admin.register(Cow)
 class CowAdmin(admin.ModelAdmin):
-    list_display = ['tag_id', 'name', 'farm', 'block', 'status', 'created_at']
-    list_filter = ['status', 'farm']
+    list_display = ['tag_id', 'name', 'farm', 'block', 'category', 'gender', 'status', 'created_at']
+    list_filter = ['category', 'gender', 'status', 'farm']
     search_fields = ['tag_id', 'name', 'farm__name']
 
 

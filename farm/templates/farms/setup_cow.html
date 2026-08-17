@@ -31,7 +31,7 @@
         {% for c in cows %}
         <div class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm">
             <span class="font-semibold text-stone-700">{{ c.tag_id }} {% if c.name %}· {{ c.name }}{% endif %}</span>
-            <span class="text-stone-400">{{ c.block.name }}</span>
+            <span class="text-stone-400">{{ c.get_category_display }} · {{ c.block.name }}</span>
         </div>
         {% endfor %}
     </div>

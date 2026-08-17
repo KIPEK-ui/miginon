@@ -4,6 +4,7 @@ import string
 
 from django.conf import settings
 from django.db import models
+from django_countries.fields import CountryField
 
 
 def _initials_from_name(name):
@@ -31,8 +32,9 @@ class Farm(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='owned_farms'
     )
-    location = models.CharField(max_length=200, blank=True)
+    country = CountryField(default='KE', blank=True)
     county = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     setup_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

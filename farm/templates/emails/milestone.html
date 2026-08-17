@@ -1,0 +1,18 @@
+{% extends "emails/base_email.html" %}
+{% block title %}{{ title }} - Farm IQ{% endblock %}
+{% block preheader %}{{ description }}{% endblock %}
+{% block content %}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+    <tr>
+        <td style="width:48px; height:48px; background-color:#fef1c8; border-radius:12px; text-align:center; font-size:24px; line-height:48px;">🎉</td>
+    </tr>
+</table>
+<h1 style="margin:0 0 12px; font-size:20px; font-weight:800; color:#1c1917;">{{ title }}</h1>
+<p style="margin:0 0 24px; font-size:14px; line-height:1.6; color:#57534e;">{{ description }}</p>
+
+{% include "emails/_button.html" with url=dashboard_url label="View your dashboard →" %}
+
+<p style="margin:0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    Milestones like this one show up because {{ farm.name }} is building real history in Farm IQ - keep logging and the picture only gets sharper.
+</p>
+{% endblock %}

@@ -123,4 +123,118 @@
     </div>
     <a href="{% url 'finance:transaction_list' %}" class="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all transactions →</a>
 </div>
+
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="font-bold text-stone-900">Export report</h2>
+    <p class="mt-1 text-sm text-stone-500">A detailed, comprehensive report - milk, feeding, herd, crops, inventory and finance - for a day, month, quarter or year.</p>
+
+    <form method="get" action="{% url 'analysis:export' %}" id="export-form" class="mt-4">
+        {% csrf_token %}
+        <div class="mb-4 max-w-xs">
+            <label for="id_period_type" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Period</label>
+            <select name="period_type" id="id_period_type" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+                <option value="daily">Daily</option>
+                <option value="monthly" selected>Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+        </div>
+
+        <div id="period-field-daily" class="mb-4 max-w-xs hidden">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Date</label>
+            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+        </div>
+
+        <div id="period-field-monthly" class="mb-4 max-w-xs">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Month</label>
+            <input type="month" name="month" value="{{ current_month }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+        </div>
+
+        <div id="period-field-quarterly" class="mb-4 grid max-w-md grid-cols-2 gap-4 hidden">
+            <div>
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Quarter</label>
+                <select name="quarter" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+                    <option value="1">Q1 (Jan - Mar)</option>
+                    <option value="2">Q2 (Apr - Jun)</option>
+                    <option value="3">Q3 (Jul - Sep)</option>
+                    <option value="4">Q4 (Oct - Dec)</option>
+                </select>
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Year</label>
+                <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+                    {% for y in export_years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="period-field-yearly" class="mb-4 max-w-xs hidden">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Year</label>
+            <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+                {% for y in export_years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+            </select>
+        </div>
+
+        <input type="hidden" name="export_format" id="id_export_format" value="pdf">
+
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" data-format="csv" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
+                <ion-icon name="document-outline"></ion-icon> CSV
+            </button>
+            <button type="submit" data-format="xlsx" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
+                <ion-icon name="grid-outline"></ion-icon> Excel
+            </button>
+            <button type="submit" data-format="pdf" class="export-btn flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">
+                <ion-icon name="document-attach-outline"></ion-icon> PDF
+            </button>
+            <button type="submit" data-format="email" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
+                <ion-icon name="mail-outline"></ion-icon> Email report
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        var periodSelect = document.getElementById('id_period_type');
+        var sections = {
+            daily: document.getElementById('period-field-daily'),
+            monthly: document.getElementById('period-field-monthly'),
+            quarterly: document.getElementById('period-field-quarterly'),
+            yearly: document.getElementById('period-field-yearly'),
+        };
+        function sync() {
+            var active = periodSelect.value;
+            Object.keys(sections).forEach(function (key) {
+                var el = sections[key];
+                var isActive = key === active;
+                el.classList.toggle('hidden', !isActive);
+                el.querySelectorAll('input, select').forEach(function (input) {
+                    input.disabled = !isActive;
+                });
+            });
+        }
+        periodSelect.addEventListener('change', sync);
+        sync();
+
+        var form = document.getElementById('export-form');
+        var formatInput = document.getElementById('id_export_format');
+        var exportUrl = "{% url 'analysis:export' %}";
+        var emailUrl = "{% url 'analysis:email_report' %}";
+        document.querySelectorAll('.export-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                formatInput.value = btn.dataset.format;
+                if (btn.dataset.format === 'email') {
+                    form.method = 'post';
+                    form.action = emailUrl;
+                } else {
+                    form.method = 'get';
+                    form.action = exportUrl;
+                }
+            });
+        });
+    })();
+</script>
 {% endblock %}

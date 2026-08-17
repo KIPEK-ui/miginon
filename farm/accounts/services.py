@@ -1,13 +1,30 @@
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import timezone
+
+from core.email import send_styled_email
 
 from .models import EmailOTP
 
 
 def issue_otp(email, purpose, farm=None):
     """Invalidate any previous unused OTPs for this email/purpose/farm and
-    issue + send a fresh one."""
+    issue + send a fresh one.
+
+    Guarded by the same resend cooldown as the explicit "resend" views: a
+    double form submission (double-click, slow SMTP round-trip prompting an
+    impatient resubmit, browser retry) would otherwise create and email two
+    different codes a few hundred milliseconds apart. If a still-valid,
+    unused OTP for this email/purpose/farm was already issued within the
+    cooldown window, reuse it instead of sending a second email.
+    """
+    last_otp = (
+        EmailOTP.objects.filter(email=email, purpose=purpose, farm=farm)
+        .order_by('-created_at')
+        .first()
+    )
+    if last_otp and not last_otp.is_used and last_otp.is_valid() and not can_resend(last_otp):
+        return last_otp
+
     EmailOTP.objects.filter(
         email=email, purpose=purpose, farm=farm, is_used=False
     ).update(is_used=True)
@@ -19,27 +36,32 @@ def issue_otp(email, purpose, farm=None):
 
 def send_otp_email(otp: EmailOTP):
     if otp.purpose == EmailOTP.Purpose.SIGNUP:
-        subject = 'Verify your email - Miginon Farm'
-        intro = 'Welcome to Miginon Farm! Use the code below to verify your email and finish setting up your farm.'
+        subject = 'Verify your email - Farm IQ'
+        heading = 'Verify your email'
+        intro = 'Welcome to Farm IQ! Use the code below to verify your email and finish setting up your farm.'
     elif otp.purpose == EmailOTP.Purpose.EMAIL_CHANGE:
-        subject = 'Confirm your new email - Miginon Farm'
+        subject = 'Confirm your new email - Farm IQ'
+        heading = 'Confirm your new email'
         intro = 'Use the code below to confirm this is your new email address.'
     else:
         farm_bit = f' for {otp.farm.name}' if otp.farm else ''
-        subject = 'Your Miginon Farm login code'
+        subject = 'Your Farm IQ login code'
+        heading = 'Your login code'
         intro = f'Use the code below to sign in{farm_bit}.'
 
-    message = (
-        f'{intro}\n\n'
-        f'    {otp.code}\n\n'
-        f'This code expires in {settings.OTP_VALIDITY_MINUTES} minutes. '
-        f'If you did not request this, you can safely ignore this email.'
-    )
-    send_mail(
+    # OTP delivery is on the critical path (the user can't proceed without
+    # it), so unlike the "nice to have" emails this is left to raise if
+    # sending fails, rather than being swallowed by send_styled_email_safely.
+    send_styled_email(
+        to=otp.email,
         subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[otp.email],
+        template_name='emails/otp_code.html',
+        context={
+            'heading': heading,
+            'intro': intro,
+            'code': otp.code,
+            'validity_minutes': settings.OTP_VALIDITY_MINUTES,
+        },
     )
 
 

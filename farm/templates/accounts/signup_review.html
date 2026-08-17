@@ -16,10 +16,10 @@
     <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4">
         <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Your farm</p>
         <p class="mt-1 font-semibold text-stone-800">{{ farm.farm_name }}</p>
-        <p class="text-sm text-stone-500">{{ farm.location|default:"No location set" }}{% if farm.county %} · {{ farm.county }}{% endif %}</p>
+        <p class="text-sm text-stone-500">{{ farm.location }}, {{ farm.county }} County, {{ country_name }}</p>
     </div>
 </div>
-<form method="post" novalidate>
+<form method="post" novalidate onsubmit="this.querySelector('button[type=submit]').disabled = true;">
     {% csrf_token %}
     <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
         Send verification code →

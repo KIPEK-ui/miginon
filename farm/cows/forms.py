@@ -9,7 +9,7 @@ from .models import Cow, FeedingRecord, MilkRecord
 class CowForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Cow
-        fields = ['block', 'tag_id', 'name', 'breed', 'date_of_birth', 'status']
+        fields = ['block', 'tag_id', 'name', 'category', 'gender', 'breed', 'date_of_birth', 'status']
         widgets = {
             'tag_id': forms.TextInput(attrs={'placeholder': 'e.g. C-014'}),
             'name': forms.TextInput(attrs={'placeholder': 'Optional'}),
@@ -21,6 +21,16 @@ class CowForm(TailwindFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         if farm is not None:
             self.fields['block'].queryset = farm.blocks.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        category = cleaned.get('category')
+        gender = cleaned.get('gender')
+        if category == Cow.Category.BULL and gender != Cow.Gender.MALE:
+            self.add_error('gender', 'A bull must be male.')
+        elif category in (Cow.Category.HEIFER, Cow.Category.COW) and gender != Cow.Gender.FEMALE:
+            self.add_error('gender', f'A {category} must be female.')
+        return cleaned
 
 
 class CowChoiceField(forms.ModelChoiceField):

@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
+from core.email import send_styled_email_safely
 from farms.permissions import (
     any_member_required,
     edit_delete_required,
@@ -16,8 +18,20 @@ from .models import Cow, CowTransfer, FeedingRecord, MilkRecord
 
 @any_member_required
 def cow_list(request):
-    cows = Cow.objects.filter(farm=request.farm).select_related('block').order_by('block__name', 'tag_id')
-    return render(request, 'cows/cow_list.html', {'cows': cows})
+    cows = list(
+        Cow.objects.filter(farm=request.farm).select_related('block').order_by('block__name', 'tag_id')
+    )
+    groups = []
+    for value, label in [
+        (Cow.Category.COW, 'Cows'),
+        (Cow.Category.HEIFER, 'Heifers'),
+        (Cow.Category.CALF, 'Calves'),
+        (Cow.Category.BULL, 'Bulls'),
+    ]:
+        group_cows = [c for c in cows if c.category == value]
+        if group_cows:
+            groups.append({'label': label, 'cows': group_cows})
+    return render(request, 'cows/cow_list.html', {'cows': cows, 'groups': groups})
 
 
 @manage_herd_required
@@ -144,7 +158,8 @@ def feeding_edit(request, record_id):
     record = get_object_or_404(FeedingRecord, id=record_id, farm=request.farm)
     form = FeedingRecordForm(request.POST or None, instance=record, farm=request.farm)
     if request.method == 'POST' and form.is_valid():
-        updated = form.save()
+        updated = form.save(commit=False)
+        updated.save()
         form.save_m2m()
         updated.cows_count = updated.cows.count()
         updated.save(update_fields=['cows_count'])
@@ -192,6 +207,21 @@ def milk_create(request):
             request.farm, request.user, Notification.Verb.CREATED, 'milk record',
             f'{record.cow.tag_id} - {record.date} {record.get_session_display()} - {record.liters}L'
         )
+        if MilkRecord.objects.filter(farm=request.farm).count() == 1:
+            send_styled_email_safely(
+                to=request.farm.owner.email,
+                subject=f'🎉 First milk record logged on {request.farm.name}!',
+                template_name='emails/milestone.html',
+                context={
+                    'farm': request.farm,
+                    'title': 'First milk record logged!',
+                    'description': (
+                        f'{record.cow} just produced its first recorded {record.liters}L on Farm IQ. '
+                        'Every record from here builds your farm\'s production history.'
+                    ),
+                    'dashboard_url': request.build_absolute_uri(reverse('farms:dashboard')),
+                },
+            )
         messages.success(request, f'Milk record saved for {record.cow} ({record.get_session_display()}).')
         return redirect('cows:milk_list')
     return render(request, 'cows/milk_form.html', {'form': form})

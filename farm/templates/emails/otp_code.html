@@ -1,0 +1,13 @@
+{% extends "emails/base_email.html" %}
+{% block title %}{{ heading }} - Farm IQ{% endblock %}
+{% block preheader %}Your Farm IQ code is {{ code }} - it expires in {{ validity_minutes }} minutes.{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 12px; font-size:20px; font-weight:800; color:#1c1917;">{{ heading }}</h1>
+<p style="margin:0 0 24px; font-size:14px; line-height:1.6; color:#57534e;">{{ intro }}</p>
+
+{% include "emails/_code_box.html" %}
+
+<p style="margin:0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    This code expires in {{ validity_minutes }} minutes. If you didn't request this, you can safely ignore this email - no changes were made to your account.
+</p>
+{% endblock %}
