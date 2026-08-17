@@ -1,9 +1,19 @@
+import logging
+
 from django.conf import settings
 from django.utils import timezone
 
 from core.email import send_styled_email
 
 from .models import EmailOTP
+
+logger = logging.getLogger(__name__)
+
+
+class OTPDeliveryError(Exception):
+    """The OTP row was created but the email could not be sent (e.g. the
+    SMTP provider rejected or throttled it). Callers should catch this and
+    show the user a friendly retry message instead of a raw 500."""
 
 
 def issue_otp(email, purpose, farm=None):
@@ -30,7 +40,11 @@ def issue_otp(email, purpose, farm=None):
     ).update(is_used=True)
 
     otp = EmailOTP.objects.create(email=email, purpose=purpose, farm=farm)
-    send_otp_email(otp)
+    try:
+        send_otp_email(otp)
+    except Exception as exc:
+        logger.exception('Failed to send OTP email to %s (purpose=%s)', email, purpose)
+        raise OTPDeliveryError('Could not send the verification code email.') from exc
     return otp
 
 

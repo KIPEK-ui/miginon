@@ -19,8 +19,25 @@ class CowForm(TailwindFormMixin, forms.ModelForm):
 
     def __init__(self, *args, farm=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.farm = farm
         if farm is not None:
             self.fields['block'].queryset = farm.blocks.all()
+
+    def clean_tag_id(self):
+        # ModelForm's automatic unique_together validation excludes any field
+        # not in Meta.fields - since 'farm' isn't a form field, the model's
+        # ('farm', 'tag_id') check never fires on its own, and the view sets
+        # cow.farm only after is_valid(), so a duplicate would otherwise slip
+        # through as a raw IntegrityError at cow.save() instead of a clean
+        # form error here.
+        tag_id = self.cleaned_data['tag_id'].strip()
+        if self.farm is not None:
+            existing = Cow.objects.filter(farm=self.farm, tag_id=tag_id)
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                raise forms.ValidationError('A cow with this tag ID already exists on this farm.')
+        return tag_id
 
     def clean(self):
         cleaned = super().clean()

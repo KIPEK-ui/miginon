@@ -22,7 +22,7 @@ from .forms import (
     SignupFarmForm,
 )
 from .models import EmailOTP, User
-from .services import can_resend, issue_otp
+from .services import OTPDeliveryError, can_resend, issue_otp
 
 SIGNUP_ACCOUNT_KEY = 'signup_account'
 SIGNUP_FARM_KEY = 'signup_farm'
@@ -33,6 +33,21 @@ def _already_authenticated_redirect(request):
     if request.user.is_authenticated:
         return redirect('farms:dashboard')
     return None
+
+
+def _try_issue_otp(request, email, purpose, farm=None):
+    """issue_otp(), but turned into a friendly retry message instead of a
+    raw 500 when the email provider rejects or throttles the send (e.g. an
+    SMTP quota/abuse block). Returns True on success, False on failure."""
+    try:
+        issue_otp(email, purpose, farm=farm)
+        return True
+    except OTPDeliveryError:
+        messages.error(
+            request,
+            "We couldn't send the verification code right now. Please wait a moment and try again."
+        )
+        return False
 
 
 # ---------------------------------------------------------------- farm login
@@ -88,8 +103,7 @@ def login_email(request):
                 f"No account found for this email at {farm.name}. "
                 "Ask the farm owner to add you as a worker, or sign up to create your own farm."
             )
-        else:
-            issue_otp(email, EmailOTP.Purpose.LOGIN, farm=farm)
+        elif _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=farm):
             request.session['login_email'] = email
             request.session['login_role'] = membership.get_role_display()
             messages.success(request, f'A 6-digit code was sent to {email}.')
@@ -167,8 +181,8 @@ def resend_login_otp(request):
         .first()
     )
     if can_resend(last_otp):
-        issue_otp(email, EmailOTP.Purpose.LOGIN, farm=farm)
-        messages.success(request, 'A new code is on its way.')
+        if _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=farm):
+            messages.success(request, 'A new code is on its way.')
     else:
         messages.warning(request, 'Please wait a little before requesting another code.')
     return redirect('accounts:login_otp')
@@ -187,8 +201,7 @@ def admin_login(request):
         user = User.objects.filter(email=email).first()
         if not user or not user.is_platform_admin:
             form.add_error('email', 'No platform admin account matches this email.')
-        else:
-            issue_otp(email, EmailOTP.Purpose.LOGIN, farm=None)
+        elif _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=None):
             request.session['admin_login_email'] = email
             messages.success(request, f'A 6-digit code was sent to {email}.')
             return redirect('accounts:admin_login_otp')
@@ -247,8 +260,8 @@ def resend_admin_otp(request):
         .first()
     )
     if can_resend(last_otp):
-        issue_otp(email, EmailOTP.Purpose.LOGIN, farm=None)
-        messages.success(request, 'A new code is on its way.')
+        if _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=None):
+            messages.success(request, 'A new code is on its way.')
     else:
         messages.warning(request, 'Please wait a little before requesting another code.')
     return redirect('accounts:admin_login_otp')
@@ -302,9 +315,9 @@ def signup_review(request):
         return redirect('accounts:signup_account')
 
     if request.method == 'POST':
-        issue_otp(account['email'], EmailOTP.Purpose.SIGNUP, farm=None)
-        messages.success(request, f"A 6-digit code was sent to {account['email']}.")
-        return redirect('accounts:signup_otp')
+        if _try_issue_otp(request, account['email'], EmailOTP.Purpose.SIGNUP, farm=None):
+            messages.success(request, f"A 6-digit code was sent to {account['email']}.")
+            return redirect('accounts:signup_otp')
 
     return render(
         request, 'accounts/signup_review.html',
@@ -394,8 +407,8 @@ def resend_signup_otp(request):
         .first()
     )
     if can_resend(last_otp):
-        issue_otp(email, EmailOTP.Purpose.SIGNUP, farm=None)
-        messages.success(request, 'A new code is on its way.')
+        if _try_issue_otp(request, email, EmailOTP.Purpose.SIGNUP, farm=None):
+            messages.success(request, 'A new code is on its way.')
     else:
         messages.warning(request, 'Please wait a little before requesting another code.')
     return redirect('accounts:signup_otp')
@@ -418,10 +431,10 @@ def settings_email(request):
     form = EmailChangeForm(request.POST or None, user=request.user)
     if request.method == 'POST' and form.is_valid():
         new_email = form.cleaned_data['new_email']
-        issue_otp(new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None)
-        request.session[EMAIL_CHANGE_KEY] = new_email
-        messages.success(request, f'A 6-digit code was sent to {new_email}.')
-        return redirect('accounts:settings_email_otp')
+        if _try_issue_otp(request, new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None):
+            request.session[EMAIL_CHANGE_KEY] = new_email
+            messages.success(request, f'A 6-digit code was sent to {new_email}.')
+            return redirect('accounts:settings_email_otp')
     return render(request, 'accounts/settings_email.html', {'form': form})
 
 
@@ -477,8 +490,8 @@ def resend_settings_email_otp(request):
         .first()
     )
     if can_resend(last_otp):
-        issue_otp(new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None)
-        messages.success(request, 'A new code is on its way.')
+        if _try_issue_otp(request, new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None):
+            messages.success(request, 'A new code is on its way.')
     else:
         messages.warning(request, 'Please wait a little before requesting another code.')
     return redirect('accounts:settings_email_otp')
