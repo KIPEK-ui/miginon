@@ -6,64 +6,65 @@
 
     <section class="relative overflow-hidden">
         <div class="pointer-events-none absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle, rgba(255,255,255,.6) 1px, transparent 1px); background-size: 26px 26px;"></div>
-        <div class="mx-auto grid max-w-7xl gap-12 px-6 pb-24 pt-10 lg:grid-cols-2 lg:items-center lg:px-8 lg:pt-16">
+        <div class="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-6 sm:px-6 sm:pb-20 sm:pt-10 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-8 lg:pb-24 lg:pt-16">
             <div class="relative">
-                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-100">
+                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-100 sm:px-4 sm:text-xs">
                     <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> Built for Kenyan dairy farms
                 </span>
-                <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                    Run your farm like a
-                    <span class="text-amber-400">smart operation.</span>
+                <h1 class="mt-5 text-3xl font-extrabold leading-tight tracking-tight sm:mt-6 sm:text-4xl md:text-5xl lg:text-6xl">
+                    Run your whole farm from
+                    <span class="text-amber-400">one smart dashboard.</span>
                 </h1>
-                <p class="mt-6 max-w-xl text-lg text-emerald-50/90">
-                    Track milk production and feeding block-by-block, manage your blocks and herd,
-                    and give every farm worker the right level of access — all from one simple dashboard.
-                    No passwords to remember, just your Farm ID and a one-time code.
+                <p class="mt-4 max-w-xl text-base text-emerald-50/90 sm:mt-6 sm:text-lg">
+                    Milk, feeding, herd, crops, inventory and finance - tracked block by block, cow by cow,
+                    with reports and alerts that keep the whole team in sync. No passwords to remember,
+                    just your Farm ID and a one-time code.
                 </p>
-                <div class="mt-9 flex flex-wrap items-center gap-4">
-                    <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-amber-500 px-7 py-3.5 text-sm font-bold text-emerald-950 shadow-soft transition hover:bg-amber-400">
+                <div class="mt-7 flex flex-wrap items-center gap-3 sm:mt-9 sm:gap-4">
+                    <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-emerald-950 shadow-soft transition hover:bg-amber-400 sm:px-7 sm:py-3.5">
                         Start your farm free →
                     </a>
-                    <a href="{% url 'accounts:login_farm' %}" class="rounded-full border border-white/30 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-white/10">
+                    <a href="{% url 'accounts:login_farm' %}" class="rounded-full border border-white/30 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10 sm:px-7 sm:py-3.5">
                         I already have a Farm ID
                     </a>
                 </div>
-                <div class="mt-12 grid grid-cols-3 gap-6 border-t border-white/10 pt-6 text-sm">
-                    <div><p class="text-2xl font-extrabold text-white">4</p><p class="text-emerald-100/70">Farm roles</p></div>
-                    <div><p class="text-2xl font-extrabold text-white">AM·NOON·PM</p><p class="text-emerald-100/70">Feeding sessions</p></div>
-                    <div><p class="text-2xl font-extrabold text-white">Multi-farm</p><p class="text-emerald-100/70">Owner support</p></div>
+                <div class="mt-10 grid grid-cols-2 gap-5 border-t border-white/10 pt-6 text-xs sm:mt-12 sm:grid-cols-4 sm:gap-6 sm:text-sm">
+                    <div><p class="text-xl font-extrabold text-white sm:text-2xl">6</p><p class="text-emerald-100/70">Farm modules</p></div>
+                    <div><p class="text-xl font-extrabold text-white sm:text-2xl">4</p><p class="text-emerald-100/70">Farm roles</p></div>
+                    <div><p class="text-xl font-extrabold text-white sm:text-2xl">AM·NOON·PM</p><p class="text-emerald-100/70">Feeding sessions</p></div>
+                    <div><p class="text-xl font-extrabold text-white sm:text-2xl">Multi-farm</p><p class="text-emerald-100/70">Owner support</p></div>
                 </div>
             </div>
 
             <div class="relative">
                 <div class="absolute -inset-6 -z-10 rounded-[2rem] bg-emerald-400/10 blur-2xl"></div>
-                <div class="rounded-3xl border border-white/10 bg-white/95 p-6 text-stone-900 shadow-soft">
+                <div class="rounded-3xl border border-white/10 bg-white/95 p-5 text-stone-900 shadow-soft sm:p-6">
                     <div class="flex items-center justify-between border-b border-stone-100 pb-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Today's summary</p>
-                            <p class="text-lg font-bold">Block A · AM Session</p>
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 sm:text-xs">Today's summary</p>
+                            <p class="text-base font-bold sm:text-lg">Block A · AM Session</p>
                         </div>
-                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">On track</span>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 sm:text-xs">On track</span>
                     </div>
-                    <div class="mt-4 grid grid-cols-3 gap-3 text-center">
-                        <div class="rounded-2xl bg-stone-50 p-4">
-                            <p class="text-2xl font-extrabold text-stone-900">7</p>
-                            <p class="text-xs font-medium text-stone-500">Cows</p>
+                    <div class="mt-4 grid grid-cols-3 gap-2.5 text-center sm:gap-3">
+                        <div class="rounded-2xl bg-stone-50 p-3 sm:p-4">
+                            <p class="text-xl font-extrabold text-stone-900 sm:text-2xl">7</p>
+                            <p class="text-[11px] font-medium text-stone-500 sm:text-xs">Cows</p>
                         </div>
-                        <div class="rounded-2xl bg-stone-50 p-4">
-                            <p class="text-2xl font-extrabold text-stone-900">24<span class="text-sm">kg</span></p>
-                            <p class="text-xs font-medium text-stone-500">Dairy meal</p>
+                        <div class="rounded-2xl bg-stone-50 p-3 sm:p-4">
+                            <p class="text-xl font-extrabold text-stone-900 sm:text-2xl">24<span class="text-xs sm:text-sm">kg</span></p>
+                            <p class="text-[11px] font-medium text-stone-500 sm:text-xs">Dairy meal</p>
                         </div>
-                        <div class="rounded-2xl bg-stone-50 p-4">
-                            <p class="text-2xl font-extrabold text-stone-900">20<span class="text-sm">kg</span></p>
-                            <p class="text-xs font-medium text-stone-500">Silage/Hay</p>
+                        <div class="rounded-2xl bg-stone-50 p-3 sm:p-4">
+                            <p class="text-xl font-extrabold text-stone-900 sm:text-2xl">20<span class="text-xs sm:text-sm">kg</span></p>
+                            <p class="text-[11px] font-medium text-stone-500 sm:text-xs">Silage/Hay</p>
                         </div>
                     </div>
                     <div class="mt-4 space-y-2">
                         {% for row in "ABCD" %}
-                        <div class="flex items-center justify-between rounded-xl border border-stone-100 px-4 py-2.5 text-sm">
+                        <div class="flex items-center justify-between rounded-xl border border-stone-100 px-3 py-2.5 text-xs sm:px-4 sm:text-sm">
                             <span class="font-semibold text-stone-700">Block {{ row }}</span>
-                            <span class="text-stone-500">Milk logged · Feed logged</span>
+                            <span class="hidden text-stone-500 sm:inline">Milk logged · Feed logged</span>
                             <ion-icon name="checkmark-outline" class="text-emerald-600"></ion-icon>
                         </div>
                         {% endfor %}
@@ -74,58 +75,79 @@
     </section>
 </div>
 
-<section class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+<section id="features" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
     <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">Everything your farm team needs</h2>
-        <p class="mt-4 text-stone-600">One dashboard for the owner, the managers, and the people doing the milking and feeding every day.</p>
+        <h2 class="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">Everything your farm team needs</h2>
+        <p class="mt-3 text-sm text-stone-600 sm:mt-4 sm:text-base">One dashboard for the owner, the managers, and the people doing the milking, feeding and fieldwork every day.</p>
     </div>
-    <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         {% for icon, title, text in features %}
-        <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:shadow-soft">
-            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl text-emerald-700">
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:shadow-soft sm:p-6">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-lg text-emerald-700 sm:h-11 sm:w-11 sm:text-xl">
                 <ion-icon name="{{ icon }}"></ion-icon>
             </div>
-            <h3 class="mt-4 font-bold text-stone-900">{{ title }}</h3>
-            <p class="mt-2 text-sm text-stone-500">{{ text }}</p>
+            <h3 class="mt-4 text-sm font-bold text-stone-900 sm:text-base">{{ title }}</h3>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500 sm:text-sm">{{ text }}</p>
         </div>
         {% endfor %}
     </div>
 </section>
 
-<section class="bg-stone-100/70 py-20">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <h2 class="text-center text-3xl font-extrabold tracking-tight text-stone-900">A role for everyone on the farm</h2>
-        <div class="mt-12 grid gap-6 lg:grid-cols-4">
-            <div class="rounded-2xl bg-emerald-800 p-6 text-white shadow-soft">
-                <p class="text-xs font-bold uppercase tracking-wide text-emerald-200">Farmer</p>
-                <p class="mt-2 text-sm text-emerald-50/90">Owns the farm. Adds farms, blocks and workers, and assigns every role.</p>
+<section id="how-it-works" class="scroll-mt-20 bg-stone-100/70 py-16 sm:py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+            <h2 class="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">From sign-up to daily records in minutes</h2>
+            <p class="mt-3 text-sm text-stone-600 sm:mt-4 sm:text-base">No onboarding calls, no training manuals - the setup wizard walks you through it.</p>
+        </div>
+        <div class="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+            {% for number, title, text in steps %}
+            <div class="relative rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 text-xs font-extrabold text-white sm:h-9 sm:w-9 sm:text-sm">{{ number }}</span>
+                <h3 class="mt-4 text-sm font-bold text-stone-900 sm:text-base">{{ title }}</h3>
+                <p class="mt-2 text-xs leading-relaxed text-stone-500 sm:text-sm">{{ text }}</p>
             </div>
-            <div class="rounded-2xl bg-white p-6 shadow-sm">
-                <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Farm Manager</p>
-                <p class="mt-2 text-sm text-stone-500">Adds workers, cows, milk and feeding records. Can't create new farms.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section id="roles" class="scroll-mt-20 py-16 sm:py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+            <h2 class="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">A role for everyone on the farm</h2>
+            <p class="mt-3 text-sm text-stone-600 sm:mt-4 sm:text-base">Every module - herd, crops, inventory and finance - respects the same four permission tiers.</p>
+        </div>
+        <div class="mt-10 grid gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
+            <div class="rounded-2xl bg-emerald-800 p-5 text-white shadow-soft sm:p-6">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-200 sm:text-xs">Farmer (Owner)</p>
+                <p class="mt-2 text-xs text-emerald-50/90 sm:text-sm">Owns the farm. Adds farms, blocks and workers, manages every module, and assigns every role.</p>
             </div>
-            <div class="rounded-2xl bg-white p-6 shadow-sm">
-                <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Farm Supervisor</p>
-                <p class="mt-2 text-sm text-stone-500">Adds cows, milk and feeding records. Can't manage workers or farms.</p>
+            <div class="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 sm:text-xs">Farm Manager</p>
+                <p class="mt-2 text-xs text-stone-500 sm:text-sm">Manages workers, herd, crops, inventory and finance records. Can't create new farms.</p>
             </div>
-            <div class="rounded-2xl bg-white p-6 shadow-sm">
-                <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Farm Worker</p>
-                <p class="mt-2 text-sm text-stone-500">Logs daily milk and feeding records — fast data entry, nothing else.</p>
+            <div class="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 sm:text-xs">Farm Supervisor</p>
+                <p class="mt-2 text-xs text-stone-500 sm:text-sm">Manages herd, crops and inventory records and views reports. Can't manage workers or farms.</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 sm:text-xs">Farm Worker</p>
+                <p class="mt-2 text-xs text-stone-500 sm:text-sm">Logs daily milk, feeding, crop activity and stock movements - fast data entry, nothing else.</p>
             </div>
         </div>
     </div>
 </section>
 
-<section class="mx-auto max-w-5xl px-6 py-20 text-center lg:px-8">
-    <h2 class="text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">Ready to digitize your farm?</h2>
-    <p class="mx-auto mt-4 max-w-xl text-stone-600">Set up takes less than five minutes. Get a unique Farm ID, add your first block, and start logging records today.</p>
-    <a href="{% url 'accounts:signup_account' %}" class="mt-8 inline-flex rounded-full bg-emerald-700 px-8 py-3.5 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
+<section class="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
+    <h2 class="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">Ready to digitize your farm?</h2>
+    <p class="mx-auto mt-3 max-w-xl text-sm text-stone-600 sm:mt-4 sm:text-base">Set up takes less than five minutes. Get a unique Farm ID, add your first block, and start logging records today.</p>
+    <a href="{% url 'accounts:signup_account' %}" class="mt-7 inline-flex rounded-full bg-emerald-700 px-7 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800 sm:mt-8 sm:px-8 sm:py-3.5">
         Create your farm →
     </a>
 </section>
 
 <footer class="border-t border-stone-200 py-8">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-stone-500 sm:flex-row lg:px-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center text-xs text-stone-500 sm:flex-row sm:px-6 sm:text-left sm:text-sm lg:px-8">
         <p>© {% now "Y" %} Miginon Farm. Built for smarter dairy operations.</p>
         <a href="{% url 'accounts:admin_login' %}" class="hover:text-stone-700">Platform admin</a>
     </div>

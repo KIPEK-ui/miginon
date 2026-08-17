@@ -1,14 +1,19 @@
 <header class="relative z-10">
-    <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
-        <a href="{% url 'core:landing' %}" class="flex items-center gap-2">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-lg text-white">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <a href="{% url 'core:landing' %}" class="flex shrink-0 items-center gap-2">
+            <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20 text-base text-white sm:h-9 sm:w-9 sm:text-lg">
                 <ion-icon name="leaf-outline"></ion-icon>
             </span>
-            <span class="font-extrabold text-lg tracking-tight text-white">Miginon Farm</span>
+            <span class="text-base font-extrabold tracking-tight text-white sm:text-lg">Miginon Farm</span>
         </a>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'accounts:login_farm' %}" class="rounded-full px-4 py-2 text-sm font-semibold text-white/90 hover:text-white">Log in</a>
-            <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-emerald-800 shadow-soft transition hover:bg-emerald-50">Get started free</a>
+        <div class="hidden items-center gap-8 text-sm font-semibold text-white/80 md:flex">
+            <a href="#features" class="transition hover:text-white">Features</a>
+            <a href="#how-it-works" class="transition hover:text-white">How it works</a>
+            <a href="#roles" class="transition hover:text-white">Roles</a>
+        </div>
+        <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+            <a href="{% url 'accounts:login_farm' %}" class="rounded-full px-3 py-2 text-xs font-semibold text-white/90 hover:text-white sm:px-4 sm:text-sm">Log in</a>
+            <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-white px-4 py-2 text-xs font-bold text-emerald-800 shadow-soft transition hover:bg-emerald-50 sm:px-5 sm:py-2.5 sm:text-sm">Get started free</a>
         </div>
     </nav>
 </header>
