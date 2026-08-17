@@ -37,16 +37,18 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-f&m&sa@54lk4e$o^)n(8lh!9
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
-# Vercel assigns every deployment (production + each preview) its own
-# <name>.vercel.app host, exposed to the running app via VERCEL_URL - accept
-# it automatically so previews don't need ALLOWED_HOSTS updated by hand.
-_vercel_url = os.environ.get('VERCEL_URL')
-if _vercel_url:
-    ALLOWED_HOSTS.append(_vercel_url)
+# Vercel exposes two different hostnames at runtime: VERCEL_URL is the
+# unique URL of *this specific* build/deployment (changes every deploy),
+# while VERCEL_PROJECT_PRODUCTION_URL is the stable production alias (e.g.
+# miginonfarm.vercel.app, or a custom domain later) - the one users and the
+# emailed login links actually hit. Both need to be accepted.
+_vercel_hosts = [
+    h for h in (os.environ.get('VERCEL_URL'), os.environ.get('VERCEL_PROJECT_PRODUCTION_URL')) if h
+]
+ALLOWED_HOSTS += _vercel_hosts
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
-if _vercel_url:
-    CSRF_TRUSTED_ORIGINS.append(f'https://{_vercel_url}')
+CSRF_TRUSTED_ORIGINS += [f'https://{h}' for h in _vercel_hosts]
 
 # Vercel terminates TLS and proxies to the app over HTTP, forwarding the
 # original scheme in this header - without it, request.is_secure() and every
@@ -55,6 +57,11 @@ if _vercel_url:
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = not DEBUG
+# Start with a short HSTS window rather than the usual 1-year value - once
+# HTTPS on the production domain has been confirmed stable for a while, this
+# can be raised (browsers cache it, so a bad long value is hard to undo).
+SECURE_HSTS_SECONDS = 0 if DEBUG else 3600
 
 
 # Application definition
