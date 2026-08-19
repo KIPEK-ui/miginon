@@ -17,14 +17,14 @@
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Farm Map</h1>
         <p class="mt-1 text-sm text-stone-500">
-            Your paddocks, herd, feed troughs, storage and this month's finances, laid out across the farm.
+            Your paddocks, herd, feed troughs, storage, crop fields, workers and this month's finances, laid out across the farm.
             Drag to rotate, scroll to zoom, click anything to open it.
         </p>
     </div>
     <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">List view</a>
 </div>
 
-{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense %}
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data %}
 <div id="farm-map" class="relative h-[75vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
     <div id="map-tooltip" class="pointer-events-none absolute z-10 hidden rounded-lg bg-stone-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"></div>
     <div class="absolute left-3 top-3 z-10 flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white/95 p-3 text-xs font-bold text-stone-700 shadow-soft backdrop-blur">
@@ -33,22 +33,26 @@
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="feeding" checked class="accent-emerald-600"> Feeding</label>
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="inventory" checked class="accent-emerald-600"> Inventory</label>
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="finance" checked class="accent-emerald-600"> Finance</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="crops" checked class="accent-emerald-600"> Crops</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="workers" checked class="accent-emerald-600"> Workers</label>
     </div>
 </div>
 {{ blocks_data|json_script:"blocks-data" }}
 {{ cows_data|json_script:"cows-data" }}
 {{ inventory_data|json_script:"inventory-data" }}
 {{ finance_data|json_script:"finance-data" }}
+{{ crops_data|json_script:"crops-data" }}
+{{ workers_data|json_script:"workers-data" }}
 <p class="mt-2 text-xs text-stone-400" id="feeding-url" data-url="{{ feeding_url }}">
     Trough fill shows how much has been fed to that paddock today. Low-stock inventory is tinted red.
 </p>
 {% else %}
-<p class="text-sm text-stone-400">Nothing to show on the map yet. Add a block, cow, inventory item or transaction to see it here.</p>
+<p class="text-sm text-stone-400">Nothing to show on the map yet. Add a block, cow, inventory item, crop, worker or transaction to see it here.</p>
 {% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
-{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense %}
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data %}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -57,6 +61,8 @@ const blocksData = JSON.parse(document.getElementById('blocks-data').textContent
 const cowsData = JSON.parse(document.getElementById('cows-data').textContent);
 const inventoryData = JSON.parse(document.getElementById('inventory-data').textContent);
 const financeData = JSON.parse(document.getElementById('finance-data').textContent);
+const cropsData = JSON.parse(document.getElementById('crops-data').textContent);
+const workersData = JSON.parse(document.getElementById('workers-data').textContent);
 const feedingUrl = document.getElementById('feeding-url').dataset.url;
 
 const container = document.getElementById('farm-map');
@@ -144,8 +150,15 @@ const financeX = -(gridW / 2 + spacing * 1.4);
 const itemSpacing = 3.1;
 const yardSpan = Math.max(inventoryData.length, 1) * itemSpacing;
 
-const groundW = (Math.abs(yardX) + 6) * 2;
-const groundD = Math.max(gridD, yardSpan) + 16;
+const cropsZ = gridD / 2 + spacing * 1.4;
+const workersZ = -(gridD / 2 + spacing * 1.4);
+const plotSpacing = 3.2;
+const cropsSpan = Math.max(cropsData.length, 1) * plotSpacing;
+const workerSpacing = 1.4;
+const workersSpan = Math.max(workersData.length, 1) * workerSpacing;
+
+const groundW = Math.max((Math.abs(yardX) + 6) * 2, workersSpan + 8, cropsSpan + 8);
+const groundD = Math.max(gridD, yardSpan) + Math.abs(cropsZ) * 2 + 10;
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(groundW, groundD),
     new THREE.MeshStandardMaterial({ color: 0x6fae5a })
@@ -153,7 +166,7 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
-const totalSpan = groundW;
+const totalSpan = Math.max(groundW, groundD);
 scene.fog = new THREE.Fog(0xbfe3f7, totalSpan * 0.9, totalSpan * 2.4);
 
 function buildPath(x1, z1, x2, z2, width) {
@@ -170,6 +183,8 @@ function buildPath(x1, z1, x2, z2, width) {
 }
 scene.add(buildPath(gridW / 2 + 0.5, 0, yardX - 1.2, 0, 1));
 scene.add(buildPath(-gridW / 2 - 0.5, 0, financeX + 1.2, 0, 1));
+scene.add(buildPath(0, gridD / 2 + 0.5, 0, cropsZ - 1.2, 1));
+scene.add(buildPath(0, -gridD / 2 - 0.5, 0, workersZ + 1.2, 1));
 
 function buildPerimeterFence(width, depth) {
     const group = new THREE.Group();
@@ -399,6 +414,94 @@ function buildFinancePost(finance) {
     return group;
 }
 
+// ---------------------------------------------------------------- crops
+
+function buildCropPlot(crop) {
+    const group = new THREE.Group();
+    const w = 2.4, d = 1.8;
+    const soil = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), new THREE.MeshStandardMaterial({ color: 0x6b4a2a }));
+    soil.position.y = 0.04;
+    group.add(soil);
+
+    let plantColor = 0x4d7c33, plantHeight = 0.34, signBg = '#166534';
+    if (crop.status === 'planned') { plantColor = 0x8a6d3a; plantHeight = 0.04; signBg = '#78716c'; }
+    else if (crop.status === 'harvested') { plantColor = 0xb59a5b; plantHeight = 0.09; signBg = '#b45309'; }
+
+    const plantMat = new THREE.MeshStandardMaterial({ color: plantColor });
+    const rows = 3, perRow = 5;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < perRow; c++) {
+            const plant = new THREE.Mesh(new THREE.ConeGeometry(0.08, plantHeight, 6), plantMat);
+            plant.position.set(
+                (c - (perRow - 1) / 2) * (w / perRow),
+                plantHeight / 2 + 0.08,
+                (r - (rows - 1) / 2) * (d / rows)
+            );
+            group.add(plant);
+        }
+    }
+
+    const label = makeLabelSprite(crop.name, signBg);
+    label.position.set(0, 1.1, -d / 2 - 0.3);
+    group.add(label);
+
+    const userData = {
+        url: crop.url,
+        text: `${crop.name}${crop.field_name ? ' · ' + crop.field_name : ''} — ${cap(crop.status)}`,
+    };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+// -------------------------------------------------------------- workers
+
+function buildFarmhouse(x, z) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.5, 2), new THREE.MeshStandardMaterial({ color: 0xe7e0d0 }));
+    body.position.y = 0.75;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1, 4), new THREE.MeshStandardMaterial({ color: 0x8a5a34 }));
+    roof.position.y = 1.5 + 0.5;
+    roof.rotation.y = Math.PI / 4;
+    group.add(body, roof);
+    return group;
+}
+
+const ROLE_COLORS = {
+    farmer: 0x146a4a,
+    farm_manager: 0x25a56f,
+    farm_supervisor: 0xd6760a,
+    farm_worker: 0x78716c,
+};
+
+function buildWorker(worker) {
+    const group = new THREE.Group();
+    const color = ROLE_COLORS[worker.role] || 0x78716c;
+    const mat = new THREE.MeshStandardMaterial({ color });
+
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.42, 4, 8), mat);
+    body.position.y = 0.5;
+    group.add(body);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8b48a }));
+    head.position.y = 0.9;
+    group.add(head);
+
+    if (worker.role === 'farmer' || worker.role === 'farm_manager') {
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.13, 8), mat);
+        hat.position.y = 1.03;
+        group.add(hat);
+    }
+
+    const label = makeLabelSprite(`${worker.name} · ${worker.role_display}`, `#${color.toString(16).padStart(6, '0')}`);
+    label.position.set(0, 1.35, 0);
+    group.add(label);
+
+    const userData = { url: worker.url, text: `${worker.name} — ${worker.role_display}` };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
 // --------------------------------------------------------------- layers
 
 const layers = {
@@ -406,6 +509,8 @@ const layers = {
     feeding: new THREE.Group(),
     inventory: new THREE.Group(),
     finance: new THREE.Group(),
+    crops: new THREE.Group(),
+    workers: new THREE.Group(),
 };
 Object.values(layers).forEach((g) => scene.add(g));
 
@@ -461,6 +566,21 @@ if (financeData.income || financeData.expense) {
     const post = buildFinancePost(financeData);
     post.position.set(financeX, 0, 0);
     layers.finance.add(post);
+}
+
+cropsData.forEach((crop, i) => {
+    const plot = buildCropPlot(crop);
+    plot.position.set((i - (cropsData.length - 1) / 2) * plotSpacing, 0, cropsZ);
+    layers.crops.add(plot);
+});
+
+if (workersData.length) {
+    scene.add(buildFarmhouse(0, workersZ - 1.6));
+    workersData.forEach((worker, i) => {
+        const w = buildWorker(worker);
+        w.position.set((i - (workersData.length - 1) / 2) * workerSpacing, 0, workersZ + 1.3);
+        layers.workers.add(w);
+    });
 }
 
 document.querySelectorAll('[data-layer]').forEach((el) => {

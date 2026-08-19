@@ -481,12 +481,40 @@ def farm_map(request):
         'url': reverse('finance:transaction_list'),
     }
 
+    crops = Crop.objects.filter(farm=farm).order_by('name')
+    crops_data = [
+        {
+            'id': c.id,
+            'name': c.name,
+            'field_name': c.field_name,
+            'status': c.status,
+            'url': reverse('crops:crop_detail', args=[c.id]),
+        }
+        for c in crops
+    ]
+
+    workers = FarmMembership.objects.filter(
+        farm=farm, status=FarmMembership.Status.ACTIVE
+    ).select_related('user').order_by('role', 'user__first_name')
+    workers_data = [
+        {
+            'id': m.id,
+            'name': m.user.get_short_name() or m.user.first_name,
+            'role': m.role,
+            'role_display': m.get_role_display(),
+            'url': reverse('farms:worker_list'),
+        }
+        for m in workers
+    ]
+
     return render(request, 'farms/farm_map.html', {
         'blocks': blocks,
         'blocks_data': blocks_data,
         'cows_data': cows_data,
         'inventory_data': inventory_data,
         'finance_data': finance_data,
+        'crops_data': crops_data,
+        'workers_data': workers_data,
         'feeding_url': reverse('cows:feeding_list'),
     })
 
