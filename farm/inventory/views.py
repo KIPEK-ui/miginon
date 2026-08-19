@@ -12,9 +12,9 @@ from notifications.models import Notification
 from notifications.services import notify
 
 from .feed_reference import REFERENCE_INGREDIENTS, suggest_composition
-from .forms import InventoryItemForm, StockMovementForm
+from .forms import InventoryItemForm, MilkUsageForm, StockMovementForm
 from .models import FeedComposition, InventoryItem, StockMovement
-from .services import apply_movement, reverse_movement
+from .services import apply_movement, record_milk_internal_use, reverse_movement
 
 
 @any_member_required
@@ -157,6 +157,33 @@ def movement_create(request):
         messages.success(request, f'{movement.get_movement_type_display()} recorded for {movement.item.name}.')
         return redirect('inventory:movement_list')
     return render(request, 'inventory/movement_form.html', {'form': form})
+
+
+@log_activity_required
+def milk_usage_create(request):
+    """Log milk that left the farm without being sold - fed to calves,
+    consumed by staff, spoiled, etc. Draws down the same Milk inventory
+    item as a sale would (so stock stays accurate), but never touches
+    finance - it's the internal-use counterpart to finance.milk_sale_create."""
+    form = MilkUsageForm(request.POST or None, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        liters = form.cleaned_data['liters']
+        date = form.cleaned_data['date']
+        used_by = form.cleaned_data['used_by']
+        note_detail = form.cleaned_data['note']
+        purpose_label = dict(MilkUsageForm.PURPOSE_CHOICES)[form.cleaned_data['purpose']]
+        description = f'{purpose_label} - {liters}L' + (f' ({note_detail})' if note_detail else '')
+
+        milk_item = InventoryItem.objects.filter(farm=request.farm, name='Milk').first()
+        stock_before = milk_item.current_stock if milk_item else 0
+
+        record_milk_internal_use(request.farm, liters, date, request.user, note=description, used_by=used_by)
+        notify(request.farm, request.user, Notification.Verb.CREATED, 'milk usage', description)
+        messages.success(request, f'{description} recorded.')
+        if stock_before - liters < 0:
+            messages.warning(request, 'Milk stock is now negative - check for missing production records.')
+        return redirect('inventory:movement_list')
+    return render(request, 'inventory/milk_usage_form.html', {'form': form})
 
 
 @edit_delete_required

@@ -108,6 +108,7 @@
                         <a href="{% url 'finance:transaction_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="cash-outline"></ion-icon> Finance</a>
                         {% if active_membership.can_record_production %}
                         <a href="{% url 'finance:milk_sale_create' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="water-outline"></ion-icon> Record milk sale</a>
+                        <a href="{% url 'inventory:milk_usage_create' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="paw-outline"></ion-icon> Record milk usage</a>
                         {% endif %}
                         <a href="{% url 'tasks:task_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="checkbox-outline"></ion-icon> Tasks</a>
                         {% if active_membership.can_manage_herd %}

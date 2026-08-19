@@ -64,6 +64,22 @@ def record_milk_sale(farm, liters, date, user):
     return movement
 
 
+def record_milk_internal_use(farm, liters, date, user, note='Internal use', used_by=None):
+    """Draw down the farm's Milk inventory item for usage that isn't a sale
+    - calves being fed milk, staff consumption, spoilage, etc. (see
+    inventory.views.milk_usage_create). Unlike record_milk_sale, this never
+    creates a finance transaction: it's a cost/loss of stock, not income -
+    without this, that milk would just look like it vanished from
+    production vs. sales figures instead of being accounted for."""
+    item = _get_milk_item(farm)
+    movement = StockMovement.objects.create(
+        farm=farm, item=item, date=date, movement_type=StockMovement.MovementType.USAGE,
+        quantity=liters, note=note, used_by=used_by, recorded_by=user,
+    )
+    apply_movement(movement)
+    return movement
+
+
 def record_feed_usage(farm, item_name, kg, date, user):
     """Draw down a feed inventory item (e.g. 'Dairy Meal', 'Silage/Hay')
     whenever a FeedingRecord logs that quantity (see cows.views.feeding_create),

@@ -39,3 +39,28 @@ class StockMovementForm(TailwindFormMixin, forms.ModelForm):
             self.fields['used_by'].queryset = farm.memberships.filter(
                 status=FarmMembership.Status.ACTIVE
             ).select_related('user')
+
+
+class MilkUsageForm(TailwindFormMixin, forms.Form):
+    PURPOSE_CHOICES = [
+        ('calf', 'Calf feeding'),
+        ('staff', 'Staff consumption'),
+        ('other', 'Other internal use'),
+    ]
+
+    date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    liters = forms.DecimalField(max_digits=7, decimal_places=2, min_value=0.01, label='Liters used')
+    purpose = forms.ChoiceField(choices=PURPOSE_CHOICES)
+    used_by = forms.ModelChoiceField(
+        queryset=FarmMembership.objects.none(), required=False, label='Staff member (if applicable)'
+    )
+    note = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={'placeholder': 'Optional, e.g. which calves'})
+    )
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if farm is not None:
+            self.fields['used_by'].queryset = farm.memberships.filter(
+                status=FarmMembership.Status.ACTIVE
+            ).select_related('user')
