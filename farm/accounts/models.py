@@ -50,6 +50,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         NONE = '', 'Farm user'
         ADMIN = 'admin', 'Platform Admin'
 
+    class NotificationDelivery(models.TextChoices):
+        IN_APP = 'in_app', 'In-app only'
+        PUSH = 'push', 'Device notifications only'
+        BOTH = 'both', 'Both'
+
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=60)
     last_name = models.CharField(max_length=60, blank=True)
@@ -57,6 +62,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     platform_role = models.CharField(
         max_length=10, choices=PlatformRole.choices, blank=True, default=''
+    )
+    notification_delivery = models.CharField(
+        max_length=10, choices=NotificationDelivery.choices, default=NotificationDelivery.BOTH,
+        help_text='How you want to be notified about things targeted at you specifically '
+                   '(a task assigned to you, low stock, etc.) - not the general farm activity feed.'
     )
 
     is_active = models.BooleanField(default=True)

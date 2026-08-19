@@ -16,6 +16,7 @@ from .forms import (
     EmailChangeForm,
     EmailLoginForm,
     FarmCodeForm,
+    NotificationPreferenceForm,
     OTPForm,
     ProfileForm,
     SignupAccountForm,
@@ -423,7 +424,48 @@ def settings_view(request):
         form.save()
         messages.success(request, 'Profile updated.')
         return redirect('accounts:settings')
-    return render(request, 'accounts/settings.html', {'form': form})
+    notification_form = NotificationPreferenceForm(instance=request.user)
+    return render(request, 'accounts/settings.html', {'form': form, 'notification_form': notification_form})
+
+
+@login_required
+def settings_notifications(request):
+    form = NotificationPreferenceForm(request.POST or None, instance=request.user)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Notification preference updated.')
+    return redirect('accounts:settings')
+
+
+@login_required
+def delete_account(request):
+    """Self-service account deletion. Farm.owner and FarmMembership.user are
+    both on_delete=CASCADE, so deleting the user is enough by itself: for
+    any farm they *own*, the whole farm (blocks, herd, records, everyone
+    else's membership - everything) cascades away with them; for any farm
+    they're just a member of, only their own membership (and personal
+    records like push subscriptions) is removed - the farm and its data are
+    untouched for the rest of the team."""
+    memberships = FarmMembership.objects.filter(
+        user=request.user, status=FarmMembership.Status.ACTIVE
+    ).select_related('farm')
+    owned_memberships = [m for m in memberships if m.role == FarmRole.FARMER]
+    other_memberships = [m for m in memberships if m.role != FarmRole.FARMER]
+
+    if request.method == 'POST':
+        if request.POST.get('confirm', '').strip().upper() != 'DELETE':
+            messages.error(request, 'Type DELETE to confirm.')
+        else:
+            user = request.user
+            django_logout(request)
+            user.delete()
+            messages.success(request, 'Your account has been deleted.')
+            return redirect('core:landing')
+
+    return render(request, 'accounts/delete_account.html', {
+        'owned_memberships': owned_memberships,
+        'other_memberships': other_memberships,
+    })
 
 
 @login_required

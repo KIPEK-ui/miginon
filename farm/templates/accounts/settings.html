@@ -19,6 +19,21 @@
     </div>
 
     <div class="rounded-2xl border border-stone-200 bg-white p-8">
+        <h2 class="font-bold text-stone-900">Notifications</h2>
+        <p class="mt-1 text-sm text-stone-500">
+            How you want to hear about things targeted at you - a task assigned to you, a task you assigned being
+            completed, or an inventory item running low. General farm activity always stays in-app.
+        </p>
+        <form method="post" action="{% url 'accounts:settings_notifications' %}" class="mt-4" novalidate>
+            {% csrf_token %}
+            {% include "partials/form_fields.html" with form=notification_form %}
+            <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">
+                Save preference
+            </button>
+        </form>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-8">
         <h2 class="font-bold text-stone-900">Email address</h2>
         <p class="mt-1 text-sm text-stone-500">{{ user.email }} is used to sign in - changing it requires verifying the new address.</p>
         <a href="{% url 'accounts:settings_email' %}" class="mt-4 inline-flex rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50">
@@ -35,5 +50,19 @@
         </a>
     </div>
     {% endif %}
+
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-8">
+        <h2 class="font-bold text-red-800">Danger zone</h2>
+        <p class="mt-1 text-sm text-red-700">
+            {% if active_membership.can_add_farms %}
+            Deleting your account permanently deletes {{ active_farm_obj.name }} and everything in it, since you're the owner.
+            {% else %}
+            Deleting your account removes your access to {{ active_farm_obj.name }} - the farm's data stays intact for the rest of the team.
+            {% endif %}
+        </p>
+        <a href="{% url 'accounts:delete_account' %}" class="mt-4 inline-flex rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100">
+            Delete account →
+        </a>
+    </div>
 </div>
 {% endblock %}

@@ -90,6 +90,14 @@ class ProfileForm(TailwindFormMixin, forms.ModelForm):
         }
 
 
+class NotificationPreferenceForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        from .models import User
+        model = User
+        fields = ['notification_delivery']
+        labels = {'notification_delivery': 'Notify me via'}
+
+
 class EmailChangeForm(TailwindFormMixin, forms.Form):
     new_email = forms.EmailField(label='New email address')
 

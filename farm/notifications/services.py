@@ -8,22 +8,35 @@ def notify(farm, actor, verb, kind, description, recipient=None):
 
     Pass `recipient` when this notification is targeted at one specific user
     (e.g. "you were assigned a task") rather than the general farm activity
-    feed - that guarantees it shows up in their notification list regardless
-    of role, and also pushes it to their devices (see push.py). Leave it out
-    for routine activity logging; push is intentionally scoped to targeted,
-    high-signal events only, so it isn't triggered here.
+    feed. For a targeted notification, `recipient.notification_delivery`
+    (see accounts.settings -> Notifications) decides where it actually goes:
+    in-app only, device push only, or both - so it may not create a
+    Notification row, may not push, or may do both. Leave `recipient` out
+    for routine activity logging, which always just logs in-app; push is
+    intentionally scoped to targeted, high-signal events only.
+
+    Returns the created Notification, or None if the recipient's preference
+    means no in-app row was written for this event.
     """
-    notification = Notification.objects.create(
-        farm=farm, actor=actor, recipient=recipient, verb=verb, kind=kind, description=description[:255]
-    )
-    if recipient is not None:
+    delivery = recipient.notification_delivery if recipient is not None else None
+    Delivery = recipient.NotificationDelivery if recipient is not None else None
+
+    notification = None
+    if recipient is None or delivery in (Delivery.IN_APP, Delivery.BOTH):
+        notification = Notification.objects.create(
+            farm=farm, actor=actor, recipient=recipient, verb=verb, kind=kind, description=description[:255]
+        )
+
+    if recipient is not None and delivery in (Delivery.PUSH, Delivery.BOTH):
         from .push import send_push_to_user
 
         who = actor.get_short_name() if actor else 'Someone'
+        verb_label = dict(Notification.Verb.choices).get(verb, verb)
         send_push_to_user(
             recipient,
             title=f'{farm.name}',
-            body=f'{who} {notification.get_verb_display()} {kind}: {description}',
+            body=f'{who} {verb_label} {kind}: {description}',
             url='/notifications/',
         )
+
     return notification

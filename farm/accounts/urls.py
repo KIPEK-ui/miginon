@@ -27,6 +27,8 @@ urlpatterns = [
 
     # Settings: profile + change email
     path('settings/', views.settings_view, name='settings'),
+    path('settings/notifications/', views.settings_notifications, name='settings_notifications'),
+    path('settings/delete/', views.delete_account, name='delete_account'),
     path('settings/email/', views.settings_email, name='settings_email'),
     path('settings/email/otp/', views.settings_email_otp, name='settings_email_otp'),
     path('settings/email/otp/resend/', views.resend_settings_email_otp, name='resend_settings_email_otp'),
