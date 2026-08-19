@@ -6,13 +6,17 @@ def landing(request):
         return redirect('farms:dashboard')
 
     features = [
-        ('water-outline', 'Milk production', 'Log AM, noon and PM yields per cow and block, and watch weekly and monthly trends on the dashboard.'),
-        ('nutrition-outline', 'Feeding records', 'Record dairy meal and silage/hay per block and session, just like your existing feeding chart.'),
-        ('paw-outline', 'Herd management', 'Organize cows, heifers, calves and bulls into blocks with tags, breed, gender and status - transfer between blocks in a click.'),
-        ('leaf-outline', 'Crop tracking', 'Track every crop from planting to harvest, and log weeding, spraying, fertilizing and harvest activity per field.'),
-        ('cube-outline', 'Inventory & stock', 'Track feed, veterinary supplies and equipment stock, with automatic low-stock warnings before you run out.'),
+        ('layers-outline', '3D farm visualization', 'Explore your whole farm in an interactive 3D view - paddocks, herd, crops, tasks, inventory and finance, all in one place.'),
+        ('trending-up-outline', 'AI production predictions', 'Get milk yield forecasts per cow, block or herd, with an honest, exact breakdown of what’s driving each prediction - not a black box.'),
+        ('water-outline', 'Milk production', 'Log AM, noon and PM yields per cow and block - production automatically becomes trackable stock, and a sale updates your finances and inventory together.'),
+        ('nutrition-outline', 'Feeding records', 'Record dairy meal and silage/hay per block or per individual cow, with automatic stock draw-down and a suggested feed composition to get you started.'),
+        ('paw-outline', 'Herd management', 'Organize cows, heifers, calves and bulls into blocks with tags, breed, gender, calving dates and status - transfer between blocks in a click.'),
+        ('leaf-outline', 'Crop tracking', 'Track every crop from planting to harvest - a logged harvest automatically restocks your produce inventory.'),
+        ('checkbox-outline', 'Task management', 'Assign tasks to your team tied to a block, crop or piece of equipment, and track them through to done.'),
+        ('cube-outline', 'Inventory & stock', 'Track feed, veterinary supplies, equipment and produce, with automatic low-stock warnings and per-worker equipment usage.'),
         ('cash-outline', 'Finance', 'Record income and expenses by category and see your real-time net position for the farm.'),
         ('bar-chart-outline', 'Reports & analytics', 'A full dashboard plus one-click exports to CSV, Excel or PDF - or have a report emailed to you instantly.'),
+        ('notifications-circle-outline', 'Device notifications', 'Get notified on your phone or browser the moment something needs attention - a task, a completed job, low stock - even when the app is closed.'),
         ('notifications-outline', 'Activity feed', 'Every teammate sees who added, changed or removed what, in real time, right on their dashboard.'),
         ('lock-closed-outline', 'Passwordless login', 'No passwords to remember or leak. Sign in with your Farm ID, email and a 6-digit one-time code.'),
         ('people-outline', 'Role-based access', 'Farmer, Manager, Supervisor and Worker - everyone sees exactly the tools their role needs, nothing more.'),
