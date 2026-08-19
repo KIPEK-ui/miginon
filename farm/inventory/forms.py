@@ -1,6 +1,7 @@
 from django import forms
 
 from core.formhelpers import TailwindFormMixin
+from farms.models import FarmMembership
 
 from .models import InventoryItem, StockMovement
 
@@ -24,13 +25,17 @@ class InventoryItemForm(TailwindFormMixin, forms.ModelForm):
 class StockMovementForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = StockMovement
-        fields = ['item', 'date', 'movement_type', 'quantity', 'note']
+        fields = ['item', 'date', 'movement_type', 'quantity', 'used_by', 'note']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'note': forms.TextInput(attrs={'placeholder': 'Optional'}),
         }
+        labels = {'used_by': 'Used by (optional)'}
 
     def __init__(self, *args, farm=None, **kwargs):
         super().__init__(*args, **kwargs)
         if farm is not None:
             self.fields['item'].queryset = farm.inventory_items.all()
+            self.fields['used_by'].queryset = farm.memberships.filter(
+                status=FarmMembership.Status.ACTIVE
+            ).select_related('user')

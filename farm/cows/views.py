@@ -9,6 +9,7 @@ from farms.permissions import (
     manage_herd_required,
     record_production_required,
 )
+from inventory.services import record_feed_usage, record_milk_production, reverse_movement
 from notifications.models import Notification
 from notifications.services import notify
 
@@ -128,6 +129,24 @@ def _feeding_form_context(request, form, record=None):
     return {'form': form, 'farm_cows': farm_cows, 'selected_cow_ids': selected_cow_ids, 'record': record}
 
 
+def _sync_feed_movement(record, quantity_field, movement_field, item_name, farm, user):
+    """Create/update/clear the StockMovement linked to one of a
+    FeedingRecord's feed quantity fields, keeping it in sync with the
+    current value - same reverse-and-relog reconciliation used for milk
+    (see milk_edit). Works for both a brand-new record (no old movement to
+    reverse) and an edit."""
+    old_movement = getattr(record, movement_field)
+    if old_movement:
+        reverse_movement(old_movement)
+        old_movement.delete()
+        setattr(record, movement_field, None)
+
+    kg = getattr(record, quantity_field)
+    if kg and kg > 0:
+        movement = record_feed_usage(farm, item_name, kg, record.date, user)
+        setattr(record, movement_field, movement)
+
+
 @record_production_required
 def feeding_create(request):
     if not request.farm.cows.filter(status=Cow.Status.ACTIVE).exists():
@@ -142,7 +161,9 @@ def feeding_create(request):
         record.save()
         form.save_m2m()
         record.cows_count = record.cows.count()
-        record.save(update_fields=['cows_count'])
+        _sync_feed_movement(record, 'dairy_meal_kg', 'dairy_meal_movement', 'Dairy Meal', request.farm, request.user)
+        _sync_feed_movement(record, 'silage_hay_kg', 'silage_hay_movement', 'Silage/Hay', request.farm, request.user)
+        record.save(update_fields=['cows_count', 'dairy_meal_movement', 'silage_hay_movement'])
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'feeding record',
             f'{record.block.name} - {record.date} {record.get_session_display()}'
@@ -162,7 +183,9 @@ def feeding_edit(request, record_id):
         updated.save()
         form.save_m2m()
         updated.cows_count = updated.cows.count()
-        updated.save(update_fields=['cows_count'])
+        _sync_feed_movement(updated, 'dairy_meal_kg', 'dairy_meal_movement', 'Dairy Meal', request.farm, request.user)
+        _sync_feed_movement(updated, 'silage_hay_kg', 'silage_hay_movement', 'Silage/Hay', request.farm, request.user)
+        updated.save(update_fields=['cows_count', 'dairy_meal_movement', 'silage_hay_movement'])
         notify(
             request.farm, request.user, Notification.Verb.UPDATED, 'feeding record',
             f'{updated.block.name} - {updated.date} {updated.get_session_display()}'
@@ -178,6 +201,10 @@ def feeding_delete(request, record_id):
     record = get_object_or_404(FeedingRecord, id=record_id, farm=request.farm)
     if request.method == 'POST':
         description = f'{record.block.name} - {record.date} {record.get_session_display()}'
+        for movement in (record.dairy_meal_movement, record.silage_hay_movement):
+            if movement:
+                reverse_movement(movement)
+                movement.delete()
         record.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'feeding record', description)
         messages.success(request, 'Feeding record deleted.')
@@ -203,6 +230,9 @@ def milk_create(request):
         record.block = record.cow.block
         record.recorded_by = request.user
         record.save()
+        movement = record_milk_production(request.farm, record.liters, record.date, request.user)
+        record.stock_movement = movement
+        record.save(update_fields=['stock_movement'])
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'milk record',
             f'{record.cow.tag_id} - {record.date} {record.get_session_display()} - {record.liters}L'
@@ -232,9 +262,22 @@ def milk_edit(request, record_id):
     record = get_object_or_404(MilkRecord, id=record_id, farm=request.farm)
     form = MilkRecordForm(request.POST or None, instance=record, farm=request.farm)
     if request.method == 'POST' and form.is_valid():
+        old_movement = record.stock_movement
         updated = form.save(commit=False)
         updated.block = updated.cow.block
         updated.save()
+
+        # Stock movements are a ledger, not freestanding records (see
+        # inventory.views.movement_delete) - reconcile by reversing whatever
+        # this record produced before and logging a fresh one for the
+        # updated liters/date, rather than editing the movement in place.
+        if old_movement:
+            reverse_movement(old_movement)
+            old_movement.delete()
+        new_movement = record_milk_production(request.farm, updated.liters, updated.date, request.user)
+        updated.stock_movement = new_movement
+        updated.save(update_fields=['stock_movement'])
+
         notify(
             request.farm, request.user, Notification.Verb.UPDATED, 'milk record',
             f'{updated.cow.tag_id} - {updated.date} {updated.get_session_display()} - {updated.liters}L'
@@ -249,6 +292,9 @@ def milk_delete(request, record_id):
     record = get_object_or_404(MilkRecord, id=record_id, farm=request.farm)
     if request.method == 'POST':
         description = f'{record.cow.tag_id} - {record.date} {record.get_session_display()} - {record.liters}L'
+        if record.stock_movement:
+            reverse_movement(record.stock_movement)
+            record.stock_movement.delete()
         record.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'milk record', description)
         messages.success(request, 'Milk record deleted.')

@@ -18,7 +18,8 @@
     (function () {
         var CATEGORY_KIND = {
             feed: 'expense', veterinary: 'expense', labor: 'expense', equipment: 'expense',
-            transport: 'expense', utilities: 'expense', sales: 'income', other: 'both'
+            transport: 'expense', utilities: 'expense', water: 'expense', fuel: 'expense',
+            sales: 'income', other: 'both'
         };
         var kindSelect = document.getElementById('{{ form.kind.id_for_label }}');
         var categorySelect = document.getElementById('{{ form.category.id_for_label }}');

@@ -85,6 +85,16 @@ class FeedingRecord(models.Model):
     cows_count = models.PositiveIntegerField(default=0, help_text='Auto-filled from the cows selected below.')
     dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    dairy_meal_movement = models.ForeignKey(
+        'inventory.StockMovement', null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL, related_name='+',
+        help_text='The Dairy Meal inventory usage this record produced.'
+    )
+    silage_hay_movement = models.ForeignKey(
+        'inventory.StockMovement', null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL, related_name='+',
+        help_text='The Silage/Hay inventory usage this record produced.'
+    )
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='feeding_records'
@@ -114,6 +124,12 @@ class MilkRecord(models.Model):
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='milk_records'
+    )
+    stock_movement = models.ForeignKey(
+        'inventory.StockMovement', null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL, related_name='+',
+        help_text='The Milk inventory restock this record produced - kept so editing/deleting '
+                   'the record can reconcile that stock movement instead of leaving it stale.'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

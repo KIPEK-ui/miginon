@@ -7,11 +7,30 @@ from farms.permissions import (
     log_activity_required,
     manage_records_required,
 )
+from inventory.services import record_crop_harvest, reverse_movement
 from notifications.models import Notification
 from notifications.services import notify
 
 from .forms import CropActivityForm, CropForm
 from .models import Crop, CropActivity
+
+
+def _sync_harvest_movement(activity, farm, user):
+    """Create/update/clear the produce StockMovement linked to a
+    CropActivity, keeping it in sync with activity_type/quantity_harvested_kg
+    - same reverse-and-relog reconciliation used for milk (see
+    cows.views.milk_edit). Works for both a brand-new activity and an edit,
+    including one whose activity_type changes to/from harvesting."""
+    old_movement = activity.stock_movement
+    if old_movement:
+        reverse_movement(old_movement)
+        old_movement.delete()
+        activity.stock_movement = None
+
+    if activity.activity_type == CropActivity.ActivityType.HARVESTING and activity.quantity_harvested_kg:
+        activity.stock_movement = record_crop_harvest(
+            farm, activity.crop.name, activity.quantity_harvested_kg, activity.date, user
+        )
 
 
 @any_member_required
@@ -83,6 +102,8 @@ def activity_create(request):
         activity.farm = request.farm
         activity.recorded_by = request.user
         activity.save()
+        _sync_harvest_movement(activity, request.farm, request.user)
+        activity.save(update_fields=['stock_movement'])
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'
@@ -98,6 +119,8 @@ def activity_edit(request, activity_id):
     form = CropActivityForm(request.POST or None, instance=activity, farm=request.farm)
     if request.method == 'POST' and form.is_valid():
         form.save()
+        _sync_harvest_movement(activity, request.farm, request.user)
+        activity.save(update_fields=['stock_movement'])
         notify(
             request.farm, request.user, Notification.Verb.UPDATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'
@@ -112,6 +135,9 @@ def activity_delete(request, activity_id):
     activity = get_object_or_404(CropActivity, id=activity_id, farm=request.farm)
     if request.method == 'POST':
         description = f'{activity.get_activity_type_display()} - {activity.crop.name}'
+        if activity.stock_movement:
+            reverse_movement(activity.stock_movement)
+            activity.stock_movement.delete()
         activity.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'crop activity', description)
         messages.success(request, 'Crop activity deleted.')

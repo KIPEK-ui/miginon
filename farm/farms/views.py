@@ -61,6 +61,10 @@ QUICK_ACTIONS = [
         'permission': lambda m: m.can_record_production,
     },
     {
+        'label': 'Record milk sale', 'url_name': 'finance:milk_sale_create', 'icon': 'water-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
         'label': 'Assign task', 'url_name': 'tasks:task_create', 'icon': 'checkbox-outline',
         'permission': lambda m: m.can_manage_workers,
     },

@@ -20,6 +20,7 @@
                     <th class="px-6 py-3">Item</th>
                     <th class="px-6 py-3">Type</th>
                     <th class="px-6 py-3">Quantity</th>
+                    <th class="px-6 py-3">Used by</th>
                     <th class="px-6 py-3">Note</th>
                     {% if active_membership.can_edit_or_delete %}<th class="px-6 py-3"></th>{% endif %}
                 </tr>
@@ -40,6 +41,7 @@
                         </span>
                     </td>
                     <td class="px-6 py-3 text-stone-600">{{ m.quantity }} {{ m.item.get_unit_display }}</td>
+                    <td class="px-6 py-3 text-stone-500">{{ m.used_by.user.get_short_name|default:"—" }}</td>
                     <td class="px-6 py-3 text-stone-500">{{ m.note|default:"—" }}</td>
                     {% if active_membership.can_edit_or_delete %}
                     <td class="px-6 py-3 text-right">
@@ -49,7 +51,7 @@
                     {% endif %}
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="px-6 py-8 text-center text-stone-400">No movements recorded yet.</td></tr>
+                <tr><td colspan="7" class="px-6 py-8 text-center text-stone-400">No movements recorded yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

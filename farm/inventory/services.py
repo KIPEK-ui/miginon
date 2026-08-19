@@ -1,4 +1,4 @@
-from .models import StockMovement
+from .models import InventoryItem, StockMovement
 
 
 def movement_delta(movement: StockMovement):
@@ -29,3 +29,70 @@ def reverse_movement(movement: StockMovement):
     item = movement.item
     item.current_stock -= movement_delta(movement)
     item.save(update_fields=['current_stock'])
+
+
+def _get_milk_item(farm):
+    item, _ = InventoryItem.objects.get_or_create(
+        farm=farm, name='Milk',
+        defaults={'category': InventoryItem.Category.PRODUCE, 'unit': InventoryItem.Unit.LITRES},
+    )
+    return item
+
+
+def record_milk_production(farm, liters, date, user):
+    """Auto-restock the farm's Milk inventory item whenever a MilkRecord is
+    logged (see cows.views.milk_create), so on-hand milk stock always
+    reflects what's been produced but not yet sold."""
+    item = _get_milk_item(farm)
+    movement = StockMovement.objects.create(
+        farm=farm, item=item, date=date, movement_type=StockMovement.MovementType.RESTOCK,
+        quantity=liters, note='Milk production', recorded_by=user,
+    )
+    apply_movement(movement)
+    return movement
+
+
+def record_milk_sale(farm, liters, date, user):
+    """Draw down the farm's Milk inventory item when a sale is recorded
+    (see finance.views.milk_sale_create)."""
+    item = _get_milk_item(farm)
+    movement = StockMovement.objects.create(
+        farm=farm, item=item, date=date, movement_type=StockMovement.MovementType.USAGE,
+        quantity=liters, note='Milk sale', recorded_by=user,
+    )
+    apply_movement(movement)
+    return movement
+
+
+def record_feed_usage(farm, item_name, kg, date, user):
+    """Draw down a feed inventory item (e.g. 'Dairy Meal', 'Silage/Hay')
+    whenever a FeedingRecord logs that quantity (see cows.views.feeding_create),
+    auto-creating the item on first use - the mirror image of
+    record_milk_production, since feeding consumes stock rather than
+    producing it."""
+    item, _ = InventoryItem.objects.get_or_create(
+        farm=farm, name=item_name,
+        defaults={'category': InventoryItem.Category.FEED, 'unit': InventoryItem.Unit.KG},
+    )
+    movement = StockMovement.objects.create(
+        farm=farm, item=item, date=date, movement_type=StockMovement.MovementType.USAGE,
+        quantity=kg, note='Feeding', recorded_by=user,
+    )
+    apply_movement(movement)
+    return movement
+
+
+def record_crop_harvest(farm, item_name, kg, date, user):
+    """Auto-restock a produce inventory item named after the crop whenever a
+    harvesting CropActivity logs a quantity (see crops.views.activity_create)
+    - the crop equivalent of record_milk_production."""
+    item, _ = InventoryItem.objects.get_or_create(
+        farm=farm, name=item_name,
+        defaults={'category': InventoryItem.Category.PRODUCE, 'unit': InventoryItem.Unit.KG},
+    )
+    movement = StockMovement.objects.create(
+        farm=farm, item=item, date=date, movement_type=StockMovement.MovementType.RESTOCK,
+        quantity=kg, note='Crop harvest', recorded_by=user,
+    )
+    apply_movement(movement)
+    return movement

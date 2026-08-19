@@ -39,7 +39,7 @@ def item_create(request):
 @any_member_required
 def item_detail(request, item_id):
     item = get_object_or_404(InventoryItem, id=item_id, farm=request.farm)
-    movements = item.movements.all()[:30]
+    movements = item.movements.select_related('used_by__user').all()[:30]
     return render(request, 'inventory/item_detail.html', {'item': item, 'movements': movements})
 
 
@@ -69,7 +69,7 @@ def item_delete(request, item_id):
 
 @any_member_required
 def movement_list(request):
-    movements = StockMovement.objects.filter(farm=request.farm).select_related('item')[:60]
+    movements = StockMovement.objects.filter(farm=request.farm).select_related('item', 'used_by__user')[:60]
     return render(request, 'inventory/movement_list.html', {'movements': movements})
 
 

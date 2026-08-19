@@ -49,6 +49,11 @@ class CropActivity(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='crop_activities'
     )
+    stock_movement = models.ForeignKey(
+        'inventory.StockMovement', null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL, related_name='+',
+        help_text='The produce inventory restock this harvesting activity produced.'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

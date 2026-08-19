@@ -7,6 +7,7 @@ class InventoryItem(models.Model):
         FEED = 'feed', 'Feed'
         VETERINARY = 'veterinary', 'Veterinary & Medicine'
         EQUIPMENT = 'equipment', 'Equipment'
+        PRODUCE = 'produce', 'Produce'
         OTHER = 'other', 'Other'
 
     class Unit(models.TextChoices):
@@ -65,6 +66,12 @@ class StockMovement(models.Model):
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='stock_movements'
+    )
+    used_by = models.ForeignKey(
+        'farms.FarmMembership', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='equipment_usage',
+        help_text='Who used/consumed this (most relevant for equipment) - separate from '
+                   'recorded_by, who logged the entry.'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

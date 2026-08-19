@@ -14,6 +14,8 @@ class Transaction(models.Model):
         EQUIPMENT = 'equipment', 'Equipment'
         TRANSPORT = 'transport', 'Transport'
         UTILITIES = 'utilities', 'Utilities'
+        WATER = 'water', 'Water'
+        FUEL = 'fuel', 'Fuel'
         SALES = 'sales', 'Produce Sales'
         OTHER = 'other', 'Other'
 
