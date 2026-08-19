@@ -1,0 +1,152 @@
+{% extends "app_base.html" %}
+{% block title %}Farm Map - Miginon Farm{% endblock %}
+
+{% block extra_head %}
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+{% endblock %}
+
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Farm Map</h1>
+        <p class="mt-1 text-sm text-stone-500">
+            Box height and color reflect each block's active cow count. Drag to rotate, scroll to zoom, click a block to open it.
+        </p>
+    </div>
+    <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">List view</a>
+</div>
+
+{% if blocks %}
+<div id="farm-map" class="relative h-[70vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+    <div id="map-tooltip" class="pointer-events-none absolute z-10 hidden rounded-lg bg-stone-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"></div>
+</div>
+{{ blocks_data|json_script:"blocks-data" }}
+{% else %}
+<p class="text-sm text-stone-400">No blocks yet. Add a block to see it on the map.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if blocks %}
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const blocks = JSON.parse(document.getElementById('blocks-data').textContent);
+const container = document.getElementById('farm-map');
+const tooltip = document.getElementById('map-tooltip');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf5f5f4);
+
+const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+sun.position.set(12, 22, 10);
+scene.add(sun);
+
+const cols = Math.ceil(Math.sqrt(blocks.length));
+const rows = Math.ceil(blocks.length / cols);
+const spacing = 4;
+
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(cols * spacing + 6, rows * spacing + 6),
+    new THREE.MeshStandardMaterial({ color: 0xe7e5e4 })
+);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+const lowColor = new THREE.Color(0xa8a29e);
+const highColor = new THREE.Color(0x17835a);
+const meshes = [];
+
+blocks.forEach((block, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = (col - (cols - 1) / 2) * spacing;
+    const z = (row - (rows - 1) / 2) * spacing;
+
+    const height = 0.6 + Math.min(block.cow_count, 20) * 0.15;
+    const color = lowColor.clone().lerp(highColor, Math.min(block.cow_count / 15, 1));
+
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, height, 2.6),
+        new THREE.MeshStandardMaterial({ color })
+    );
+    mesh.position.set(x, height / 2, z);
+    mesh.userData = block;
+    scene.add(mesh);
+    meshes.push(mesh);
+});
+
+const gridSpan = Math.max(cols, rows) * spacing;
+camera.position.set(0, gridSpan * 0.85, gridSpan * 1.05);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2.05;
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function pointerFromEvent(event, rect) {
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+renderer.domElement.addEventListener('pointermove', (event) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointerFromEvent(event, rect);
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(meshes);
+    if (hits.length) {
+        const data = hits[0].object.userData;
+        tooltip.textContent = `${data.name} — ${data.cow_count} cow${data.cow_count === 1 ? '' : 's'}`;
+        tooltip.style.left = `${event.clientX - rect.left + 14}px`;
+        tooltip.style.top = `${event.clientY - rect.top + 14}px`;
+        tooltip.classList.remove('hidden');
+        renderer.domElement.style.cursor = 'pointer';
+    } else {
+        tooltip.classList.add('hidden');
+        renderer.domElement.style.cursor = 'default';
+    }
+});
+
+renderer.domElement.addEventListener('click', (event) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointerFromEvent(event, rect);
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(meshes);
+    if (hits.length) {
+        window.location = hits[0].object.userData.url;
+    }
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+(function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+})();
+</script>
+{% endif %}
+{% endblock %}

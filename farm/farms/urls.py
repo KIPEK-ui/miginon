@@ -20,6 +20,7 @@ urlpatterns = [
     path('workers/<int:membership_id>/suspend/', views.worker_suspend, name='worker_suspend'),
 
     path('blocks/', views.block_list, name='block_list'),
+    path('map/', views.farm_map, name='farm_map'),
     path('blocks/add/', views.block_create, name='block_create'),
     path('blocks/<int:block_id>/', views.block_detail, name='block_detail'),
     path('blocks/<int:block_id>/edit/', views.block_edit, name='block_edit'),

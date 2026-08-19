@@ -19,6 +19,15 @@
 </div>
 {% endif %}
 
+{% if blocks %}
+<a href="{% url 'farms:farm_map' %}" class="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 hover:bg-emerald-100">
+    <span class="flex items-center gap-2.5 text-sm font-bold">
+        <ion-icon name="layers-outline" class="text-lg"></ion-icon> View your farm in 3D
+    </span>
+    <ion-icon name="arrow-forward-outline"></ion-icon>
+</a>
+{% endif %}
+
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <div class="rounded-2xl border border-stone-200 bg-white p-5">
         <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Blocks</p>

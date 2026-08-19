@@ -414,6 +414,21 @@ def block_list(request):
     return render(request, 'farms/block_list.html', {'blocks': blocks})
 
 
+@any_member_required
+def farm_map(request):
+    blocks = Block.objects.filter(farm=request.farm).order_by('name')
+    blocks_data = [
+        {
+            'id': b.id,
+            'name': b.name,
+            'cow_count': b.active_cow_count,
+            'url': reverse('farms:block_detail', args=[b.id]),
+        }
+        for b in blocks
+    ]
+    return render(request, 'farms/farm_map.html', {'blocks': blocks, 'blocks_data': blocks_data})
+
+
 @manage_herd_required
 def block_create(request):
     form = BlockForm(request.POST or None)
