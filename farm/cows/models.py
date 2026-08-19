@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -88,8 +90,8 @@ class FeedingRecord(models.Model):
     session = models.CharField(max_length=4, choices=Session.choices)
     cows = models.ManyToManyField(Cow, related_name='feeding_records', blank=True, through='FeedingRecordCow')
     cows_count = models.PositiveIntegerField(default=0, help_text='Auto-filled from the cows selected below.')
-    dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'))
+    silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'))
     dairy_meal_movement = models.ForeignKey(
         'inventory.StockMovement', null=True, blank=True, editable=False,
         on_delete=models.SET_NULL, related_name='+',
@@ -124,8 +126,8 @@ class FeedingRecordCow(models.Model):
 
     feeding_record = models.ForeignKey(FeedingRecord, on_delete=models.CASCADE, related_name='allocations')
     cow = models.ForeignKey(Cow, on_delete=models.CASCADE, related_name='feeding_allocations')
-    dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'))
+    silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'))
 
     class Meta:
         unique_together = ('feeding_record', 'cow')
@@ -145,7 +147,7 @@ class MilkRecord(models.Model):
     )
     date = models.DateField()
     session = models.CharField(max_length=4, choices=Session.choices)
-    liters = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    liters = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal('0'))
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='milk_records'

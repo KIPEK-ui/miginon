@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -21,9 +23,9 @@ class InventoryItem(models.Model):
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=15, choices=Category.choices, default=Category.OTHER)
     unit = models.CharField(max_length=10, choices=Unit.choices, default=Unit.KG)
-    current_stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    current_stock = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     reorder_level = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0,
+        max_digits=10, decimal_places=2, default=Decimal('0'),
         help_text='Get a low-stock warning at or below this level. Leave at 0 to disable.'
     )
     added_by = models.ForeignKey(
@@ -59,7 +61,7 @@ class StockMovement(models.Model):
         help_text='For a correction, this is the new stock level. Otherwise the amount moved.'
     )
     stock_before = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0, editable=False,
+        max_digits=10, decimal_places=2, default=Decimal('0'), editable=False,
         help_text='Snapshot of current_stock right before this movement was applied.'
     )
     note = models.CharField(max_length=255, blank=True)

@@ -223,6 +223,9 @@ def add_farm(request):
 @farmer_required
 def farm_settings(request):
     membership = get_active_membership(request)
+    if not membership:
+        messages.error(request, 'You need to belong to a farm to do that.')
+        return redirect('farms:dashboard')
     farm = membership.farm
     if not membership.can_add_farms:
         messages.error(request, 'Only the farm owner can edit farm details.')

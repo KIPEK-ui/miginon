@@ -153,6 +153,7 @@ def export_xlsx(report):
     farm = report['farm']
 
     ws = wb.active
+    assert ws is not None
     ws.title = 'Summary'
     ws['A1'] = f'{farm.name} ({farm.code})'
     ws['A1'].font = title_font

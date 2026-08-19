@@ -91,7 +91,7 @@ class FarmRole(models.TextChoices):
 
 
 # Roles a given role is allowed to invite/assign to new members.
-ASSIGNABLE_ROLES = {
+ASSIGNABLE_ROLES: dict[str, list[FarmRole]] = {
     FarmRole.FARMER: [FarmRole.MANAGER, FarmRole.SUPERVISOR, FarmRole.WORKER],
     FarmRole.MANAGER: [FarmRole.SUPERVISOR, FarmRole.WORKER],
 }

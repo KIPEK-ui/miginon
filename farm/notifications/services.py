@@ -19,15 +19,14 @@ def notify(farm, actor, verb, kind, description, recipient=None):
     means no in-app row was written for this event.
     """
     delivery = recipient.notification_delivery if recipient is not None else None
-    Delivery = recipient.NotificationDelivery if recipient is not None else None
 
     notification = None
-    if recipient is None or delivery in (Delivery.IN_APP, Delivery.BOTH):
+    if recipient is None or delivery in (recipient.NotificationDelivery.IN_APP, recipient.NotificationDelivery.BOTH):
         notification = Notification.objects.create(
             farm=farm, actor=actor, recipient=recipient, verb=verb, kind=kind, description=description[:255]
         )
 
-    if recipient is not None and delivery in (Delivery.PUSH, Delivery.BOTH):
+    if recipient is not None and delivery in (recipient.NotificationDelivery.PUSH, recipient.NotificationDelivery.BOTH):
         from .push import send_push_to_user
 
         who = actor.get_short_name() if actor else 'Someone'

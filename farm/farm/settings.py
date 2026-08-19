@@ -31,12 +31,12 @@ environ.Env.read_env(_env_file)
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-f&m&sa@54lk4e$o^)n(8lh!94eegzw+d9j!4+xiz@ie8ah*u++')
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-f&m&sa@54lk4e$o^)n(8lh!94eegzw+d9j!4+xiz@ie8ah*u++')  # type: ignore[arg-type]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])  # type: ignore[arg-type]
 # Vercel exposes two different hostnames at runtime: VERCEL_URL is the
 # unique URL of *this specific* build/deployment (changes every deploy),
 # while VERCEL_PROJECT_PRODUCTION_URL is the stable production alias (e.g.
@@ -47,7 +47,7 @@ _vercel_hosts = [
 ]
 ALLOWED_HOSTS += _vercel_hosts
 
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])  # type: ignore[arg-type]
 CSRF_TRUSTED_ORIGINS += [f'https://{h}' for h in _vercel_hosts]
 
 # Vercel terminates TLS and proxies to the app over HTTP, forwarding the
@@ -132,7 +132,7 @@ WSGI_APPLICATION = 'farm.wsgi.application'
 # DATABASE_URL is set by Vercel (Neon integration) in production; falls back
 # to the local SQLite file when it's absent, e.g. plain `manage.py runserver`.
 DATABASES = {
-    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
+    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')  # type: ignore[arg-type]
 }
 
 
@@ -198,13 +198,13 @@ LOGOUT_REDIRECT_URL = 'core:landing'
 # API/SMTP service, built for automated app sending unlike a regular Zoho
 # Mail mailbox) - see .env.example for the real credentials, which live only
 # in .env / .env.local, never here.
-EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.zeptomail.com')
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')  # type: ignore[arg-type]
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.zeptomail.com')  # type: ignore[arg-type]
 EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <noreply@farmiq.solutions>')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')  # type: ignore[arg-type]
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')  # type: ignore[arg-type]
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <noreply@farmiq.solutions>')  # type: ignore[arg-type]
 
 OTP_VALIDITY_MINUTES = 10
 OTP_MAX_ATTEMPTS = 5
@@ -295,6 +295,6 @@ PWA_SERVICE_WORKER_PATH = str(BASE_DIR / 'static' / 'pwa' / 'serviceworker.js')
 # .env.example. Notifications targeted at a specific user (see
 # notifications.services.notify's `recipient` kwarg) push through these keys;
 # see notifications/push.py.
-VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
-VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
-VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='admin@farmiq.solutions')
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')  # type: ignore[arg-type]
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')  # type: ignore[arg-type]
+VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='admin@farmiq.solutions')  # type: ignore[arg-type]

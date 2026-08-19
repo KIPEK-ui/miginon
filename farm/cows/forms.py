@@ -52,7 +52,8 @@ class CowForm(TailwindFormMixin, forms.ModelForm):
 
 
 class CowChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, cow):
+    def label_from_instance(self, obj):
+        cow = obj
         label = f'{cow.tag_id} - {cow.name}' if cow.name else cow.tag_id
         return f'{label} ({cow.block.name})'
 

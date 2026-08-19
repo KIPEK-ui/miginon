@@ -48,8 +48,8 @@ class Migration(migrations.Migration):
             name='FeedingRecordCow',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('dairy_meal_kg', models.DecimalField(decimal_places=2, default=0, max_digits=6)),
-                ('silage_hay_kg', models.DecimalField(decimal_places=2, default=0, max_digits=6)),
+                ('dairy_meal_kg', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=6)),
+                ('silage_hay_kg', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=6)),
                 ('cow', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='feeding_allocations', to='cows.cow')),
                 ('feeding_record', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='allocations', to='cows.feedingrecord')),
             ],
