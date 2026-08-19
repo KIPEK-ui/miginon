@@ -416,17 +416,79 @@ def block_list(request):
 
 @any_member_required
 def farm_map(request):
-    blocks = Block.objects.filter(farm=request.farm).order_by('name')
+    farm = request.farm
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+
+    blocks = Block.objects.filter(farm=farm).order_by('name')
+    feed_today_by_block = {}
+    for rec in FeedingRecord.objects.filter(farm=farm, date=today):
+        feed_today_by_block[rec.block_id] = (
+            feed_today_by_block.get(rec.block_id, 0)
+            + float(rec.dairy_meal_kg) + float(rec.silage_hay_kg)
+        )
+
     blocks_data = [
         {
             'id': b.id,
             'name': b.name,
             'cow_count': b.active_cow_count,
+            'feed_today_kg': feed_today_by_block.get(b.id, 0),
             'url': reverse('farms:block_detail', args=[b.id]),
         }
         for b in blocks
     ]
-    return render(request, 'farms/farm_map.html', {'blocks': blocks, 'blocks_data': blocks_data})
+
+    cows = Cow.objects.filter(
+        farm=farm, status__in=[Cow.Status.ACTIVE, Cow.Status.DRY]
+    ).order_by('tag_id')
+    cows_data = [
+        {
+            'id': c.id,
+            'tag_id': c.tag_id,
+            'name': c.name,
+            'category': c.category,
+            'gender': c.gender,
+            'status': c.status,
+            'block_id': c.block_id,
+            'url': reverse('cows:cow_detail', args=[c.id]),
+        }
+        for c in cows
+    ]
+
+    items = InventoryItem.objects.filter(farm=farm).order_by('name')
+    inventory_data = [
+        {
+            'id': i.id,
+            'name': i.name,
+            'category': i.category,
+            'current_stock': float(i.current_stock),
+            'reorder_level': float(i.reorder_level),
+            'unit': i.unit,
+            'is_low_stock': i.is_low_stock,
+            'url': reverse('inventory:item_detail', args=[i.id]),
+        }
+        for i in items
+    ]
+
+    month_totals = Transaction.objects.filter(farm=farm, date__gte=month_start).aggregate(
+        income=Sum('amount', filter=Q(kind=Transaction.Kind.INCOME)),
+        expense=Sum('amount', filter=Q(kind=Transaction.Kind.EXPENSE)),
+    )
+    finance_data = {
+        'income': float(month_totals['income'] or 0),
+        'expense': float(month_totals['expense'] or 0),
+        'url': reverse('finance:transaction_list'),
+    }
+
+    return render(request, 'farms/farm_map.html', {
+        'blocks': blocks,
+        'blocks_data': blocks_data,
+        'cows_data': cows_data,
+        'inventory_data': inventory_data,
+        'finance_data': finance_data,
+        'feeding_url': reverse('cows:feeding_list'),
+    })
 
 
 @manage_herd_required

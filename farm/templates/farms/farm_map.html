@@ -17,88 +17,469 @@
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Farm Map</h1>
         <p class="mt-1 text-sm text-stone-500">
-            Box height and color reflect each block's active cow count. Drag to rotate, scroll to zoom, click a block to open it.
+            Your paddocks, herd, feed troughs, storage and this month's finances, laid out across the farm.
+            Drag to rotate, scroll to zoom, click anything to open it.
         </p>
     </div>
     <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">List view</a>
 </div>
 
-{% if blocks %}
-<div id="farm-map" class="relative h-[70vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense %}
+<div id="farm-map" class="relative h-[75vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
     <div id="map-tooltip" class="pointer-events-none absolute z-10 hidden rounded-lg bg-stone-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"></div>
+    <div class="absolute left-3 top-3 z-10 flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white/95 p-3 text-xs font-bold text-stone-700 shadow-soft backdrop-blur">
+        <p class="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400">Layers</p>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="cows" checked class="accent-emerald-600"> Cows</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="feeding" checked class="accent-emerald-600"> Feeding</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="inventory" checked class="accent-emerald-600"> Inventory</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="finance" checked class="accent-emerald-600"> Finance</label>
+    </div>
 </div>
 {{ blocks_data|json_script:"blocks-data" }}
+{{ cows_data|json_script:"cows-data" }}
+{{ inventory_data|json_script:"inventory-data" }}
+{{ finance_data|json_script:"finance-data" }}
+<p class="mt-2 text-xs text-stone-400" id="feeding-url" data-url="{{ feeding_url }}">
+    Trough fill shows how much has been fed to that paddock today. Low-stock inventory is tinted red.
+</p>
 {% else %}
-<p class="text-sm text-stone-400">No blocks yet. Add a block to see it on the map.</p>
+<p class="text-sm text-stone-400">Nothing to show on the map yet. Add a block, cow, inventory item or transaction to see it here.</p>
 {% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
-{% if blocks %}
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense %}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-const blocks = JSON.parse(document.getElementById('blocks-data').textContent);
+const blocksData = JSON.parse(document.getElementById('blocks-data').textContent);
+const cowsData = JSON.parse(document.getElementById('cows-data').textContent);
+const inventoryData = JSON.parse(document.getElementById('inventory-data').textContent);
+const financeData = JSON.parse(document.getElementById('finance-data').textContent);
+const feedingUrl = document.getElementById('feeding-url').dataset.url;
+
 const container = document.getElementById('farm-map');
 const tooltip = document.getElementById('map-tooltip');
+const COW_CAP = 12;
+
+// --------------------------------------------------------------- helpers
+
+function cap(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function seededRandom(seed) {
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return function () {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+    };
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+function makeLabelSprite(text, bg) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const fontSize = 42;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    const paddingX = 24;
+    canvas.width = Math.ceil(ctx.measureText(text).width) + paddingX * 2;
+    canvas.height = fontSize + 28;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.fillStyle = bg || '#1c1917';
+    roundRect(ctx, 0, 0, canvas.width, canvas.height, 16);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+    const sprite = new THREE.Sprite(material);
+    const scale = 0.0085;
+    sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+    sprite.renderOrder = 999;
+    return sprite;
+}
+
+// ----------------------------------------------------------- scene setup
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf5f5f4);
+scene.background = new THREE.Color(0xbfe3f7);
 
-const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(48, container.clientWidth / container.clientHeight, 0.1, 500);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-sun.position.set(12, 22, 10);
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const sun = new THREE.DirectionalLight(0xfff4d6, 0.9);
+sun.position.set(14, 24, 12);
 scene.add(sun);
 
-const cols = Math.ceil(Math.sqrt(blocks.length));
-const rows = Math.ceil(blocks.length / cols);
-const spacing = 4;
+// ------------------------------------------------------------- layout
 
+const cols = Math.max(1, Math.ceil(Math.sqrt(blocksData.length)));
+const rows = Math.max(1, Math.ceil(blocksData.length / cols));
+const spacing = 6;
+const paddockSize = 4.6;
+const gridW = cols * spacing;
+const gridD = rows * spacing;
+
+const yardX = gridW / 2 + spacing * 1.4;
+const financeX = -(gridW / 2 + spacing * 1.4);
+const itemSpacing = 3.1;
+const yardSpan = Math.max(inventoryData.length, 1) * itemSpacing;
+
+const groundW = (Math.abs(yardX) + 6) * 2;
+const groundD = Math.max(gridD, yardSpan) + 16;
 const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(cols * spacing + 6, rows * spacing + 6),
-    new THREE.MeshStandardMaterial({ color: 0xe7e5e4 })
+    new THREE.PlaneGeometry(groundW, groundD),
+    new THREE.MeshStandardMaterial({ color: 0x6fae5a })
 );
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
-const lowColor = new THREE.Color(0xa8a29e);
-const highColor = new THREE.Color(0x17835a);
-const meshes = [];
+const totalSpan = groundW;
+scene.fog = new THREE.Fog(0xbfe3f7, totalSpan * 0.9, totalSpan * 2.4);
 
-blocks.forEach((block, i) => {
+function buildPath(x1, z1, x2, z2, width) {
+    const dx = x2 - x1, dz = z2 - z1;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(len, width),
+        new THREE.MeshStandardMaterial({ color: 0xc2a878 })
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = -Math.atan2(dz, dx);
+    mesh.position.set((x1 + x2) / 2, 0.015, (z1 + z2) / 2);
+    return mesh;
+}
+scene.add(buildPath(gridW / 2 + 0.5, 0, yardX - 1.2, 0, 1));
+scene.add(buildPath(-gridW / 2 - 0.5, 0, financeX + 1.2, 0, 1));
+
+function buildPerimeterFence(width, depth) {
+    const group = new THREE.Group();
+    const halfW = width / 2, halfD = depth / 2;
+    const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.9, 6);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
+    const step = 3;
+    for (let x = -halfW; x <= halfW + 0.01; x += step) {
+        [-halfD, halfD].forEach((z) => {
+            const p = new THREE.Mesh(postGeo, postMat);
+            p.position.set(x, 0.45, z);
+            group.add(p);
+        });
+    }
+    for (let z = -halfD + step; z < halfD; z += step) {
+        [-halfW, halfW].forEach((x) => {
+            const p = new THREE.Mesh(postGeo, postMat);
+            p.position.set(x, 0.45, z);
+            group.add(p);
+        });
+    }
+    const railTop = 0.65;
+    const r1 = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, 0.06, 0.06), postMat); r1.position.set(0, railTop, -halfD); group.add(r1);
+    const r2 = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, 0.06, 0.06), postMat); r2.position.set(0, railTop, halfD); group.add(r2);
+    const r3 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, depth + 0.2), postMat); r3.position.set(-halfW, railTop, 0); group.add(r3);
+    const r4 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, depth + 0.2), postMat); r4.position.set(halfW, railTop, 0); group.add(r4);
+    return group;
+}
+scene.add(buildPerimeterFence(groundW - 1, groundD - 1));
+
+// ------------------------------------------------------------- paddocks
+
+function buildFenceSquare(half) {
+    const group = new THREE.Group();
+    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.7, 6);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x8a5a34 });
+    const step = 1.15;
+    const positions = [];
+    for (let x = -half; x <= half + 0.01; x += step) { positions.push([x, -half]); positions.push([x, half]); }
+    for (let z = -half + step; z < half; z += step) { positions.push([-half, z]); positions.push([half, z]); }
+    positions.forEach(([x, z]) => {
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(x, 0.35, z);
+        group.add(post);
+    });
+    const railTop = 0.5;
+    const r1 = new THREE.Mesh(new THREE.BoxGeometry(half * 2 + 0.15, 0.06, 0.06), postMat); r1.position.set(0, railTop, -half); group.add(r1);
+    const r2 = new THREE.Mesh(new THREE.BoxGeometry(half * 2 + 0.15, 0.06, 0.06), postMat); r2.position.set(0, railTop, half); group.add(r2);
+    const r3 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, half * 2 + 0.15), postMat); r3.position.set(-half, railTop, 0); group.add(r3);
+    const r4 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, half * 2 + 0.15), postMat); r4.position.set(half, railTop, 0); group.add(r4);
+    return group;
+}
+
+function buildPaddock(block, size) {
+    const group = new THREE.Group();
+    const half = size / 2;
+    const t = Math.min(block.cow_count / 15, 1);
+    const patchColor = new THREE.Color(0x8a9a5b).lerp(new THREE.Color(0x1f6b4a), t);
+    const patch = new THREE.Mesh(
+        new THREE.CircleGeometry(half * 0.92, 28),
+        new THREE.MeshStandardMaterial({ color: patchColor })
+    );
+    patch.rotation.x = -Math.PI / 2;
+    patch.position.y = 0.015;
+    group.add(patch);
+    group.add(buildFenceSquare(half));
+
+    const sign = makeLabelSprite(block.name, '#166534');
+    sign.position.set(0, 1.5, -half - 0.35);
+    group.add(sign);
+
+    const userData = { url: block.url, text: `${block.name} — ${block.cow_count} cow${block.cow_count === 1 ? '' : 's'}` };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+function buildTrough(feedKg, url) {
+    const group = new THREE.Group();
+    const outer = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.28, 0.5), new THREE.MeshStandardMaterial({ color: 0x6b4a2a }));
+    outer.position.y = 0.14;
+    group.add(outer);
+    const ratio = Math.max(0, Math.min(feedKg / 40, 1));
+    if (ratio > 0.02) {
+        const h = 0.2 * ratio;
+        const fill = new THREE.Mesh(new THREE.BoxGeometry(0.95, h, 0.36), new THREE.MeshStandardMaterial({ color: 0xd9b35c }));
+        fill.position.y = 0.05 + h / 2;
+        group.add(fill);
+    }
+    const userData = { url, text: `Feed today — ${feedKg.toFixed(1)} kg` };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+// ----------------------------------------------------------------- cows
+
+function buildCow(cow) {
+    const group = new THREE.Group();
+    let bodyColor = 0x2b2b2b, scale = 1;
+    if (cow.category === 'calf') { bodyColor = 0xd8b48a; scale = 0.55; }
+    else if (cow.category === 'heifer') { bodyColor = 0xb98a5a; scale = 0.8; }
+    else if (cow.category === 'bull') { bodyColor = 0x3d2b1f; scale = 1.15; }
+    if (cow.status === 'dry') bodyColor = new THREE.Color(bodyColor).lerp(new THREE.Color(0x9c9c9c), 0.4).getHex();
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.45), bodyMat);
+    body.position.y = 0.55;
+    group.add(body);
+
+    if (cow.category === 'cow' || !cow.category) {
+        const patch = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.47), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        patch.position.set(-0.08, 0.83, 0);
+        group.add(patch);
+    }
+
+    const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.45, 6);
+    [[-0.32, -0.16], [-0.32, 0.16], [0.32, -0.16], [0.32, 0.16]].forEach(([lx, lz]) => {
+        const leg = new THREE.Mesh(legGeo, bodyMat);
+        leg.position.set(lx, 0.22, lz);
+        group.add(leg);
+    });
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.28, 0.28), bodyMat);
+    head.position.set(0.58, 0.62, 0);
+    group.add(head);
+
+    const earGeo = new THREE.ConeGeometry(0.08, 0.16, 6);
+    [-0.11, 0.11].forEach((offset) => {
+        const ear = new THREE.Mesh(earGeo, bodyMat);
+        ear.rotation.z = Math.PI / 2;
+        ear.position.set(0.6, 0.78, offset);
+        group.add(ear);
+    });
+
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35, 6), bodyMat);
+    tail.rotation.z = Math.PI / 2.3;
+    tail.position.set(-0.5, 0.55, 0);
+    group.add(tail);
+
+    group.scale.setScalar(scale);
+    const userData = {
+        url: cow.url,
+        text: `${cow.name || cow.tag_id} · ${cap(cow.category)}${cow.status === 'dry' ? ' (dry)' : ''}`,
+    };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+// ------------------------------------------------------------ inventory
+
+function buildShed(x, z) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 2.6), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
+    body.position.y = 0.8;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 1.1, 4), new THREE.MeshStandardMaterial({ color: 0x57534e }));
+    roof.position.y = 1.6 + 0.55;
+    roof.rotation.y = Math.PI / 4;
+    group.add(body, roof);
+    return group;
+}
+
+function buildInventoryObject(item) {
+    const group = new THREE.Group();
+    const low = item.is_low_stock;
+    const stockRatio = Math.max(0.15, Math.min(item.current_stock / Math.max(item.reorder_level * 3, 20), 1));
+
+    if (item.category === 'feed') {
+        const color = low ? 0xdc2626 : 0xd9b35c;
+        const h = 1.1 * stockRatio + 0.4;
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, h, 12), new THREE.MeshStandardMaterial({ color }));
+        body.position.y = h / 2;
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.4, 12), new THREE.MeshStandardMaterial({ color: 0x57534e }));
+        roof.position.y = h + 0.2;
+        group.add(body, roof);
+    } else if (item.category === 'veterinary') {
+        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.7), new THREE.MeshStandardMaterial({ color: low ? 0xfca5a5 : 0xffffff }));
+        crate.position.y = 0.3;
+        const crossMat = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+        const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.02), crossMat);
+        cross1.position.set(0, 0.3, 0.36);
+        const cross2 = cross1.clone();
+        cross2.rotation.z = Math.PI / 2;
+        group.add(crate, cross1, cross2);
+    } else if (item.category === 'equipment') {
+        const color = low ? 0xdc2626 : 0x8a6d3a;
+        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.6), new THREE.MeshStandardMaterial({ color }));
+        crate.position.y = 0.25;
+        group.add(crate);
+    } else {
+        const color = low ? 0xdc2626 : 0xd9c08a;
+        const sack = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), new THREE.MeshStandardMaterial({ color }));
+        sack.scale.set(1, 0.8, 1);
+        sack.position.y = 0.35;
+        group.add(sack);
+    }
+
+    const label = makeLabelSprite(item.name, low ? '#b91c1c' : '#292524');
+    label.position.set(0, 1.6, 0);
+    group.add(label);
+
+    const userData = { url: item.url, text: `${item.name} — ${item.current_stock} ${item.unit}${low ? ' (low stock)' : ''}` };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+// -------------------------------------------------------------- finance
+
+function buildFinancePost(finance) {
+    const group = new THREE.Group();
+    const maxVal = Math.max(finance.income, finance.expense, 1);
+    const incomeH = 0.3 + (finance.income / maxVal) * 2.2;
+    const expenseH = 0.3 + (finance.expense / maxVal) * 2.2;
+
+    const incomeBar = new THREE.Mesh(new THREE.BoxGeometry(0.6, incomeH, 0.6), new THREE.MeshStandardMaterial({ color: 0x17835a }));
+    incomeBar.position.set(-0.45, incomeH / 2, 0);
+    const expenseBar = new THREE.Mesh(new THREE.BoxGeometry(0.6, expenseH, 0.6), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
+    expenseBar.position.set(0.45, expenseH / 2, 0);
+    group.add(incomeBar, expenseBar);
+
+    const net = finance.income - finance.expense;
+    const label = makeLabelSprite(`This month · Net ${net.toFixed(0)}`, net >= 0 ? '#146a4a' : '#b91c1c');
+    label.position.set(0, Math.max(incomeH, expenseH) + 0.6, 0);
+    group.add(label);
+
+    const userData = { url: finance.url, text: `Income ${finance.income.toFixed(0)} · Expense ${finance.expense.toFixed(0)}` };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
+// --------------------------------------------------------------- layers
+
+const layers = {
+    cows: new THREE.Group(),
+    feeding: new THREE.Group(),
+    inventory: new THREE.Group(),
+    finance: new THREE.Group(),
+};
+Object.values(layers).forEach((g) => scene.add(g));
+
+const cowsByBlock = {};
+cowsData.forEach((c) => {
+    (cowsByBlock[c.block_id] = cowsByBlock[c.block_id] || []).push(c);
+});
+
+blocksData.forEach((block, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = (col - (cols - 1) / 2) * spacing;
     const z = (row - (rows - 1) / 2) * spacing;
 
-    const height = 0.6 + Math.min(block.cow_count, 20) * 0.15;
-    const color = lowColor.clone().lerp(highColor, Math.min(block.cow_count / 15, 1));
+    const paddock = buildPaddock(block, paddockSize);
+    paddock.position.set(x, 0, z);
+    scene.add(paddock);
 
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(2.6, height, 2.6),
-        new THREE.MeshStandardMaterial({ color })
-    );
-    mesh.position.set(x, height / 2, z);
-    mesh.userData = block;
-    scene.add(mesh);
-    meshes.push(mesh);
+    const trough = buildTrough(block.feed_today_kg, feedingUrl);
+    trough.position.set(x + paddockSize * 0.32, 0, z - paddockSize * 0.32);
+    layers.feeding.add(trough);
+
+    const cowsHere = cowsByBlock[block.id] || [];
+    const shown = cowsHere.slice(0, COW_CAP);
+    shown.forEach((cow, ci) => {
+        const cowGroup = buildCow(cow);
+        const angle = (ci / Math.max(shown.length, 1)) * Math.PI * 2;
+        const radius = paddockSize * 0.28;
+        const rand = seededRandom(cow.id * 97 + 13);
+        const jitterX = (rand() - 0.5) * 0.3;
+        const jitterZ = (rand() - 0.5) * 0.3;
+        cowGroup.position.set(x + Math.cos(angle) * radius + jitterX, 0, z + Math.sin(angle) * radius + jitterZ);
+        cowGroup.rotation.y = rand() * Math.PI * 2;
+        layers.cows.add(cowGroup);
+    });
+    if (cowsHere.length > COW_CAP) {
+        const moreLabel = makeLabelSprite(`+${cowsHere.length - COW_CAP} more`, '#44403c');
+        moreLabel.position.set(x, 1.2, z + paddockSize * 0.42);
+        layers.cows.add(moreLabel);
+    }
 });
 
-const gridSpan = Math.max(cols, rows) * spacing;
-camera.position.set(0, gridSpan * 0.85, gridSpan * 1.05);
+if (inventoryData.length) {
+    scene.add(buildShed(yardX + 2.6, 0));
+    inventoryData.forEach((item, i) => {
+        const obj = buildInventoryObject(item);
+        obj.position.set(yardX, 0, (i - (inventoryData.length - 1) / 2) * itemSpacing);
+        layers.inventory.add(obj);
+    });
+}
+
+if (financeData.income || financeData.expense) {
+    const post = buildFinancePost(financeData);
+    post.position.set(financeX, 0, 0);
+    layers.finance.add(post);
+}
+
+document.querySelectorAll('[data-layer]').forEach((el) => {
+    el.addEventListener('change', () => {
+        layers[el.dataset.layer].visible = el.checked;
+    });
+});
+
+// --------------------------------------------------------------- camera
+
+camera.position.set(0, totalSpan * 0.5, totalSpan * 0.7);
 camera.lookAt(0, 0, 0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 0);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI / 2.05;
+
+// ------------------------------------------------------------ raycasting
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -108,14 +489,19 @@ function pointerFromEvent(event, rect) {
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 }
 
-renderer.domElement.addEventListener('pointermove', (event) => {
+function pickAt(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     pointerFromEvent(event, rect);
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(meshes);
-    if (hits.length) {
-        const data = hits[0].object.userData;
-        tooltip.textContent = `${data.name} — ${data.cow_count} cow${data.cow_count === 1 ? '' : 's'}`;
+    const hits = raycaster.intersectObjects(scene.children, true);
+    return hits.find((h) => h.object.userData && h.object.userData.url);
+}
+
+renderer.domElement.addEventListener('pointermove', (event) => {
+    const hit = pickAt(event);
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (hit) {
+        tooltip.textContent = hit.object.userData.text;
         tooltip.style.left = `${event.clientX - rect.left + 14}px`;
         tooltip.style.top = `${event.clientY - rect.top + 14}px`;
         tooltip.classList.remove('hidden');
@@ -127,13 +513,8 @@ renderer.domElement.addEventListener('pointermove', (event) => {
 });
 
 renderer.domElement.addEventListener('click', (event) => {
-    const rect = renderer.domElement.getBoundingClientRect();
-    pointerFromEvent(event, rect);
-    raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(meshes);
-    if (hits.length) {
-        window.location = hits[0].object.userData.url;
-    }
+    const hit = pickAt(event);
+    if (hit) window.location = hit.object.userData.url;
 });
 
 window.addEventListener('resize', () => {
