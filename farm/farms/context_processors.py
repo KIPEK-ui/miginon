@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.db.models import Q
+
 from .models import FarmMembership
 
 
@@ -25,7 +28,7 @@ def active_farm(request):
 
     notif_qs = Notification.objects.filter(farm=active_membership.farm)
     if not active_membership.can_view_all_notifications:
-        notif_qs = notif_qs.filter(actor=user)
+        notif_qs = notif_qs.filter(Q(actor=user) | Q(recipient=user))
     since = active_membership.last_notifications_read_at or active_membership.created_at
     unread_notifications_count = notif_qs.filter(created_at__gt=since).count()
 
@@ -34,4 +37,5 @@ def active_farm(request):
         'active_membership': active_membership,
         'active_farm_obj': active_membership.farm,
         'unread_notifications_count': unread_notifications_count,
+        'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
     }

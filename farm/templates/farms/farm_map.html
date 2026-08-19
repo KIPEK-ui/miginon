@@ -24,7 +24,7 @@
     <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">List view</a>
 </div>
 
-{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data %}
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data or tasks_data %}
 <div id="farm-map" class="relative h-[75vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
     <div id="map-tooltip" class="pointer-events-none absolute z-10 hidden rounded-lg bg-stone-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"></div>
     <div class="absolute left-3 top-3 z-10 flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white/95 p-3 text-xs font-bold text-stone-700 shadow-soft backdrop-blur">
@@ -35,6 +35,7 @@
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="finance" checked class="accent-emerald-600"> Finance</label>
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="crops" checked class="accent-emerald-600"> Crops</label>
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="workers" checked class="accent-emerald-600"> Workers</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="tasks" checked class="accent-emerald-600"> Tasks</label>
     </div>
 </div>
 {{ blocks_data|json_script:"blocks-data" }}
@@ -43,6 +44,7 @@
 {{ finance_data|json_script:"finance-data" }}
 {{ crops_data|json_script:"crops-data" }}
 {{ workers_data|json_script:"workers-data" }}
+{{ tasks_data|json_script:"tasks-data" }}
 <p class="mt-2 text-xs text-stone-400" id="feeding-url" data-url="{{ feeding_url }}">
     Trough fill shows how much has been fed to that paddock today. Low-stock inventory is tinted red.
 </p>
@@ -52,7 +54,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data %}
+{% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data or tasks_data %}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -63,6 +65,7 @@ const inventoryData = JSON.parse(document.getElementById('inventory-data').textC
 const financeData = JSON.parse(document.getElementById('finance-data').textContent);
 const cropsData = JSON.parse(document.getElementById('crops-data').textContent);
 const workersData = JSON.parse(document.getElementById('workers-data').textContent);
+const tasksData = JSON.parse(document.getElementById('tasks-data').textContent);
 const feedingUrl = document.getElementById('feeding-url').dataset.url;
 
 const container = document.getElementById('farm-map');
@@ -502,6 +505,39 @@ function buildWorker(worker) {
     return group;
 }
 
+// ----------------------------------------------------------------- tasks
+
+const TASK_STATUS_COLORS = { pending: 0xf2990f, in_progress: 0x25a56f };
+
+function buildTaskFlag(task) {
+    const group = new THREE.Group();
+    const color = TASK_STATUS_COLORS[task.status] || 0x78716c;
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x57534e });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 6), poleMat);
+    pole.position.y = 0.55;
+    group.add(pole);
+
+    const pennant = new THREE.Mesh(
+        new THREE.ConeGeometry(0.22, 0.34, 3),
+        new THREE.MeshStandardMaterial({ color })
+    );
+    pennant.rotation.z = -Math.PI / 2;
+    pennant.rotation.y = Math.PI / 2;
+    pennant.position.set(0.16, 0.95, 0);
+    group.add(pennant);
+
+    const label = makeLabelSprite(task.title, `#${color.toString(16).padStart(6, '0')}`);
+    label.position.set(0, 1.4, 0);
+    group.add(label);
+
+    const userData = {
+        url: task.url,
+        text: `${task.title} · ${task.assigned_name} — ${cap(task.status).replace('_', ' ')}`,
+    };
+    group.traverse((o) => { if (o.isMesh) o.userData = userData; });
+    return group;
+}
+
 // --------------------------------------------------------------- layers
 
 const layers = {
@@ -511,6 +547,7 @@ const layers = {
     finance: new THREE.Group(),
     crops: new THREE.Group(),
     workers: new THREE.Group(),
+    tasks: new THREE.Group(),
 };
 Object.values(layers).forEach((g) => scene.add(g));
 
@@ -519,11 +556,16 @@ cowsData.forEach((c) => {
     (cowsByBlock[c.block_id] = cowsByBlock[c.block_id] || []).push(c);
 });
 
+const blockPositionById = {};
+const cropPositionById = {};
+const workerPositionById = {};
+
 blocksData.forEach((block, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = (col - (cols - 1) / 2) * spacing;
     const z = (row - (rows - 1) / 2) * spacing;
+    blockPositionById[block.id] = { x, z };
 
     const paddock = buildPaddock(block, paddockSize);
     paddock.position.set(x, 0, z);
@@ -570,7 +612,9 @@ if (financeData.income || financeData.expense) {
 
 cropsData.forEach((crop, i) => {
     const plot = buildCropPlot(crop);
-    plot.position.set((i - (cropsData.length - 1) / 2) * plotSpacing, 0, cropsZ);
+    const cx = (i - (cropsData.length - 1) / 2) * plotSpacing;
+    plot.position.set(cx, 0, cropsZ);
+    cropPositionById[crop.id] = { x: cx, z: cropsZ };
     layers.crops.add(plot);
 });
 
@@ -578,10 +622,32 @@ if (workersData.length) {
     scene.add(buildFarmhouse(0, workersZ - 1.6));
     workersData.forEach((worker, i) => {
         const w = buildWorker(worker);
-        w.position.set((i - (workersData.length - 1) / 2) * workerSpacing, 0, workersZ + 1.3);
+        const wx = (i - (workersData.length - 1) / 2) * workerSpacing;
+        const wz = workersZ + 1.3;
+        w.position.set(wx, 0, wz);
+        workerPositionById[worker.id] = { x: wx, z: wz };
         layers.workers.add(w);
     });
 }
+
+tasksData.forEach((task, i) => {
+    let pos = null;
+    if (task.block_id && blockPositionById[task.block_id]) {
+        const bp = blockPositionById[task.block_id];
+        pos = { x: bp.x - paddockSize * 0.32, z: bp.z + paddockSize * 0.32 };
+    } else if (task.crop_id && cropPositionById[task.crop_id]) {
+        const cp = cropPositionById[task.crop_id];
+        pos = { x: cp.x, z: cp.z - 1.3 };
+    } else if (task.assigned_to_id && workerPositionById[task.assigned_to_id]) {
+        const wp = workerPositionById[task.assigned_to_id];
+        pos = { x: wp.x, z: wp.z + 0.8 };
+    } else {
+        pos = { x: (i - (tasksData.length - 1) / 2) * 1.4, z: 0 };
+    }
+    const flag = buildTaskFlag(task);
+    flag.position.set(pos.x, 0, pos.z);
+    layers.tasks.add(flag);
+});
 
 document.querySelectorAll('[data-layer]').forEach((el) => {
     el.addEventListener('change', () => {

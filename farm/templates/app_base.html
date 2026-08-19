@@ -101,6 +101,7 @@
                         <a href="{% url 'inventory:item_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="cube-outline"></ion-icon> Inventory items</a>
                         <a href="{% url 'inventory:movement_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="swap-horizontal-outline"></ion-icon> Stock movements</a>
                         <a href="{% url 'finance:transaction_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="cash-outline"></ion-icon> Finance</a>
+                        <a href="{% url 'tasks:task_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="checkbox-outline"></ion-icon> Tasks</a>
                         {% if active_membership.can_manage_herd %}
                         <a href="{% url 'analysis:overview' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="stats-chart-outline"></ion-icon> Analysis</a>
                         {% endif %}

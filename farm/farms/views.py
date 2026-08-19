@@ -13,6 +13,7 @@ from finance.models import Transaction
 from inventory.models import InventoryItem, StockMovement
 from notifications.models import Notification
 from notifications.services import notify
+from tasks.models import Task
 
 from .forms import BlockForm, FarmForm, FarmSettingsForm, WorkerInviteForm, WorkerRoleForm
 from .kenya_data import COUNTY_TOWNS
@@ -59,6 +60,10 @@ QUICK_ACTIONS = [
         'label': 'Log expense', 'url_name': 'finance:transaction_create', 'icon': 'cash-outline',
         'permission': lambda m: m.can_record_production,
     },
+    {
+        'label': 'Assign task', 'url_name': 'tasks:task_create', 'icon': 'checkbox-outline',
+        'permission': lambda m: m.can_manage_workers,
+    },
 ]
 
 
@@ -98,6 +103,10 @@ def dashboard(request):
 
     quick_actions = [action for action in QUICK_ACTIONS if action['permission'](membership)]
 
+    my_open_tasks = Task.objects.filter(
+        farm=farm, assigned_to=membership
+    ).exclude(status__in=[Task.Status.DONE, Task.Status.CANCELLED]).select_related('block', 'crop')[:6]
+
     context = {
         'membership': membership,
         'farm': farm,
@@ -120,6 +129,7 @@ def dashboard(request):
         'worker_count': FarmMembership.objects.filter(
             farm=farm, status=FarmMembership.Status.ACTIVE
         ).exclude(role=FarmRole.FARMER).count(),
+        'my_open_tasks': my_open_tasks,
     }
     return render(request, 'farms/dashboard.html', context)
 
@@ -507,6 +517,24 @@ def farm_map(request):
         for m in workers
     ]
 
+    open_tasks = Task.objects.filter(farm=farm).exclude(
+        status__in=[Task.Status.DONE, Task.Status.CANCELLED]
+    ).select_related('assigned_to__user')
+    tasks_data = [
+        {
+            'id': t.id,
+            'title': t.title,
+            'status': t.status,
+            'priority': t.priority,
+            'block_id': t.block_id,
+            'crop_id': t.crop_id,
+            'assigned_to_id': t.assigned_to_id,
+            'assigned_name': t.assigned_to.user.get_short_name() if t.assigned_to else 'Unassigned',
+            'url': reverse('tasks:task_detail', args=[t.id]),
+        }
+        for t in open_tasks
+    ]
+
     return render(request, 'farms/farm_map.html', {
         'blocks': blocks,
         'blocks_data': blocks_data,
@@ -515,6 +543,7 @@ def farm_map(request):
         'finance_data': finance_data,
         'crops_data': crops_data,
         'workers_data': workers_data,
+        'tasks_data': tasks_data,
         'feeding_url': reverse('cows:feeding_list'),
     })
 

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
+from farms.models import FarmMembership
 from farms.permissions import (
     any_member_required,
     edit_delete_required,
@@ -84,11 +85,21 @@ def movement_create(request):
         movement.farm = request.farm
         movement.recorded_by = request.user
         movement.save()
+        was_low_stock = movement.item.is_low_stock
         apply_movement(movement)
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'stock movement',
             f'{movement.item.name} - {movement.get_movement_type_display()} {movement.quantity}'
         )
+        if movement.item.is_low_stock and not was_low_stock:
+            managers = request.farm.memberships.filter(status=FarmMembership.Status.ACTIVE).select_related('user')
+            for m in managers:
+                if m.can_manage_workers and m.user_id != request.user.id:
+                    notify(
+                        request.farm, request.user, Notification.Verb.UPDATED, 'inventory item',
+                        f'{movement.item.name} is low on stock ({movement.item.current_stock} {movement.item.unit} left)',
+                        recipient=m.user,
+                    )
         messages.success(request, f'{movement.get_movement_type_display()} recorded for {movement.item.name}.')
         return redirect('inventory:movement_list')
     return render(request, 'inventory/movement_form.html', {'form': form})

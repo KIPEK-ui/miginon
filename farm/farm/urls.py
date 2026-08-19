@@ -15,6 +15,7 @@ urlpatterns = [
     path('inventory/', include('inventory.urls')),
     path('analysis/', include('analysis.urls')),
     path('notifications/', include('notifications.urls')),
+    path('tasks/', include('tasks.urls')),
 ]
 
 if settings.DEBUG:

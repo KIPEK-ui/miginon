@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'inventory',
     'analysis',
     'notifications',
+    'tasks',
 
     'pwa',
 ]
@@ -281,3 +282,14 @@ PWA_APP_SPLASH_SCREEN = [
 ]
 
 PWA_SERVICE_WORKER_PATH = str(BASE_DIR / 'static' / 'pwa' / 'serviceworker.js')
+
+# --- Web Push (device notifications) -----------------------------------------
+# VAPID identifies this server to the browser push services (Chrome/Firefox
+# relays) so they'll accept pushes from it. Generated once with py_vapid
+# (a pywebpush dependency) and stored in .env, never committed - see
+# .env.example. Notifications targeted at a specific user (see
+# notifications.services.notify's `recipient` kwarg) push through these keys;
+# see notifications/push.py.
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
+VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='admin@farmiq.solutions')

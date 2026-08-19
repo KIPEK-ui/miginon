@@ -208,6 +208,27 @@
     </div>
 </div>
 
+{% if my_open_tasks %}
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
+    <div class="mb-4 flex items-center justify-between">
+        <h2 class="font-bold text-stone-900">My open tasks</h2>
+        <a href="{% url 'tasks:task_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+    </div>
+    <div class="space-y-2">
+        {% for task in my_open_tasks %}
+        <a href="{% url 'tasks:task_detail' task.id %}" class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm hover:bg-stone-100">
+            <span class="font-semibold text-stone-700">{{ task.title }}{% if task.block %} · {{ task.block.name }}{% endif %}{% if task.crop %} · {{ task.crop.name }}{% endif %}</span>
+            <span class="text-stone-500">{{ task.due_date|default:"" }}</span>
+            <span class="rounded-full px-2.5 py-1 text-xs font-bold
+                {% if task.priority == 'urgent' %}bg-red-50 text-red-600{% elif task.priority == 'high' %}bg-amber-50 text-amber-700{% else %}bg-stone-200 text-stone-500{% endif %}">
+                {{ task.get_priority_display }}
+            </span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
         <h2 class="font-bold text-stone-900">Blocks</h2>
