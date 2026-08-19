@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
@@ -25,9 +27,30 @@ from .forms import (
 from .models import EmailOTP, User
 from .services import OTPDeliveryError, can_resend, issue_otp
 
+logger = logging.getLogger(__name__)
+
 SIGNUP_ACCOUNT_KEY = 'signup_account'
 SIGNUP_FARM_KEY = 'signup_farm'
 EMAIL_CHANGE_KEY = 'pending_new_email'
+
+
+def csrf_failure(request, reason=''):
+    """Global CSRF failure handler (see CSRF_FAILURE_VIEW in settings) -
+    logs the failing request (visible in Vercel's function logs, so a
+    stale/rejected request is actually diagnosable instead of just a report
+    of "it happened") and gracefully carries the user onward instead of
+    dead-ending on Django's raw 403 page: back to the dashboard if their
+    session is fine and it was just this one form's token that went stale,
+    otherwise back to a fresh login start."""
+    logger.warning(
+        'CSRF failure: reason=%r path=%s method=%s referer=%s user=%s has_sessionid=%s has_csrftoken=%s ua=%s',
+        reason, request.path, request.method, request.META.get('HTTP_REFERER', ''),
+        request.user if request.user.is_authenticated else 'anonymous',
+        'sessionid' in request.COOKIES, 'csrftoken' in request.COOKIES,
+        request.META.get('HTTP_USER_AGENT', ''),
+    )
+    destination = reverse('farms:dashboard') if request.user.is_authenticated else reverse('accounts:login_farm')
+    return render(request, 'accounts/csrf_failure.html', {'destination': destination}, status=403)
 
 
 def _already_authenticated_redirect(request):

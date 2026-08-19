@@ -103,6 +103,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'farm.urls'
 
+# Custom handler for CSRF failures (stale/expired tokens, mainly) - logs the
+# request for diagnosis and bounces the user onward gracefully instead of
+# Django's raw 403 debug page. See accounts.views.csrf_failure.
+CSRF_FAILURE_VIEW = 'accounts.views.csrf_failure'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
