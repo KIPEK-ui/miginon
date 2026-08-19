@@ -65,6 +65,31 @@
             </div>
         </div>
 
+        <details class="mb-6 rounded-xl border border-stone-200 px-4 py-3">
+            <summary class="cursor-pointer text-xs font-bold uppercase tracking-wide text-stone-500">
+                Customize per-cow amounts (optional)
+            </summary>
+            <p class="mb-3 mt-2 text-xs text-stone-400">
+                Leave blank to split the totals above evenly across the cows you selected. Fill in specific amounts
+                for more accurate per-cow feed-milk tracking.
+            </p>
+            <div id="cow-allocation-rows" class="space-y-2">
+                {% for cow in farm_cows %}
+                <div data-block="{{ cow.block_id }}" data-cow="{{ cow.id }}" class="cow-allocation-row grid grid-cols-3 items-center gap-2 text-sm">
+                    <span class="text-stone-600">{{ cow.tag_id }}{% if cow.name %} · {{ cow.name }}{% endif %}</span>
+                    <input type="number" step="0.01" min="0" name="cow_dairy_{{ cow.id }}"
+                        placeholder="Dairy meal kg"
+                        value="{% if cow.alloc_dairy_kg is not None %}{{ cow.alloc_dairy_kg }}{% endif %}"
+                        class="w-full rounded-lg border border-stone-300 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:ring-1 focus:ring-emerald-100 focus:outline-none">
+                    <input type="number" step="0.01" min="0" name="cow_silage_{{ cow.id }}"
+                        placeholder="Silage/hay kg"
+                        value="{% if cow.alloc_silage_kg is not None %}{{ cow.alloc_silage_kg }}{% endif %}"
+                        class="w-full rounded-lg border border-stone-300 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:ring-1 focus:ring-emerald-100 focus:outline-none">
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+
         <button type="submit" class="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-emerald-950 hover:bg-amber-400">
             Save record →
         </button>
@@ -77,6 +102,7 @@
     (function () {
         var blockSelect = document.getElementById('{{ form.block.id_for_label }}');
         var chips = document.querySelectorAll('#cow-chip-grid .cow-chip');
+        var allocationRows = document.querySelectorAll('#cow-allocation-rows .cow-allocation-row');
         function syncVisibility() {
             if (!blockSelect) return;
             var selected = blockSelect.value;
@@ -87,6 +113,9 @@
                     var input = chip.querySelector('input[type="checkbox"]');
                     if (input) { input.checked = false; }
                 }
+            });
+            allocationRows.forEach(function (row) {
+                row.style.display = row.dataset.block === selected ? '' : 'none';
             });
         }
         if (blockSelect) {

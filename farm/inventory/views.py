@@ -11,8 +11,9 @@ from farms.permissions import (
 from notifications.models import Notification
 from notifications.services import notify
 
+from .feed_reference import REFERENCE_INGREDIENTS, suggest_composition
 from .forms import InventoryItemForm, StockMovementForm
-from .models import InventoryItem, StockMovement
+from .models import FeedComposition, InventoryItem, StockMovement
 from .services import apply_movement, reverse_movement
 
 
@@ -40,7 +41,60 @@ def item_create(request):
 def item_detail(request, item_id):
     item = get_object_or_404(InventoryItem, id=item_id, farm=request.farm)
     movements = item.movements.select_related('used_by__user').all()[:30]
-    return render(request, 'inventory/item_detail.html', {'item': item, 'movements': movements})
+    composition = FeedComposition.objects.filter(item=item).first()
+    return render(request, 'inventory/item_detail.html', {
+        'item': item, 'movements': movements, 'composition': composition,
+    })
+
+
+@edit_delete_required
+def item_composition(request, item_id):
+    item = get_object_or_404(InventoryItem, id=item_id, farm=request.farm)
+    composition, _ = FeedComposition.objects.get_or_create(item=item)
+
+    suggested = None
+    if request.method == 'GET' and request.GET.get('target_protein'):
+        try:
+            target = float(request.GET['target_protein'])
+            ingredients, achieved = suggest_composition(target)
+            suggested = {'ingredients': ingredients, 'achieved_protein_pct': achieved, 'target': target}
+        except (ValueError, TypeError):
+            messages.error(request, 'Enter a valid target protein percentage.')
+
+    if request.method == 'POST':
+        names = request.POST.getlist('ingredient_name')
+        percents = request.POST.getlist('ingredient_percent')
+        ingredients = []
+        for name, percent in zip(names, percents):
+            name = name.strip()
+            if not name or not percent.strip():
+                continue
+            try:
+                ingredients.append({'name': name, 'percent': float(percent)})
+            except ValueError:
+                continue
+
+        crude_protein_raw = request.POST.get('crude_protein_pct', '').strip()
+        composition.ingredients = ingredients
+        composition.crude_protein_pct = crude_protein_raw or None
+        composition.save()
+        notify(request.farm, request.user, Notification.Verb.UPDATED, 'feed composition', item.name)
+        messages.success(request, f'Composition saved for {item.name}.')
+        return redirect('inventory:item_detail', item_id=item.id)
+
+    ROW_COUNT = 8
+    source_ingredients = suggested['ingredients'] if suggested else composition.ingredients
+    ingredient_rows = [
+        {'name': ing.get('name', ''), 'percent': ing.get('percent', '')}
+        for ing in source_ingredients[:ROW_COUNT]
+    ]
+    while len(ingredient_rows) < ROW_COUNT:
+        ingredient_rows.append({'name': '', 'percent': ''})
+
+    return render(request, 'inventory/composition_form.html', {
+        'item': item, 'composition': composition, 'suggested': suggested,
+        'ingredient_rows': ingredient_rows, 'reference_ingredients': REFERENCE_INGREDIENTS,
+    })
 
 
 @edit_delete_required

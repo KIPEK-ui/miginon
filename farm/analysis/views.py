@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.db.models import Q, Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
@@ -15,6 +15,9 @@ from finance.models import Transaction
 from inventory.models import InventoryItem
 
 from .exporters import build_pdf_bytes, export_csv, export_pdf, export_xlsx
+from .ml.correlation import feed_milk_correlation
+from .ml.predict import predict_block, predict_cow, predict_farm
+from .models import MilkPrediction
 from .reports import build_report, resolve_period
 
 logger = logging.getLogger(__name__)
@@ -134,3 +137,81 @@ def email_report(request):
         logger.exception('Failed to email farm report')
         messages.error(request, 'Could not send the report email. Please try again later.')
     return redirect('analysis:overview')
+
+
+# ------------------------------------------------------- AI production analytics
+
+def _store_predictions(farm, scope, predictions, cow=None, block=None):
+    for p in predictions:
+        MilkPrediction.objects.update_or_create(
+            farm=farm, scope=scope, cow=cow, block=block, predicted_date=p['date'],
+            defaults={
+                'predicted_liters': p['predicted_liters'],
+                'contributions': p.get('contributions', []),
+                'explanation': p.get('explanation', ''),
+            },
+        )
+
+
+@analysis_required
+def predictions_overview(request):
+    farm = request.farm
+    today = timezone.now().date()
+    start = today - timedelta(days=29)
+
+    farm_forecast = predict_farm(farm)
+    if farm_forecast:
+        _store_predictions(farm, MilkPrediction.Scope.FARM, farm_forecast['daily'])
+
+    correlation = feed_milk_correlation(farm, start, today)
+    blocks = Block.objects.filter(farm=farm).order_by('name')
+
+    return render(request, 'analysis/predictions_overview.html', {
+        'forecast': farm_forecast['daily'] if farm_forecast else None,
+        'correlation': correlation,
+        'blocks': blocks,
+    })
+
+
+@analysis_required
+def predictions_block(request, block_id):
+    # context key can't be "block" - Django's {% block %} tag reserves that
+    # name in the template's own context (see farms.views.block_detail).
+    farm = request.farm
+    block_obj = get_object_or_404(Block, id=block_id, farm=farm)
+    today = timezone.now().date()
+    start = today - timedelta(days=29)
+
+    cows = block_obj.cows.filter(status=Cow.Status.ACTIVE)
+    result = predict_block(farm, block_obj, cows)
+    if result:
+        _store_predictions(farm, MilkPrediction.Scope.BLOCK, result['daily'], block=block_obj)
+
+    correlation = feed_milk_correlation(farm, start, today, block=block_obj)
+
+    return render(request, 'analysis/predictions_block.html', {
+        'block_obj': block_obj,
+        'forecast': result['daily'] if result else None,
+        'correlation': correlation,
+        'cows': cows,
+    })
+
+
+@analysis_required
+def predictions_cow(request, cow_id):
+    farm = request.farm
+    cow = get_object_or_404(Cow, id=cow_id, farm=farm)
+    today = timezone.now().date()
+    start = today - timedelta(days=29)
+
+    predictions = predict_cow(farm, cow)
+    if predictions:
+        _store_predictions(farm, MilkPrediction.Scope.COW, predictions, cow=cow)
+
+    correlation = feed_milk_correlation(farm, start, today, cow=cow)
+
+    return render(request, 'analysis/predictions_cow.html', {
+        'cow': cow,
+        'predictions': predictions,
+        'correlation': correlation,
+    })

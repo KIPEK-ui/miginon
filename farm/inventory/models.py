@@ -80,3 +80,21 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f'{self.item.name} - {self.get_movement_type_display()} - {self.quantity}'
+
+
+class FeedComposition(models.Model):
+    """Ingredient breakdown + crude protein % for a feed item (typically the
+    auto-created 'Dairy Meal' item, see inventory.services.record_feed_usage)
+    - entered by hand, or pre-filled from inventory.feed_reference's
+    rule-based suggestion and then edited/confirmed. Used as a feature by
+    the production analytics/prediction models (see analysis.ml)."""
+
+    item = models.OneToOneField(InventoryItem, on_delete=models.CASCADE, related_name='composition')
+    ingredients = models.JSONField(default=list, blank=True, help_text='List of {"name": ..., "percent": ...}.')
+    crude_protein_pct = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, help_text='Overall crude protein %, e.g. 16.0'
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Composition for {self.item.name}'

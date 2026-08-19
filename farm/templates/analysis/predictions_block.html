@@ -1,0 +1,55 @@
+{% extends "app_base.html" %}
+{% block title %}{{ block_obj.name }} predictions - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">{{ block_obj.name }} - predictions</h1>
+        <p class="mt-1 text-sm text-stone-500">Block-level milk forecast and feed-milk correlation.</p>
+    </div>
+    <a href="{% url 'analysis:predictions_overview' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">← Herd view</a>
+</div>
+
+{% if forecast %}
+<div class="rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="font-bold text-stone-900">Predicted milk yield, next {{ forecast|length }} days</h2>
+    <div class="mt-4 grid gap-3" style="grid-template-columns: repeat({{ forecast|length }}, minmax(0, 1fr));">
+        {% for day in forecast %}
+        <div class="rounded-xl bg-stone-50 p-4 text-center">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">{{ day.date|date:"D d M" }}</p>
+            <p class="mt-2 text-2xl font-extrabold text-emerald-700">{{ day.predicted_liters }}<span class="text-sm text-stone-400"> L</span></p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-500">
+    Not enough milk history yet to predict this block's production.
+</div>
+{% endif %}
+
+<div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="font-bold text-stone-900">Feed - milk correlation, last 30 days</h2>
+    {% if correlation %}
+    <p class="mt-2 text-sm text-stone-600">
+        Correlation coefficient: <span class="font-extrabold text-stone-900">{{ correlation.correlation }}</span>
+        (based on {{ correlation.days }} days with both feed and milk logged for this block).
+    </p>
+    {% else %}
+    <p class="mt-2 text-sm text-stone-400">Not enough overlapping feed and milk records in this period yet.</p>
+    {% endif %}
+</div>
+
+<div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
+    <h2 class="mb-4 font-bold text-stone-900">Cows in this block</h2>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {% for cow in cows %}
+        <a href="{% url 'analysis:predictions_cow' cow.id %}" class="rounded-xl border border-stone-100 p-4 hover:border-emerald-200 hover:bg-emerald-50/40">
+            <p class="font-bold text-stone-800">{{ cow.tag_id }}{% if cow.name %} · {{ cow.name }}{% endif %}</p>
+            <p class="text-sm text-stone-500">{{ cow.get_category_display }}</p>
+        </a>
+        {% empty %}
+        <p class="text-sm text-stone-400">No active cows in this block.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

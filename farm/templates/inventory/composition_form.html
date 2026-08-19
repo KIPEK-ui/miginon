@@ -1,0 +1,62 @@
+{% extends "app_base.html" %}
+{% block title %}{{ item.name }} composition - Miginon Farm{% endblock %}
+{% block app_content %}
+<div class="mx-auto max-w-2xl space-y-6">
+    <div>
+        <h1 class="text-xl font-extrabold text-stone-900">{{ item.name }} - feed composition</h1>
+        <p class="mt-1 text-sm text-stone-500">
+            Record the ingredient mix and crude protein % - used by the production analytics/prediction models.
+        </p>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 class="text-xs font-bold uppercase tracking-wide text-stone-500">Suggest a starting mix</h2>
+        <p class="mt-1 text-xs text-stone-400">
+            A calculated blend (not a trained model - there's no data anywhere for "the ideal mix") against typical
+            protein values for common Kenyan feed ingredients. Review and edit it below before saving.
+        </p>
+        <form method="get" class="mt-3 flex items-end gap-3">
+            <div class="flex-1">
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Target crude protein %</label>
+                <input type="number" step="0.1" min="0" max="60" name="target_protein" value="{{ suggested.target|default:'16' }}"
+                    class="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none">
+            </div>
+            <button type="submit" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
+                Suggest mix
+            </button>
+        </form>
+        {% if suggested %}
+        <p class="mt-3 text-xs font-semibold text-emerald-700">
+            Suggested blend achieves ~{{ suggested.achieved_protein_pct }}% crude protein - pre-filled below, edit as needed.
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <form method="post">
+            {% csrf_token %}
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Overall crude protein %</label>
+            <input type="number" step="0.01" min="0" max="60" name="crude_protein_pct"
+                value="{% if suggested %}{{ suggested.achieved_protein_pct }}{% else %}{{ composition.crude_protein_pct|default:'' }}{% endif %}"
+                class="mb-4 w-full max-w-xs rounded-xl border border-stone-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none">
+
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Ingredients</label>
+            <div class="space-y-2">
+                {% for row in ingredient_rows %}
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" name="ingredient_name" placeholder="Ingredient" value="{{ row.name }}"
+                        class="col-span-2 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-emerald-600 focus:ring-1 focus:ring-emerald-100 focus:outline-none">
+                    <input type="number" step="0.1" min="0" max="100" name="ingredient_percent" placeholder="%" value="{{ row.percent }}"
+                        class="rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-emerald-600 focus:ring-1 focus:ring-emerald-100 focus:outline-none">
+                </div>
+                {% endfor %}
+            </div>
+            <p class="mt-2 text-xs text-stone-400">Leave a row blank to skip it. Reference ingredients: {% for ref in reference_ingredients %}{{ ref.name }} ({{ ref.crude_protein_pct }}% CP){% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+
+            <button type="submit" class="mt-6 w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">
+                Save composition →
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

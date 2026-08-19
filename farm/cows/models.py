@@ -35,6 +35,11 @@ class Cow(models.Model):
     gender = models.CharField(max_length=6, choices=Gender.choices, default=Gender.FEMALE)
     breed = models.CharField(max_length=60, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    last_calving_date = models.DateField(
+        null=True, blank=True,
+        help_text='Days since calving (days in milk) is one of the strongest predictors of milk yield - '
+                   'used by the production analytics/prediction models.'
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     notes = models.CharField(max_length=255, blank=True)
     added_by = models.ForeignKey(
@@ -81,7 +86,7 @@ class FeedingRecord(models.Model):
     )
     date = models.DateField()
     session = models.CharField(max_length=4, choices=Session.choices)
-    cows = models.ManyToManyField(Cow, related_name='feeding_records', blank=True)
+    cows = models.ManyToManyField(Cow, related_name='feeding_records', blank=True, through='FeedingRecordCow')
     cows_count = models.PositiveIntegerField(default=0, help_text='Auto-filled from the cows selected below.')
     dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
@@ -107,6 +112,26 @@ class FeedingRecord(models.Model):
 
     def __str__(self):
         return f'{self.block.name} - {self.date} {self.session}'
+
+
+class FeedingRecordCow(models.Model):
+    """Per-cow feed allocation within a FeedingRecord. Defaults to an even
+    split of the block totals across the cows selected (see
+    cows.views._sync_feeding_cows) - a farmer who doesn't care about
+    per-cow precision never has to think about this model. Overriding
+    individual amounts is what makes per-cow feed-milk correlation and the
+    prediction model's feed feature real rather than an estimate."""
+
+    feeding_record = models.ForeignKey(FeedingRecord, on_delete=models.CASCADE, related_name='allocations')
+    cow = models.ForeignKey(Cow, on_delete=models.CASCADE, related_name='feeding_allocations')
+    dairy_meal_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    silage_hay_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ('feeding_record', 'cow')
+
+    def __str__(self):
+        return f'{self.cow.tag_id} @ {self.feeding_record}'
 
 
 class MilkRecord(models.Model):

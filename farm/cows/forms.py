@@ -9,12 +9,13 @@ from .models import Cow, FeedingRecord, MilkRecord
 class CowForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Cow
-        fields = ['block', 'tag_id', 'name', 'category', 'gender', 'breed', 'date_of_birth', 'status']
+        fields = ['block', 'tag_id', 'name', 'category', 'gender', 'breed', 'date_of_birth', 'last_calving_date', 'status']
         widgets = {
             'tag_id': forms.TextInput(attrs={'placeholder': 'e.g. C-014'}),
             'name': forms.TextInput(attrs={'placeholder': 'Optional'}),
             'breed': forms.TextInput(attrs={'placeholder': 'e.g. Friesian'}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'last_calving_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, farm=None, **kwargs):
@@ -65,7 +66,13 @@ class FeedingRecordForm(TailwindFormMixin, forms.ModelForm):
 
     class Meta:
         model = FeedingRecord
-        fields = ['block', 'date', 'session', 'cows', 'dairy_meal_kg', 'silage_hay_kg']
+        # 'cows' is deliberately NOT listed here even though it's a real
+        # field on the model: it's now a ManyToManyField with a custom
+        # `through` (FeedingRecordCow, which carries per-cow kg amounts),
+        # and Django's ModelForm.save_m2m() can't auto-save a through'd M2M
+        # (it raises). The field above still renders/validates cow
+        # selection - cows.views._sync_feeding_cows does the actual saving.
+        fields = ['block', 'date', 'session', 'dairy_meal_kg', 'silage_hay_kg']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
         }

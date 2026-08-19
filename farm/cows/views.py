@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -14,7 +16,7 @@ from notifications.models import Notification
 from notifications.services import notify
 
 from .forms import CowForm, CowTransferForm, FeedingRecordForm, MilkRecordForm
-from .models import Cow, CowTransfer, FeedingRecord, MilkRecord
+from .models import Cow, CowTransfer, FeedingRecord, FeedingRecordCow, MilkRecord
 
 
 @any_member_required
@@ -117,7 +119,7 @@ def feeding_list(request):
 
 
 def _feeding_form_context(request, form, record=None):
-    farm_cows = (
+    farm_cows = list(
         request.farm.cows.filter(status=Cow.Status.ACTIVE).select_related('block').order_by('block__name', 'tag_id')
     )
     if request.method == 'POST':
@@ -126,7 +128,51 @@ def _feeding_form_context(request, form, record=None):
         selected_cow_ids = set(record.cows.values_list('id', flat=True))
     else:
         selected_cow_ids = set()
+
+    if record is not None and request.method != 'POST':
+        allocations_by_cow = {a.cow_id: a for a in record.allocations.all()}
+        for cow in farm_cows:
+            alloc = allocations_by_cow.get(cow.id)
+            cow.alloc_dairy_kg = alloc.dairy_meal_kg if alloc else None
+            cow.alloc_silage_kg = alloc.silage_hay_kg if alloc else None
+    else:
+        for cow in farm_cows:
+            cow.alloc_dairy_kg = None
+            cow.alloc_silage_kg = None
+
     return {'form': form, 'farm_cows': farm_cows, 'selected_cow_ids': selected_cow_ids, 'record': record}
+
+
+def _sync_feeding_cows(record, cows, dairy_total, silage_total, post_data):
+    """Create/update the per-cow FeedingRecordCow rows for the selected
+    cows. A farmer who just fills in the block totals gets an even split
+    automatically; one who fills in the optional per-cow override inputs
+    (named cow_dairy_<id>/cow_silage_<id> - see feeding_form.html's
+    "Customize per-cow amounts" section) gets exactly what they typed.
+    Cows that were deselected on an edit have their row removed."""
+    cow_ids = {c.id for c in cows}
+    record.allocations.exclude(cow_id__in=cow_ids).delete()
+
+    count = len(cows) or 1
+    even_dairy = dairy_total / count
+    even_silage = silage_total / count
+
+    def _parse(raw, fallback):
+        raw = (raw or '').strip()
+        if not raw:
+            return fallback
+        try:
+            return Decimal(raw)
+        except InvalidOperation:
+            return fallback
+
+    for cow in cows:
+        dairy_kg = _parse(post_data.get(f'cow_dairy_{cow.id}'), even_dairy)
+        silage_kg = _parse(post_data.get(f'cow_silage_{cow.id}'), even_silage)
+        FeedingRecordCow.objects.update_or_create(
+            feeding_record=record, cow=cow,
+            defaults={'dairy_meal_kg': dairy_kg, 'silage_hay_kg': silage_kg},
+        )
 
 
 def _sync_feed_movement(record, quantity_field, movement_field, item_name, farm, user):
@@ -159,8 +205,9 @@ def feeding_create(request):
         record.farm = request.farm
         record.recorded_by = request.user
         record.save()
-        form.save_m2m()
-        record.cows_count = record.cows.count()
+        cows = list(form.cleaned_data['cows'])
+        _sync_feeding_cows(record, cows, record.dairy_meal_kg, record.silage_hay_kg, request.POST)
+        record.cows_count = len(cows)
         _sync_feed_movement(record, 'dairy_meal_kg', 'dairy_meal_movement', 'Dairy Meal', request.farm, request.user)
         _sync_feed_movement(record, 'silage_hay_kg', 'silage_hay_movement', 'Silage/Hay', request.farm, request.user)
         record.save(update_fields=['cows_count', 'dairy_meal_movement', 'silage_hay_movement'])
@@ -181,8 +228,9 @@ def feeding_edit(request, record_id):
     if request.method == 'POST' and form.is_valid():
         updated = form.save(commit=False)
         updated.save()
-        form.save_m2m()
-        updated.cows_count = updated.cows.count()
+        cows = list(form.cleaned_data['cows'])
+        _sync_feeding_cows(updated, cows, updated.dairy_meal_kg, updated.silage_hay_kg, request.POST)
+        updated.cows_count = len(cows)
         _sync_feed_movement(updated, 'dairy_meal_kg', 'dairy_meal_movement', 'Dairy Meal', request.farm, request.user)
         _sync_feed_movement(updated, 'silage_hay_kg', 'silage_hay_movement', 'Silage/Hay', request.farm, request.user)
         updated.save(update_fields=['cows_count', 'dairy_meal_movement', 'silage_hay_movement'])
