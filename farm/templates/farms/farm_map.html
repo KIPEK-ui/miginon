@@ -37,6 +37,63 @@
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="workers" checked class="accent-emerald-600"> Workers</label>
         <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="tasks" checked class="accent-emerald-600"> Tasks</label>
     </div>
+
+    <details class="absolute right-3 top-3 z-10 rounded-2xl border border-stone-200 bg-white/95 shadow-soft backdrop-blur">
+        <summary class="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-xs font-bold text-stone-700">
+            <ion-icon name="information-circle-outline"></ion-icon> Legend
+            <ion-icon name="chevron-down-outline" class="text-[10px] text-stone-400"></ion-icon>
+        </summary>
+        <div class="max-h-[60vh] w-64 overflow-y-auto border-t border-stone-100 p-3 text-xs text-stone-600">
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Paddocks</p>
+            <p class="mb-3">Ground shade deepens to green with more active cows in that block.</p>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Cows</p>
+            <div class="mb-3 space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d8b48a"></span> Calf</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b98a5a"></span> Heifer</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#2b2b2b"></span> Cow (black &amp; white)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#3d2b1f"></span> Bull</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#9c9c9c"></span> Dry (any category, greyed)</div>
+            </div>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Tasks</p>
+            <div class="mb-3 space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#f2990f"></span> Pending</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> In progress</div>
+                <p class="text-[11px] text-stone-400">Planted at the linked block/crop, or by the worker if unlinked.</p>
+            </div>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Workers</p>
+            <div class="mb-3 space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#146a4a"></span> Farmer (owner)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> Farm manager</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d6760a"></span> Supervisor</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#78716c"></span> Worker</div>
+            </div>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Inventory</p>
+            <div class="mb-3 space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9b35c"></span> Feed (silo)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full border border-stone-300" style="background:#ffffff"></span> Veterinary (crate)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> Equipment (crate)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9c08a"></span> Other (sack)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#dc2626"></span> Low stock (any shape)</div>
+            </div>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Crops</p>
+            <div class="mb-3 space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> Planned (bare soil)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#4d7c33"></span> Growing</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b59a5b"></span> Harvested (stubble)</div>
+            </div>
+
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Finance</p>
+            <div class="space-y-1">
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#17835a"></span> Income, this month</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b45309"></span> Expense, this month</div>
+            </div>
+        </div>
+    </details>
 </div>
 {{ blocks_data|json_script:"blocks-data" }}
 {{ cows_data|json_script:"cows-data" }}
