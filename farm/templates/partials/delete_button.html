@@ -1,4 +1,5 @@
-<form method="post" action="{{ url }}" onsubmit="return confirm('Delete this {{ label }}? This cannot be undone.');">
+{% load i18n %}
+<form method="post" action="{{ url }}" onsubmit="return confirm('{% blocktrans %}Delete this {{ label }}? This cannot be undone.{% endblocktrans %}');">
     {% csrf_token %}
-    <button type="submit" class="text-xs font-semibold text-red-500 hover:text-red-700">Delete</button>
+    <button type="submit" class="text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">{% trans "Delete" %}</button>
 </form>

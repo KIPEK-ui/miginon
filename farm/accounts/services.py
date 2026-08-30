@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from core.email import send_styled_email
 
@@ -50,18 +51,18 @@ def issue_otp(email, purpose, farm=None):
 
 def send_otp_email(otp: EmailOTP):
     if otp.purpose == EmailOTP.Purpose.SIGNUP:
-        subject = 'Verify your email - Farm IQ'
-        heading = 'Verify your email'
-        intro = 'Welcome to Farm IQ! Use the code below to verify your email and finish setting up your farm.'
+        subject = _('Verify your email - FarmIQ')
+        heading = _('Verify your email')
+        intro = _('Welcome to FarmIQ! Use the code below to verify your email and finish setting up your farm.')
     elif otp.purpose == EmailOTP.Purpose.EMAIL_CHANGE:
-        subject = 'Confirm your new email - Farm IQ'
-        heading = 'Confirm your new email'
-        intro = 'Use the code below to confirm this is your new email address.'
+        subject = _('Confirm your new email - FarmIQ')
+        heading = _('Confirm your new email')
+        intro = _('Use the code below to confirm this is your new email address.')
     else:
-        farm_bit = f' for {otp.farm.name}' if otp.farm else ''
-        subject = 'Your Farm IQ login code'
-        heading = 'Your login code'
-        intro = f'Use the code below to sign in{farm_bit}.'
+        farm_bit = _(' for %(farm)s') % {'farm': otp.farm.name} if otp.farm else ''
+        subject = _('Your FarmIQ login code')
+        heading = _('Your login code')
+        intro = _('Use the code below to sign in%(farm_bit)s.') % {'farm_bit': farm_bit}
 
     # OTP delivery is on the critical path (the user can't proceed without
     # it), so unlike the "nice to have" emails this is left to raise if

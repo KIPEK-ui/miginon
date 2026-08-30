@@ -1,6 +1,0 @@
-{% url url_name as link_url %}
-<a href="{{ link_url }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-semibold transition
-    {% if request.resolver_match.view_name == url_name %} text-emerald-700 {% else %} text-stone-500 hover:text-stone-800 {% endif %}">
-    <ion-icon name="{{ icon }}" class="text-lg leading-none"></ion-icon>
-    <span>{{ label }}</span>
-</a>

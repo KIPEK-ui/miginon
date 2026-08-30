@@ -1,26 +1,49 @@
-<!DOCTYPE html>
+{% load i18n %}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>{% block title %}Farm IQ{% endblock %}</title>
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{% block title %}FarmIQ{% endblock %}</title>
+<style>
+    /* Email clients that honor prefers-color-scheme (Apple Mail, iOS/mac Mail,
+       most mobile clients) get a dark card on a near-black page background;
+       clients that ignore this block simply keep the light styles below. */
+    @media (prefers-color-scheme: dark) {
+        body, .email-bg { background-color:#0c0a09 !important; }
+        .email-card { background-color:#1c1917 !important; box-shadow:none !important; }
+        .email-heading { color:#f5f5f4 !important; }
+        .email-text { color:#d6d3d1 !important; }
+        .email-text-strong { color:#e7e5e4 !important; }
+        .email-text-muted { color:#a8a29e !important; }
+        .email-divider { border-top-color:#292524 !important; }
+        .email-panel { background-color:#292524 !important; border-color:#3f3a37 !important; }
+        .email-accent-box { background-color:#0f2b20 !important; border-color:#166b46 !important; }
+        .email-accent-label { color:#34d399 !important; }
+        .email-accent-value { color:#6ee7b7 !important; }
+        .email-net-positive { color:#34d399 !important; }
+        .email-net-negative { color:#f87171 !important; }
+        .email-button-cell { background-color:#059669 !important; }
+    }
+</style>
 </head>
-<body style="margin:0; padding:0; background-color:#f5f5f4; -webkit-text-size-adjust:100%;">
+<body class="email-bg" style="margin:0; padding:0; background-color:#f5f5f4; -webkit-text-size-adjust:100%;">
 <span style="display:none; font-size:1px; color:#f5f5f4; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
     {% block preheader %}{% endblock %}
 </span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg" style="background-color:#f5f5f4;">
     <tr>
         <td align="center" style="padding:32px 16px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 40px -12px rgba(20,84,60,0.18);">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card" style="max-width:520px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 40px -12px rgba(20,84,60,0.18);">
 
                 <tr>
                     <td style="background-color:#0f4531; padding:24px 32px;">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td style="width:34px; height:34px; background-color:rgba(255,255,255,0.12); border-radius:10px; text-align:center; font-size:18px; line-height:34px;">🌿</td>
-                                <td style="padding-left:10px; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:18px; font-weight:800; color:#ffffff;">Farm IQ</td>
+                                <td style="padding-left:10px; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:18px; font-weight:800; color:#ffffff;">FarmIQ</td>
                             </tr>
                         </table>
                     </td>
@@ -34,12 +57,12 @@
 
                 <tr>
                     <td style="padding:24px 32px 32px;">
-                        <div style="border-top:1px solid #e7e5e4; padding-top:20px; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
-                            <p style="margin:0; font-size:12px; line-height:1.6; color:#a8a29e;">
-                                You're receiving this because you have an account on Farm IQ{% if farm %} for {{ farm.name }}{% endif %}.
+                        <div class="email-divider" style="border-top:1px solid #e7e5e4; padding-top:20px; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
+                            <p class="email-text-muted" style="margin:0; font-size:12px; line-height:1.6; color:#a8a29e;">
+                                {% if farm %}{% blocktrans with farm_name=farm.name %}You're receiving this because you have an account on FarmIQ for {{ farm_name }}.{% endblocktrans %}{% else %}{% trans "You're receiving this because you have an account on FarmIQ." %}{% endif %}
                             </p>
-                            <p style="margin:6px 0 0; font-size:12px; color:#a8a29e;">
-                                &copy; {{ current_year }} Farm IQ &middot; Smart dairy management, built for Kenyan farms.
+                            <p class="email-text-muted" style="margin:6px 0 0; font-size:12px; color:#a8a29e;">
+                                &copy; {{ current_year }} FarmIQ &middot; {% trans "Smart dairy management, built for Kenyan farms." %}
                             </p>
                         </div>
                     </td>

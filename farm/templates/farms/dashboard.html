@@ -1,254 +1,174 @@
 {% extends "app_base.html" %}
-{% block title %}Dashboard - {{ farm.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Home" %} - {{ farm.name }}{% endblock %}
 {% block app_content %}
-<div class="mb-6">
-    <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-stone-900">
-        Welcome back, {{ user.get_short_name }}
-        <ion-icon name="hand-right-outline" class="text-amber-500"></ion-icon>
-    </h1>
-    <p class="mt-1 text-sm text-stone-500">Here's what's happening on {{ farm.name }} today.</p>
-</div>
-
-{% if quick_actions %}
-<div class="mb-8 flex flex-wrap gap-2">
-    {% for action in quick_actions %}
-    <a href="{% url action.url_name %}" class="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800">
-        <ion-icon name="{{ action.icon }}"></ion-icon> {{ action.label }}
+<div class="mb-6 flex items-start justify-between gap-3">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
+            {{ greeting }} {{ user.get_short_name }}
+        </h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{{ farm.name }}</p>
+    </div>
+    <a href="{% url 'farms:farm_map' %}" class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-stone-700 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-emerald-800 dark:hover:bg-emerald-950 dark:hover:text-emerald-300">
+        <ion-icon name="layers-outline" class="text-base"></ion-icon>
+        {% trans "3D view" %}
     </a>
-    {% endfor %}
-</div>
-{% endif %}
-
-{% if blocks %}
-<a href="{% url 'farms:farm_map' %}" class="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 hover:bg-emerald-100">
-    <span class="flex items-center gap-2.5 text-sm font-bold">
-        <ion-icon name="layers-outline" class="text-lg"></ion-icon> View your farm in 3D
-    </span>
-    <ion-icon name="arrow-forward-outline"></ion-icon>
-</a>
-{% endif %}
-
-<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Blocks</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ block_count }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Active cows</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ cow_count }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk today</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ milk_today }}<span class="text-base font-semibold text-stone-400">L</span></p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Feed sessions today</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ feed_today }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Crops</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ crop_count }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Low stock alerts</p>
-        <p class="mt-2 text-3xl font-extrabold {% if low_stock_items %}text-red-600{% else %}text-stone-900{% endif %}">{{ low_stock_items|length }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net, this month</p>
-        <p class="mt-2 text-3xl font-extrabold {% if month_net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ month_net }}</p>
-    </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Team members</p>
-        <p class="mt-2 text-3xl font-extrabold text-stone-900">{{ worker_count }}</p>
-    </div>
 </div>
 
-<div class="mt-8 grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Recent milk records</h2>
-            <a href="{% url 'cows:milk_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-        </div>
-        {% if recent_milk %}
-        <div class="space-y-2">
-            {% for r in recent_milk %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <span class="font-semibold text-stone-700">{{ r.cow.tag_id }} · {{ r.get_session_display }}</span>
-                <span class="text-stone-500">{{ r.date }}</span>
-                <span class="font-bold text-emerald-700">{{ r.liters }}L</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-sm text-stone-400">No milk records yet.</p>
-        {% endif %}
-    </div>
+<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Recent feeding records</h2>
-            <a href="{% url 'cows:feeding_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
+    <a href="{% url 'weather:forecast' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-sky-500 text-white">
+                <ion-icon name="{% if weather_summary %}{{ weather_summary.icon }}{% else %}cloud-outline{% endif %}" class="text-xl"></ion-icon>
+            </span>
+            {% if weather_summary %}
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ weather_summary.temp|floatformat:0 }}&deg;C</span>
+            {% endif %}
         </div>
-        {% if recent_feed %}
-        <div class="space-y-2">
-            {% for r in recent_feed %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <span class="font-semibold text-stone-700">{{ r.block.name }} · {{ r.get_session_display }}</span>
-                <span class="text-stone-500">{{ r.date }}</span>
-                <span class="font-bold text-amber-600">{{ r.dairy_meal_kg }}kg meal · {{ r.silage_hay_kg }}kg silage</span>
-            </div>
-            {% endfor %}
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Weather" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if weather_summary %}{{ weather_summary.condition }}{% else %}{% trans "Tap for forecast" %}{% endif %}</p>
         </div>
-        {% else %}
-        <p class="text-sm text-stone-400">No feeding records yet.</p>
-        {% endif %}
-    </div>
-</div>
+    </a>
 
-<div class="mt-8 grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Recent crop activity</h2>
-            <a href="{% url 'crops:activity_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-        </div>
-        {% if recent_crop_activity %}
-        <div class="space-y-2">
-            {% for a in recent_crop_activity %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <span class="font-semibold text-stone-700">{{ a.crop.name }} · {{ a.get_activity_type_display }}</span>
-                <span class="text-stone-500">{{ a.date }}</span>
-                {% if a.quantity_harvested_kg %}<span class="font-bold text-emerald-700">{{ a.quantity_harvested_kg }}kg</span>{% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-sm text-stone-400">No crop activity yet.
-            {% if membership.can_manage_herd %}<a href="{% url 'crops:crop_create' %}" class="font-semibold text-emerald-700">Add a crop →</a>{% endif %}
-        </p>
-        {% endif %}
-    </div>
-
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Recent stock movements</h2>
-            <a href="{% url 'inventory:movement_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-        </div>
-        {% if recent_stock_movements %}
-        <div class="space-y-2">
-            {% for m in recent_stock_movements %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <span class="font-semibold text-stone-700">{{ m.item.name }} · {{ m.get_movement_type_display }}</span>
-                <span class="text-stone-500">{{ m.date }}</span>
-                <span class="font-bold text-amber-600">{{ m.quantity }} {{ m.item.get_unit_display }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-sm text-stone-400">No stock movements yet.
-            {% if membership.can_manage_herd %}<a href="{% url 'inventory:item_create' %}" class="font-semibold text-emerald-700">Add an item →</a>{% endif %}
-        </p>
-        {% endif %}
-    </div>
-</div>
-
-<div class="mt-8 grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Finance, this month</h2>
-            <a href="{% url 'finance:transaction_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-        </div>
-        <div class="grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-xl bg-stone-50 p-3">
-                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Income</p>
-                <p class="mt-1 text-lg font-extrabold text-emerald-700">{{ month_income }}</p>
-            </div>
-            <div class="rounded-xl bg-stone-50 p-3">
-                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Expense</p>
-                <p class="mt-1 text-lg font-extrabold text-red-600">{{ month_expense }}</p>
-            </div>
-            <div class="rounded-xl bg-stone-50 p-3">
-                <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net</p>
-                <p class="mt-1 text-lg font-extrabold {% if month_net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ month_net }}</p>
-            </div>
-        </div>
-        {% if recent_transactions %}
-        <div class="mt-4 space-y-2">
-            {% for t in recent_transactions %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <span class="font-semibold text-stone-700">{{ t.get_category_display }}</span>
-                <span class="text-stone-500">{{ t.date }}</span>
-                <span class="font-bold {% if t.kind == 'income' %}text-emerald-700{% else %}text-red-600{% endif %}">
-                    {% if t.kind == 'income' %}+{% else %}-{% endif %}{{ t.amount }}
-                </span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="mt-4 text-sm text-stone-400">No transactions logged yet.</p>
-        {% endif %}
-    </div>
-
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-bold text-stone-900">Low stock alerts</h2>
-            <a href="{% url 'inventory:item_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-        </div>
-        {% if low_stock_items %}
-        <div class="space-y-2">
-            {% for item in low_stock_items %}
-            <a href="{% url 'inventory:item_detail' item.id %}" class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm hover:border-red-200">
-                <span class="font-semibold text-red-700">{{ item.name }}</span>
-                <span class="text-red-600">{{ item.current_stock }} {{ item.get_unit_display }} left</span>
+    {% if quick_actions %}
+    <details class="group relative min-h-[132px] rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+        <summary class="flex min-h-[132px] cursor-pointer list-none flex-col justify-between gap-4 rounded-2xl p-4 hover:border-emerald-200">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white dark:bg-emerald-500">
+                <ion-icon name="add-outline" class="text-2xl"></ion-icon>
+            </span>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Log a record" %}</p>
+        </summary>
+        <div class="absolute left-0 right-0 z-30 mt-1 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-soft dark:border-stone-700 dark:bg-stone-900">
+            {% for action in quick_actions %}
+            <a href="{% url action.url_name %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800">
+                <ion-icon name="{{ action.icon }}"></ion-icon> {{ action.label }}
             </a>
             {% endfor %}
         </div>
-        {% else %}
-        <p class="text-sm text-stone-400">Nothing is running low.</p>
-        {% endif %}
-    </div>
-</div>
-
-{% if my_open_tasks %}
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
-    <div class="mb-4 flex items-center justify-between">
-        <h2 class="font-bold text-stone-900">My open tasks</h2>
-        <a href="{% url 'tasks:task_list' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
-    </div>
-    <div class="space-y-2">
-        {% for task in my_open_tasks %}
-        <a href="{% url 'tasks:task_detail' task.id %}" class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm hover:bg-stone-100">
-            <span class="font-semibold text-stone-700">{{ task.title }}{% if task.block %} · {{ task.block.name }}{% endif %}{% if task.crop %} · {{ task.crop.name }}{% endif %}</span>
-            <span class="text-stone-500">{{ task.due_date|default:"" }}</span>
-            <span class="rounded-full px-2.5 py-1 text-xs font-bold
-                {% if task.priority == 'urgent' %}bg-red-50 text-red-600{% elif task.priority == 'high' %}bg-amber-50 text-amber-700{% else %}bg-stone-200 text-stone-500{% endif %}">
-                {{ task.get_priority_display }}
-            </span>
-        </a>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
-    <div class="mb-4 flex items-center justify-between">
-        <h2 class="font-bold text-stone-900">Blocks</h2>
-        {% if membership.can_manage_herd %}
-        <a href="{% url 'farms:block_create' %}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">+ Add block</a>
-        {% endif %}
-    </div>
-    {% if blocks %}
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {% for block in blocks %}
-        <a href="{% url 'farms:block_detail' block.id %}" class="rounded-xl border border-stone-100 p-4 hover:border-emerald-200 hover:bg-emerald-50/40">
-            <p class="font-bold text-stone-800">{{ block.name }}</p>
-            <p class="text-sm text-stone-500">{{ block.active_cow_count }} cow{{ block.active_cow_count|pluralize }}</p>
-        </a>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-sm text-stone-400">No blocks yet.
-        {% if membership.can_manage_herd %}<a href="{% url 'farms:setup_block' %}" class="font-semibold text-emerald-700">Set one up →</a>{% endif %}
-    </p>
+    </details>
     {% endif %}
+
+    <a href="{% url 'cows:cow_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-600 text-white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
+                <path d="M8 6C6.5 6 5 4.8 5 3"/>
+                <path d="M16 6c1.5 0 3-1.2 3-3"/>
+                <ellipse cx="4.3" cy="10.5" rx="1.6" ry="2.4" transform="rotate(-20 4.3 10.5)"/>
+                <ellipse cx="19.7" cy="10.5" rx="1.6" ry="2.4" transform="rotate(20 19.7 10.5)"/>
+                <rect x="6" y="7" width="12" height="11" rx="5.5"/>
+                <circle cx="9.3" cy="12" r=".7" fill="currentColor" stroke="none"/>
+                <circle cx="14.7" cy="12" r=".7" fill="currentColor" stroke="none"/>
+                <ellipse cx="12" cy="15.5" rx="2.3" ry="1.4"/>
+                <circle cx="11" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
+                <circle cx="13" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
+            </svg>
+        </span>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Herd" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans count c=cow_count %}{{ c }} cow{% plural %}{{ c }} cows{% endblocktrans %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'cows:milk_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white">
+            <ion-icon name="water-outline" class="text-xl"></ion-icon>
+        </span>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Milk" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans with liters=milk_today %}{{ liters }}L today{% endblocktrans %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'tasks:task_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500 text-white">
+                <ion-icon name="checkbox-outline" class="text-xl"></ion-icon>
+            </span>
+            {% if my_open_task_count %}
+            <span class="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">{{ my_open_task_count }}</span>
+            {% endif %}
+        </div>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Tasks" %}</p>
+    </a>
+
+    <a href="{% url 'advisory:home' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-500 text-white">
+            <ion-icon name="school-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Advisory" %}</p>
+    </a>
+
+    {% if membership.can_manage_herd %}
+    <a href="{% url 'farms:block_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-white">
+            <ion-icon name="map-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Blocks" %}</p>
+    </a>
+
+    <a href="{% url 'crops:crop_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-lime-600 text-white">
+            <ion-icon name="leaf-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Crops" %}</p>
+    </a>
+
+    <a href="{% url 'inventory:item_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-violet-500 text-white">
+                <ion-icon name="cube-outline" class="text-xl"></ion-icon>
+            </span>
+            {% if low_stock_count %}
+            <span class="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">{{ low_stock_count }}</span>
+            {% endif %}
+        </div>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Inventory" %}</p>
+    </a>
+
+    <a href="{% url 'finance:transaction_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-teal-600 text-white">
+            <ion-icon name="cash-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Finance" %}</p>
+    </a>
+
+    <a href="{% url 'analysis:overview' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500 text-white">
+            <ion-icon name="stats-chart-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Reports" %}</p>
+    </a>
+    {% endif %}
+
+    {% if membership.can_manage_workers %}
+    <a href="{% url 'farms:worker_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-white">
+            <ion-icon name="people-outline" class="text-xl"></ion-icon>
+        </span>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Team" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans count c=worker_count %}{{ c }} member{% plural %}{{ c }} members{% endblocktrans %}</p>
+        </div>
+    </a>
+    {% endif %}
+
+    <a href="{% url 'accounts:settings' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-500 text-white">
+            <ion-icon name="settings-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Settings" %}</p>
+    </a>
+
+    {% if membership.can_add_farms %}
+    <a href="{% url 'farms:add_farm' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 p-4 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:hover:bg-emerald-900">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-700 text-white dark:bg-emerald-600">
+            <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
+        </span>
+        <p class="text-sm font-bold text-emerald-800 dark:text-emerald-300">{% trans "Add another farm" %}</p>
+    </a>
+    {% endif %}
+
 </div>
 {% endblock %}

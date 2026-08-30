@@ -1,25 +1,26 @@
 {% extends "base.html" %}
+{% load i18n static %}
 {% block body %}
-<div class="flex min-h-screen flex-col bg-stone-50">
-    <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur lg:px-8">
+<div class="flex min-h-screen flex-col bg-stone-50 dark:bg-stone-950">
+    <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90 lg:px-8">
         <div class="flex items-center gap-2">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-lg text-emerald-700">
-                <ion-icon name="leaf-outline"></ion-icon>
-            </span>
+            <a href="{% url 'farms:dashboard' %}" class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl opacity-90 hover:opacity-100" aria-label="{% trans 'Home' %}">
+                <img src="{% static 'images/logo-mark.svg' %}" alt="FarmIQ" class="h-9 w-9 rounded-xl">
+            </a>
             {% if my_memberships|length > 1 %}
             <div class="relative">
                 <details class="group">
-                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-900">
                         {{ active_farm_obj.name }}
-                        <ion-icon name="chevron-down-outline" class="text-xs text-stone-400"></ion-icon>
+                        <ion-icon name="chevron-down-outline" class="text-xs text-stone-400 dark:text-stone-500"></ion-icon>
                     </summary>
-                    <div class="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-stone-200 bg-white p-1.5 shadow-soft">
+                    <div class="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-stone-200 bg-white p-1.5 shadow-soft dark:border-stone-700 dark:bg-stone-900">
                         {% for m in my_memberships %}
                         <form method="post" action="{% url 'farms:switch_farm' m.farm_id %}">
                             {% csrf_token %}
-                            <button type="submit" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-stone-50 {% if m.farm_id == active_farm_obj.id %}text-emerald-700 font-semibold{% else %}text-stone-600{% endif %}">
+                            <button type="submit" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 {% if m.farm_id == active_farm_obj.id %}text-emerald-700 font-semibold dark:text-emerald-400{% else %}text-stone-600 dark:text-stone-300{% endif %}">
                                 <span>{{ m.farm.name }}</span>
-                                <span class="text-xs text-stone-400">{{ m.farm.code }}</span>
+                                <span class="text-xs text-stone-400 dark:text-stone-500">{{ m.farm.code }}</span>
                             </button>
                         </form>
                         {% endfor %}
@@ -28,20 +29,25 @@
             </div>
             {% elif active_farm_obj %}
             <div>
-                <p class="text-sm font-bold text-stone-900">{{ active_farm_obj.name }}</p>
-                <p class="text-xs text-stone-400">Farm ID: {{ active_farm_obj.code }}</p>
+                <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{{ active_farm_obj.name }}</p>
+                <p class="text-xs text-stone-400 dark:text-stone-500">{% trans "Farm ID:" %} {{ active_farm_obj.code }}</p>
             </div>
             {% endif %}
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
             {% if active_membership %}
-            <span class="hidden rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline">
+            <span class="hidden rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 sm:inline">
                 {{ active_membership.get_role_display }}
             </span>
             {% endif %}
+            {% if active_membership and request.resolver_match.view_name != 'farms:dashboard' %}
+            <a href="{% url 'farms:dashboard' %}" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100" aria-label="{% trans 'Back to dashboard' %}" title="{% trans 'Back to dashboard' %}">
+                <ion-icon name="home-outline" class="text-lg"></ion-icon>
+            </a>
+            {% endif %}
             {% if active_membership %}
-            <a href="{% url 'notifications:list' %}" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800">
+            <a href="{% url 'notifications:list' %}" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">
                 <ion-icon name="notifications-outline" class="text-lg"></ion-icon>
                 {% if unread_notifications_count %}
                 <span class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -50,25 +56,43 @@
                 {% endif %}
             </a>
             {% endif %}
+
+            <form method="post" action="{% url 'core:set_theme' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100" aria-label="{% trans 'Toggle dark mode' %}">
+                    <ion-icon name="{% if theme == 'dark' %}sunny-outline{% else %}moon-outline{% endif %}" class="text-lg"></ion-icon>
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'core:set_language' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="language" value="{% if LANGUAGE_CODE == 'sw' %}en{% else %}sw{% endif %}">
+                <button type="submit" class="flex h-9 items-center justify-center rounded-full px-2 text-xs font-bold text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100" aria-label="{% trans 'Switch language' %}">
+                    {% if LANGUAGE_CODE == 'sw' %}EN{% else %}SW{% endif %}
+                </button>
+            </form>
+
             <details class="group relative">
                 <summary class="flex cursor-pointer list-none items-center gap-2">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white dark:bg-emerald-600">
                         {{ user.initials }}
                     </span>
                 </summary>
-                <div class="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-stone-200 bg-white p-1.5 shadow-soft">
+                <div class="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-stone-200 bg-white p-1.5 shadow-soft dark:border-stone-700 dark:bg-stone-900">
                     <div class="px-3 py-2">
-                        <p class="text-sm font-semibold text-stone-800">{{ user.get_full_name }}</p>
-                        <p class="text-xs text-stone-400">{{ user.email }}</p>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-100">{{ user.get_full_name }}</p>
+                        <p class="text-xs text-stone-400 dark:text-stone-500">{{ user.email }}</p>
                     </div>
-                    <div class="my-1 h-px bg-stone-100"></div>
-                    <a href="{% url 'accounts:settings' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">
-                        <ion-icon name="settings-outline"></ion-icon> Settings
+                    <div class="my-1 h-px bg-stone-100 dark:bg-stone-800"></div>
+                    <a href="{% url 'accounts:settings' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800">
+                        <ion-icon name="settings-outline"></ion-icon> {% trans "Settings" %}
                     </a>
                     <form method="post" action="{% url 'accounts:logout' %}">
                         {% csrf_token %}
-                        <button type="submit" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
-                            <ion-icon name="log-out-outline"></ion-icon> Sign out
+                        <button type="submit" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950">
+                            <ion-icon name="log-out-outline"></ion-icon> {% trans "Sign out" %}
                         </button>
                     </form>
                 </div>
@@ -76,57 +100,8 @@
         </div>
     </header>
 
-    <main class="flex-1 px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-24">
+    <main class="flex-1 px-4 py-6 lg:px-8 lg:py-8">
         {% block app_content %}{% endblock %}
     </main>
-
-    {% if active_membership %}
-    <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur">
-        <div class="mx-auto grid max-w-3xl grid-cols-5">
-            {% include "partials/footer_nav_link.html" with url_name="farms:dashboard" icon="home-outline" label="Home" %}
-            {% include "partials/footer_nav_link.html" with url_name="cows:cow_list" icon="paw-outline" label="Cows" %}
-            <a href="{% url 'farms:farm_map' %}" class="relative flex flex-col items-center justify-end pb-1.5 text-[11px] font-bold text-emerald-700">
-                <span class="absolute -top-6 flex h-14 w-14 items-center justify-center rounded-full border-4 border-white bg-emerald-600 text-white shadow-lg">
-                    <ion-icon name="layers-outline" class="text-2xl leading-none"></ion-icon>
-                </span>
-                <span class="mt-8">3D Farm</span>
-            </a>
-            {% include "partials/footer_nav_link.html" with url_name="cows:milk_list" icon="water-outline" label="Milk" %}
-            <div class="relative">
-                <details class="group h-full">
-                    <summary class="flex h-full cursor-pointer list-none flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-semibold text-stone-500 hover:text-stone-800">
-                        <ion-icon name="menu-outline" class="text-lg leading-none"></ion-icon>
-                        <span>More</span>
-                    </summary>
-                    <div class="absolute bottom-full right-0 z-40 mb-2 w-64 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-soft">
-                        <a href="{% url 'farms:block_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="map-outline"></ion-icon> Blocks / Paddocks</a>
-                        <a href="{% url 'cows:feeding_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="nutrition-outline"></ion-icon> Feeding records</a>
-                        <a href="{% url 'crops:crop_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="flower-outline"></ion-icon> Crops</a>
-                        <a href="{% url 'crops:activity_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="clipboard-outline"></ion-icon> Crop activity</a>
-                        <a href="{% url 'inventory:item_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="cube-outline"></ion-icon> Inventory items</a>
-                        <a href="{% url 'inventory:movement_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="swap-horizontal-outline"></ion-icon> Stock movements</a>
-                        <a href="{% url 'finance:transaction_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="cash-outline"></ion-icon> Finance</a>
-                        {% if active_membership.can_record_production %}
-                        <a href="{% url 'finance:milk_sale_create' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="water-outline"></ion-icon> Record milk sale</a>
-                        <a href="{% url 'inventory:milk_usage_create' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="paw-outline"></ion-icon> Record milk usage</a>
-                        {% endif %}
-                        <a href="{% url 'tasks:task_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="checkbox-outline"></ion-icon> Tasks</a>
-                        {% if active_membership.can_manage_herd %}
-                        <a href="{% url 'analysis:overview' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="stats-chart-outline"></ion-icon> Analysis</a>
-                        {% endif %}
-                        {% if active_membership.can_manage_workers %}
-                        <a href="{% url 'farms:worker_list' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="people-outline"></ion-icon> Workers</a>
-                        {% endif %}
-                        <div class="my-1 h-px bg-stone-100"></div>
-                        <a href="{% url 'accounts:settings' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"><ion-icon name="settings-outline"></ion-icon> Settings</a>
-                        {% if active_membership.can_add_farms %}
-                        <a href="{% url 'farms:add_farm' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"><ion-icon name="add-circle-outline"></ion-icon> Add another farm</a>
-                        {% endif %}
-                    </div>
-                </details>
-            </div>
-        </div>
-    </nav>
-    {% endif %}
 </div>
 {% endblock %}

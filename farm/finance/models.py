@@ -1,23 +1,24 @@
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class Transaction(models.Model):
     class Kind(models.TextChoices):
-        INCOME = 'income', 'Income'
-        EXPENSE = 'expense', 'Expense'
+        INCOME = 'income', _('Income')
+        EXPENSE = 'expense', _('Expense')
 
     class Category(models.TextChoices):
-        FEED = 'feed', 'Feed & Nutrition'
-        VETERINARY = 'veterinary', 'Veterinary'
-        LABOR = 'labor', 'Labor / Wages'
-        EQUIPMENT = 'equipment', 'Equipment'
-        TRANSPORT = 'transport', 'Transport'
-        UTILITIES = 'utilities', 'Utilities'
-        WATER = 'water', 'Water'
-        FUEL = 'fuel', 'Fuel'
-        SALES = 'sales', 'Produce Sales'
-        OTHER = 'other', 'Other'
+        FEED = 'feed', _('Feed & Nutrition')
+        VETERINARY = 'veterinary', _('Veterinary')
+        LABOR = 'labor', _('Labor / Wages')
+        EQUIPMENT = 'equipment', _('Equipment')
+        TRANSPORT = 'transport', _('Transport')
+        UTILITIES = 'utilities', _('Utilities')
+        WATER = 'water', _('Water')
+        FUEL = 'fuel', _('Fuel')
+        SALES = 'sales', _('Produce Sales')
+        OTHER = 'other', _('Other')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='transactions')
     kind = models.CharField(max_length=10, choices=Kind.choices)

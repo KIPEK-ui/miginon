@@ -1,15 +1,21 @@
 {% if form.non_field_errors %}
-<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
     {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
 </div>
 {% endif %}
 {% for field in form %}
 <div class="mb-4">
-    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">
+    {% if field.field.widget.input_type == 'checkbox' %}
+    <label for="{{ field.id_for_label }}" class="flex items-center gap-2 text-sm font-semibold text-stone-700 dark:text-stone-300">
+        {{ field }} {{ field.label }}
+    </label>
+    {% else %}
+    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
         {{ field.label }}{% if field.field.required %} *{% endif %}
     </label>
     {{ field }}
-    {% if field.help_text %}<p class="mt-1 text-xs text-stone-400">{{ field.help_text }}</p>{% endif %}
-    {% for error in field.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+    {% endif %}
+    {% if field.help_text %}<p class="mt-1 text-xs text-stone-400 dark:text-stone-500">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
 </div>
 {% endfor %}

@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from core.formhelpers import TailwindFormMixin
 from farms.models import FarmMembership
@@ -11,7 +12,7 @@ class InventoryItemForm(TailwindFormMixin, forms.ModelForm):
         model = InventoryItem
         fields = ['name', 'category', 'unit', 'current_stock', 'reorder_level']
         widgets = {
-            'name': forms.TextInput(attrs={'placeholder': 'e.g. Dairy meal'}),
+            'name': forms.TextInput(attrs={'placeholder': _('e.g. Dairy meal')}),
         }
 
     def __init__(self, *args, lock_stock=False, **kwargs):
@@ -28,9 +29,9 @@ class StockMovementForm(TailwindFormMixin, forms.ModelForm):
         fields = ['item', 'date', 'movement_type', 'quantity', 'used_by', 'note']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
-            'note': forms.TextInput(attrs={'placeholder': 'Optional'}),
+            'note': forms.TextInput(attrs={'placeholder': _('Optional')}),
         }
-        labels = {'used_by': 'Used by (optional)'}
+        labels = {'used_by': _('Used by (optional)')}
 
     def __init__(self, *args, farm=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,19 +44,19 @@ class StockMovementForm(TailwindFormMixin, forms.ModelForm):
 
 class MilkUsageForm(TailwindFormMixin, forms.Form):
     PURPOSE_CHOICES = [
-        ('calf', 'Calf feeding'),
-        ('staff', 'Staff consumption'),
-        ('other', 'Other internal use'),
+        ('calf', _('Calf feeding')),
+        ('staff', _('Staff consumption')),
+        ('other', _('Other internal use')),
     ]
 
     date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    liters = forms.DecimalField(max_digits=7, decimal_places=2, min_value=0.01, label='Liters used')
+    liters = forms.DecimalField(max_digits=7, decimal_places=2, min_value=0.01, label=_('Liters used'))
     purpose = forms.ChoiceField(choices=PURPOSE_CHOICES)
     used_by = forms.ModelChoiceField(
-        queryset=FarmMembership.objects.none(), required=False, label='Staff member (if applicable)'
+        queryset=FarmMembership.objects.none(), required=False, label=_('Staff member (if applicable)')
     )
     note = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={'placeholder': 'Optional, e.g. which calves'})
+        required=False, widget=forms.TextInput(attrs={'placeholder': _('Optional, e.g. which calves')})
     )
 
     def __init__(self, *args, farm=None, **kwargs):

@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from core.email import send_styled_email
 from cows.models import Cow, FeedingRecord, MilkRecord
@@ -13,6 +14,8 @@ from farms.models import Block
 from farms.permissions import analysis_required
 from finance.models import Transaction
 from inventory.models import InventoryItem
+
+from weather.services import get_forecast_summary
 
 from .exporters import build_pdf_bytes, export_csv, export_pdf, export_xlsx
 from .ml.correlation import feed_milk_correlation
@@ -75,6 +78,7 @@ def overview(request):
     expense = finance_totals['expense'] or 0
 
     context = {
+        'weather': get_forecast_summary(farm),
         'milk_trend': milk_trend,
         'max_milk': max_milk,
         'milk_week_total': milk_week_total,
@@ -123,7 +127,7 @@ def email_report(request):
     try:
         send_styled_email(
             to=request.user.email,
-            subject=f'{request.farm.name} - {label} report',
+            subject=_('%(farm)s - %(label)s report') % {'farm': request.farm.name, 'label': label},
             template_name='emails/farm_report.html',
             context={
                 'report': report,
@@ -132,10 +136,10 @@ def email_report(request):
             },
             attachments=[(f'{request.farm.code}-report.pdf', pdf_bytes, 'application/pdf')],
         )
-        messages.success(request, f'Report emailed to {request.user.email}.')
+        messages.success(request, _('Report emailed to %(email)s.') % {'email': request.user.email})
     except Exception:
         logger.exception('Failed to email farm report')
-        messages.error(request, 'Could not send the report email. Please try again later.')
+        messages.error(request, _('Could not send the report email. Please try again later.'))
     return redirect('analysis:overview')
 
 

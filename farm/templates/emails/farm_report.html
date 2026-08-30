@@ -1,56 +1,68 @@
 {% extends "emails/base_email.html" %}
-{% block title %}{{ report.period_label }} report - {{ farm.name }}{% endblock %}
-{% block preheader %}{{ report.milk.total_liters }}L milk, {{ report.finance.total_income }} income for {{ report.period_label }} - full PDF attached.{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with period=report.period_label name=farm.name %}{{ period }} report - {{ name }}{% endblocktrans %}{% endblock %}
+{% block preheader %}{% blocktrans with liters=report.milk.total_liters income=report.finance.total_income period=report.period_label %}{{ liters }}L milk, {{ income }} income for {{ period }} - full PDF attached.{% endblocktrans %}{% endblock %}
 {% block content %}
-<h1 style="margin:0 0 4px; font-size:20px; font-weight:800; color:#1c1917;">{{ farm.name }}</h1>
-<p style="margin:0 0 24px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#17835a;">{{ report.period_label }} report</p>
+<h1 class="email-heading" style="margin:0 0 4px; font-size:20px; font-weight:800; color:#1c1917;">{{ farm.name }}</h1>
+<p class="email-accent-label" style="margin:0 0 24px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#17835a;">{% blocktrans with period=report.period_label %}{{ period }} report{% endblocktrans %}</p>
 
-<p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#57534e;">
-    Here's the summary for {{ report.start_date }} to {{ report.end_date }}. The full detailed report - milk, feeding, herd, crops, inventory and finance - is attached as a PDF.
+<p class="email-text" style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#57534e;">
+    {% blocktrans with start=report.start_date end=report.end_date %}Here's the summary for {{ start }} to {{ end }}. The full detailed report - milk, feeding, herd, crops, inventory and finance - is attached as a PDF.{% endblocktrans %}
 </p>
+
+{% if report.weather %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="margin:0 0 20px; background-color:#f0f9ff; border:1px solid #bae6fd; border-radius:12px;">
+    <tr><td style="padding:16px;">
+        <span class="email-text-muted" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#0369a1;">{% trans "Weather" %}</span>
+        <span class="email-heading" style="display:block; margin-top:4px; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:18px; font-weight:800; color:#0c4a6e;">{{ report.weather.current_temp|floatformat:0 }}&deg;C &middot; {{ report.weather.current_condition }}</span>
+        <span class="email-text" style="display:block; margin-top:8px; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:13px; line-height:1.5; color:#0c4a6e;">{{ report.weather.advisory }}</span>
+    </td></tr>
+</table>
+{% endif %}
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
     <tr>
         <td width="50%" style="padding:4px 4px 4px 0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
                 <tr><td style="padding:14px 16px;">
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Milk</span>
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.milk.total_liters }}<span style="font-size:12px; font-weight:600; color:#a8a29e;"> L</span></span>
+                    <span class="email-text-muted" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">{% trans "Milk" %}</span>
+                    <span class="email-heading" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.milk.total_liters }}<span class="email-text-muted" style="font-size:12px; font-weight:600; color:#a8a29e;"> L</span></span>
                 </td></tr>
             </table>
         </td>
         <td width="50%" style="padding:4px 0 4px 4px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
                 <tr><td style="padding:14px 16px;">
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Dairy meal</span>
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.feeding.total_dairy_meal_kg }}<span style="font-size:12px; font-weight:600; color:#a8a29e;"> kg</span></span>
+                    <span class="email-text-muted" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">{% trans "Dairy meal" %}</span>
+                    <span class="email-heading" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.feeding.total_dairy_meal_kg }}<span class="email-text-muted" style="font-size:12px; font-weight:600; color:#a8a29e;"> kg</span></span>
                 </td></tr>
             </table>
         </td>
     </tr>
     <tr>
         <td width="50%" style="padding:4px 4px 4px 0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
                 <tr><td style="padding:14px 16px;">
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Active cows</span>
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.herd.active_cows }}</span>
+                    <span class="email-text-muted" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">{% trans "Active cows" %}</span>
+                    <span class="email-heading" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:#1c1917;">{{ report.herd.active_cows }}</span>
                 </td></tr>
             </table>
         </td>
         <td width="50%" style="padding:4px 0 4px 4px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
                 <tr><td style="padding:14px 16px;">
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">Net</span>
-                    <span style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:{% if report.finance.net >= 0 %}#146a4a{% else %}#dc2626{% endif %};">{{ report.finance.net }}</span>
+                    <span class="email-text-muted" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; color:#a8a29e;">{% trans "Net" %}</span>
+                    <span class="{% if report.finance.net >= 0 %}email-net-positive{% else %}email-net-negative{% endif %}" style="display:block; font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:20px; font-weight:800; color:{% if report.finance.net >= 0 %}#146a4a{% else %}#dc2626{% endif %};">{{ report.finance.net }}</span>
                 </td></tr>
             </table>
         </td>
     </tr>
 </table>
 
-{% include "emails/_button.html" with url=analysis_url label="Open full analysis →" %}
+{% trans "Open full analysis →" as open_analysis_label %}
+{% include "emails/_button.html" with url=analysis_url label=open_analysis_label %}
 
-<p style="margin:0; font-size:13px; line-height:1.6; color:#a8a29e;">
-    Want this delivered automatically? Reach out and we can talk about scheduling recurring reports.
+<p class="email-text-muted" style="margin:0; font-size:13px; line-height:1.6; color:#a8a29e;">
+    {% trans "Want this delivered automatically? Reach out and we can talk about scheduling recurring reports." %}
 </p>
 {% endblock %}

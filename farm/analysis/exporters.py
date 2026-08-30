@@ -23,6 +23,17 @@ def export_csv(report):
     writer.writerow([f'Generated {report["generated_at"].strftime("%d %b %Y %H:%M")}'])
     writer.writerow([])
 
+    weather = report.get('weather')
+    if weather:
+        writer.writerow(['WEATHER', f'(as of {report["generated_at"].strftime("%d %b %Y %H:%M")})'])
+        writer.writerow(['Current', f'{weather["current_temp"]}°C', weather['current_condition']])
+        writer.writerow(['5-day outlook'])
+        writer.writerow(['Date', 'Condition', 'High', 'Low', 'Rain %'])
+        for day in weather['days']:
+            writer.writerow([day['date'], day['condition'], day['high'], day['low'], day['rain_probability']])
+        writer.writerow(['Advisory', weather['advisory']])
+        writer.writerow([])
+
     writer.writerow(['MILK PRODUCTION'])
     writer.writerow(['Total liters', report['milk']['total_liters']])
     writer.writerow(['Avg liters per active cow', round(float(report['milk']['avg_per_cow']), 2)])
@@ -160,6 +171,18 @@ def export_xlsx(report):
     ws['A2'] = f'{report["period_label"]} report ({report["start_date"]} to {report["end_date"]})'
     ws['A3'] = f'Generated {report["generated_at"].strftime("%d %b %Y %H:%M")}'
     ws.append([])
+
+    weather = report.get('weather')
+    if weather:
+        ws.append([f'Weather (as of {report["generated_at"].strftime("%d %b %Y %H:%M")})'])
+        ws.cell(row=ws.max_row, column=1).font = Font(bold=True)
+        ws.append(['Current', f'{weather["current_temp"]}°C - {weather["current_condition"]}'])
+        ws.append(['Advisory', weather['advisory']])
+        ws.append([])
+        section_table(ws, '5-day outlook', ['Date', 'Condition', 'High', 'Low', 'Rain %'],
+                      [[d['date'].strftime('%Y-%m-%d'), d['condition'], d['high'], d['low'], d['rain_probability']]
+                       for d in weather['days']])
+
     ws.append(['Metric', 'Value'])
     style_header(ws, ws.max_row, 2)
     ws.append(['Total milk (L)', float(report['milk']['total_liters'])])
@@ -271,6 +294,8 @@ def build_pdf_bytes(report):
     ))
     elements.append(Spacer(1, 6 * mm))
 
+    weather = report.get('weather')
+
     def add_table(headers, rows):
         data = [headers] + [[str(v) if v is not None else '-' for v in row] for row in rows]
         table = Table(data, repeatRows=1)
@@ -286,6 +311,20 @@ def build_pdf_bytes(report):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
         elements.append(table)
+        elements.append(Spacer(1, 5 * mm))
+
+    if weather:
+        elements.append(Paragraph('Weather', section_style))
+        elements.append(Paragraph(
+            f'As of {report["generated_at"].strftime("%d %b %Y %H:%M")}: '
+            f'{weather["current_temp"]}&deg;C, {weather["current_condition"]}', normal
+        ))
+        add_table(
+            ['Date', 'Condition', 'High', 'Low', 'Rain %'],
+            [[d['date'].strftime('%d %b'), d['condition'], d['high'], d['low'], d['rain_probability']]
+             for d in weather['days']]
+        )
+        elements.append(Paragraph(f'<i>{weather["advisory"]}</i>', normal))
         elements.append(Spacer(1, 5 * mm))
 
     elements.append(Paragraph('Milk Production', section_style))

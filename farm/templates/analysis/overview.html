@@ -1,181 +1,218 @@
 {% extends "app_base.html" %}
-{% block title %}Analysis - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Analysis" %} - FarmIQ{% endblock %}
 {% block app_content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Analysis</h1>
-        <p class="mt-1 text-sm text-stone-500">Trends and performance for {{ active_farm_obj.name }}.</p>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Analysis" %}</h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% blocktrans with farm_name=active_farm_obj.name %}Trends and performance for {{ farm_name }}.{% endblocktrans %}</p>
     </div>
-    <a href="{% url 'analysis:predictions_overview' %}" class="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
-        AI production predictions →
+    <a href="{% url 'analysis:predictions_overview' %}" class="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900">
+        {% trans "AI production predictions →" %}
     </a>
 </div>
 
+{% if weather %}
+<div class="mb-8 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <div class="mb-4 flex items-center justify-between gap-3">
+        <div>
+            <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Weather" %}</h2>
+            {% if weather.fetched_at %}
+            <p class="text-xs text-stone-400 dark:text-stone-500">{% blocktrans with updated=weather.fetched_at|date:"j M, H:i" %}Updated {{ updated }}{% endblocktrans %}</p>
+            {% endif %}
+        </div>
+        <a href="{% url 'weather:forecast' %}" class="flex-shrink-0 text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">{% trans "Full forecast →" %}</a>
+    </div>
+    <div class="flex flex-wrap items-center gap-6">
+        <div class="flex items-center gap-3">
+            <ion-icon name="{{ weather.current_icon }}" class="text-4xl text-sky-500"></ion-icon>
+            <div>
+                <p class="text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ weather.current_temp|floatformat:0 }}&deg;C</p>
+                <p class="text-xs text-stone-400 dark:text-stone-500">{{ weather.current_condition }}</p>
+            </div>
+        </div>
+        <div class="flex flex-1 gap-2 overflow-x-auto">
+            {% for day in weather.days %}
+            <div class="flex-shrink-0 rounded-xl bg-stone-50 px-3 py-2 text-center dark:bg-stone-800">
+                <p class="text-[10px] font-bold uppercase text-stone-400 dark:text-stone-500">{{ day.date|date:"D j M" }}</p>
+                <ion-icon name="{{ day.icon }}" class="my-1 block text-lg text-sky-500"></ion-icon>
+                <p class="text-xs font-bold text-stone-700 dark:text-stone-200">{{ day.high|floatformat:0 }}&deg;</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="mt-4 flex items-start gap-2.5 rounded-xl bg-sky-50 p-4 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+        <ion-icon name="bulb-outline" class="mt-0.5 flex-shrink-0 text-sky-600 dark:text-sky-400"></ion-icon>
+        <p>{{ weather.advisory }}</p>
+    </div>
+</div>
+{% endif %}
+
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk, last 7 days</p>
-        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ milk_week_total }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Milk, last 7 days" %}</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ milk_week_total }}<span class="text-sm font-semibold text-stone-400 dark:text-stone-500"> L</span></p>
     </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Milk, last 30 days</p>
-        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ milk_month_total }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Milk, last 30 days" %}</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ milk_month_total }}<span class="text-sm font-semibold text-stone-400 dark:text-stone-500"> L</span></p>
     </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Avg / cow / week</p>
-        <p class="mt-2 text-2xl font-extrabold text-stone-900">{{ avg_per_cow_week|floatformat:1 }}<span class="text-sm font-semibold text-stone-400"> L</span></p>
-        <p class="mt-1 text-xs text-stone-400">{{ active_cow_count }} active cow{{ active_cow_count|pluralize }}</p>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Avg / cow / week" %}</p>
+        <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ avg_per_cow_week|floatformat:1 }}<span class="text-sm font-semibold text-stone-400 dark:text-stone-500"> L</span></p>
+        <p class="mt-1 text-xs text-stone-400 dark:text-stone-500">{% blocktrans count c=active_cow_count %}{{ c }} active cow{% plural %}{{ c }} active cows{% endblocktrans %}</p>
     </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-5">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net, last 30 days</p>
-        <p class="mt-2 text-2xl font-extrabold {% if net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ net }}</p>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Net, last 30 days" %}</p>
+        <p class="mt-2 text-2xl font-extrabold {% if net >= 0 %}text-emerald-700 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ net }}</p>
     </div>
 </div>
 
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
-    <h2 class="font-bold text-stone-900">Daily milk yield - last 7 days</h2>
-    <div class="mt-6 flex items-end justify-between gap-3 border-b border-stone-100 pb-2" style="height: 10rem;">
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Daily milk yield - last 7 days" %}</h2>
+    <div class="mt-6 flex items-end justify-between gap-3 border-b border-stone-100 pb-2 dark:border-stone-800" style="height: 10rem;">
         {% for row in milk_trend %}
         <div class="flex h-full flex-1 flex-col items-center justify-end gap-2">
-            <span class="text-xs font-semibold text-stone-500">{{ row.total|default:0 }}</span>
+            <span class="text-xs font-semibold text-stone-500 dark:text-stone-400">{{ row.total|default:0 }}</span>
             <div class="w-full rounded-t-lg bg-emerald-500" style="height: {% widthratio row.total max_milk 100 %}%; min-height: 2px;"></div>
         </div>
         {% endfor %}
     </div>
     <div class="mt-2 flex justify-between gap-3">
         {% for row in milk_trend %}
-        <span class="flex-1 text-center text-xs font-medium text-stone-400">{{ row.date|date:"D" }}</span>
+        <span class="flex-1 text-center text-xs font-medium text-stone-400 dark:text-stone-500">{{ row.date|date:"D" }}</span>
         {% endfor %}
     </div>
 </div>
 
 <div class="mt-8 grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 class="font-bold text-stone-900">Top producing cows (30 days)</h2>
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Top producing cows (30 days)" %}</h2>
         <div class="mt-4 space-y-2">
             {% for cow in top_cows %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <a href="{% url 'cows:cow_detail' cow.id %}" class="font-semibold text-stone-700 hover:text-emerald-700">
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm dark:bg-stone-800">
+                <a href="{% url 'cows:cow_detail' cow.id %}" class="font-semibold text-stone-700 hover:text-emerald-700 dark:text-stone-300 dark:hover:text-emerald-400">
                     {{ cow.tag_id }}{% if cow.name %} · {{ cow.name }}{% endif %}
                 </a>
-                <span class="font-bold text-emerald-700">{{ cow.total_liters }} L</span>
+                <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ cow.total_liters }} L</span>
             </div>
             {% empty %}
-            <p class="text-sm text-stone-400">No milk records in the last 30 days.</p>
+            <p class="text-sm text-stone-400 dark:text-stone-500">{% trans "No milk records in the last 30 days." %}</p>
             {% endfor %}
         </div>
     </div>
 
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 class="font-bold text-stone-900">Milk by block (7 days)</h2>
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Milk by block (7 days)" %}</h2>
         <div class="mt-4 space-y-2">
             {% for block in block_totals %}
-            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm">
-                <a href="{% url 'farms:block_detail' block.id %}" class="font-semibold text-stone-700 hover:text-emerald-700">{{ block.name }}</a>
-                <span class="font-bold text-emerald-700">{{ block.week_liters|default:0 }} L</span>
+            <div class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-2.5 text-sm dark:bg-stone-800">
+                <a href="{% url 'farms:block_detail' block.id %}" class="font-semibold text-stone-700 hover:text-emerald-700 dark:text-stone-300 dark:hover:text-emerald-400">{{ block.name }}</a>
+                <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ block.week_liters|default:0 }} L</span>
             </div>
             {% empty %}
-            <p class="text-sm text-stone-400">No blocks yet.</p>
+            <p class="text-sm text-stone-400 dark:text-stone-500">{% trans "No blocks yet." %}</p>
             {% endfor %}
         </div>
     </div>
 </div>
 
 <div class="mt-8 grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 class="font-bold text-stone-900">Feed usage, last 7 days</h2>
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Feed usage, last 7 days" %}</h2>
         <div class="mt-4 grid grid-cols-2 gap-3">
-            <div class="rounded-xl bg-amber-50 p-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Dairy meal</p>
-                <p class="mt-1 text-xl font-extrabold text-amber-800">{{ feed_meal_week }} kg</p>
+            <div class="rounded-xl bg-amber-50 p-4 dark:bg-amber-950">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">{% trans "Dairy meal" %}</p>
+                <p class="mt-1 text-xl font-extrabold text-amber-800 dark:text-amber-400">{{ feed_meal_week }} kg</p>
             </div>
-            <div class="rounded-xl bg-amber-50 p-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Silage/Hay</p>
-                <p class="mt-1 text-xl font-extrabold text-amber-800">{{ feed_silage_week }} kg</p>
+            <div class="rounded-xl bg-amber-50 p-4 dark:bg-amber-950">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">{% trans "Silage/Hay" %}</p>
+                <p class="mt-1 text-xl font-extrabold text-amber-800 dark:text-amber-400">{{ feed_silage_week }} kg</p>
             </div>
         </div>
     </div>
 
-    <div class="rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 class="font-bold text-stone-900">Low stock alerts</h2>
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Low stock alerts" %}</h2>
         <div class="mt-4 space-y-2">
             {% for item in low_stock_items %}
-            <a href="{% url 'inventory:item_detail' item.id %}" class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm hover:border-red-200">
-                <span class="font-semibold text-red-700">{{ item.name }}</span>
-                <span class="text-red-600">{{ item.current_stock }} {{ item.get_unit_display }} left</span>
+            <a href="{% url 'inventory:item_detail' item.id %}" class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm hover:border-red-200 dark:border-red-900 dark:bg-red-950 dark:hover:border-red-800">
+                <span class="font-semibold text-red-700 dark:text-red-400">{{ item.name }}</span>
+                <span class="text-red-600 dark:text-red-400">{% blocktrans with stock=item.current_stock unit=item.get_unit_display %}{{ stock }} {{ unit }} left{% endblocktrans %}</span>
             </a>
             {% empty %}
-            <p class="text-sm text-stone-400">Nothing is running low.</p>
+            <p class="text-sm text-stone-400 dark:text-stone-500">{% trans "Nothing is running low." %}</p>
             {% endfor %}
         </div>
     </div>
 </div>
 
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
-    <h2 class="font-bold text-stone-900">Finance, last 30 days</h2>
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Finance, last 30 days" %}</h2>
     <div class="mt-4 grid grid-cols-3 gap-3">
-        <div class="rounded-xl bg-stone-50 p-4 text-center">
-            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Income</p>
-            <p class="mt-1 text-xl font-extrabold text-emerald-700">{{ income }}</p>
+        <div class="rounded-xl bg-stone-50 p-4 text-center dark:bg-stone-800">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Income" %}</p>
+            <p class="mt-1 text-xl font-extrabold text-emerald-700 dark:text-emerald-400">{{ income }}</p>
         </div>
-        <div class="rounded-xl bg-stone-50 p-4 text-center">
-            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Expense</p>
-            <p class="mt-1 text-xl font-extrabold text-red-600">{{ expense }}</p>
+        <div class="rounded-xl bg-stone-50 p-4 text-center dark:bg-stone-800">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Expense" %}</p>
+            <p class="mt-1 text-xl font-extrabold text-red-600 dark:text-red-400">{{ expense }}</p>
         </div>
-        <div class="rounded-xl bg-stone-50 p-4 text-center">
-            <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Net</p>
-            <p class="mt-1 text-xl font-extrabold {% if net >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ net }}</p>
+        <div class="rounded-xl bg-stone-50 p-4 text-center dark:bg-stone-800">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Net" %}</p>
+            <p class="mt-1 text-xl font-extrabold {% if net >= 0 %}text-emerald-700 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ net }}</p>
         </div>
     </div>
-    <a href="{% url 'finance:transaction_list' %}" class="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800">View all transactions →</a>
+    <a href="{% url 'finance:transaction_list' %}" class="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">{% trans "View all transactions →" %}</a>
 </div>
 
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
-    <h2 class="font-bold text-stone-900">Export report</h2>
-    <p class="mt-1 text-sm text-stone-500">A detailed, comprehensive report - milk, feeding, herd, crops, inventory and finance - for a day, month, quarter or year.</p>
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Export report" %}</h2>
+    <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% trans "A detailed, comprehensive report - milk, feeding, herd, crops, inventory and finance - for a day, month, quarter or year." %}</p>
 
     <form method="get" action="{% url 'analysis:export' %}" id="export-form" class="mt-4">
         {% csrf_token %}
         <div class="mb-4 max-w-xs">
-            <label for="id_period_type" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Period</label>
-            <select name="period_type" id="id_period_type" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
-                <option value="daily">Daily</option>
-                <option value="monthly" selected>Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
+            <label for="id_period_type" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Period" %}</label>
+            <select name="period_type" id="id_period_type" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
+                <option value="daily">{% trans "Daily" %}</option>
+                <option value="monthly" selected>{% trans "Monthly" %}</option>
+                <option value="quarterly">{% trans "Quarterly" %}</option>
+                <option value="yearly">{% trans "Yearly" %}</option>
             </select>
         </div>
 
         <div id="period-field-daily" class="mb-4 max-w-xs hidden">
-            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Date</label>
-            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Date" %}</label>
+            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
         </div>
 
         <div id="period-field-monthly" class="mb-4 max-w-xs">
-            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Month</label>
-            <input type="month" name="month" value="{{ current_month }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Month" %}</label>
+            <input type="month" name="month" value="{{ current_month }}" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
         </div>
 
         <div id="period-field-quarterly" class="mb-4 grid max-w-md grid-cols-2 gap-4 hidden">
             <div>
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Quarter</label>
-                <select name="quarter" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
-                    <option value="1">Q1 (Jan - Mar)</option>
-                    <option value="2">Q2 (Apr - Jun)</option>
-                    <option value="3">Q3 (Jul - Sep)</option>
-                    <option value="4">Q4 (Oct - Dec)</option>
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Quarter" %}</label>
+                <select name="quarter" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
+                    <option value="1">{% trans "Q1 (Jan - Mar)" %}</option>
+                    <option value="2">{% trans "Q2 (Apr - Jun)" %}</option>
+                    <option value="3">{% trans "Q3 (Jul - Sep)" %}</option>
+                    <option value="4">{% trans "Q4 (Oct - Dec)" %}</option>
                 </select>
             </div>
             <div>
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Year</label>
-                <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Year" %}</label>
+                <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
                     {% for y in export_years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
                 </select>
             </div>
         </div>
 
         <div id="period-field-yearly" class="mb-4 max-w-xs hidden">
-            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Year</label>
-            <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Year" %}</label>
+            <select name="year" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
                 {% for y in export_years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
             </select>
         </div>
@@ -183,17 +220,17 @@
         <input type="hidden" name="export_format" id="id_export_format" value="pdf">
 
         <div class="flex flex-wrap gap-3">
-            <button type="submit" data-format="csv" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
+            <button type="submit" data-format="csv" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800">
                 <ion-icon name="document-outline"></ion-icon> CSV
             </button>
-            <button type="submit" data-format="xlsx" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
+            <button type="submit" data-format="xlsx" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800">
                 <ion-icon name="grid-outline"></ion-icon> Excel
             </button>
-            <button type="submit" data-format="pdf" class="export-btn flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">
+            <button type="submit" data-format="pdf" class="export-btn flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
                 <ion-icon name="document-attach-outline"></ion-icon> PDF
             </button>
-            <button type="submit" data-format="email" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">
-                <ion-icon name="mail-outline"></ion-icon> Email report
+            <button type="submit" data-format="email" class="export-btn flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800">
+                <ion-icon name="mail-outline"></ion-icon> {% trans "Email report" %}
             </button>
         </div>
     </form>

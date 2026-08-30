@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from farms.permissions import (
     any_member_required,
@@ -48,7 +49,7 @@ def crop_create(request):
         crop.added_by = request.user
         crop.save()
         notify(request.farm, request.user, Notification.Verb.CREATED, 'crop', crop.name)
-        messages.success(request, f'{crop.name} added.')
+        messages.success(request, _('%(name)s added.') % {'name': crop.name})
         return redirect('crops:crop_list')
     return render(request, 'crops/crop_form.html', {'form': form})
 
@@ -67,7 +68,7 @@ def crop_edit(request, crop_id):
     if request.method == 'POST' and form.is_valid():
         form.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'crop', crop.name)
-        messages.success(request, f'{crop.name} updated.')
+        messages.success(request, _('%(name)s updated.') % {'name': crop.name})
         return redirect('crops:crop_detail', crop_id=crop.id)
     return render(request, 'crops/crop_form.html', {'form': form, 'crop': crop})
 
@@ -79,7 +80,7 @@ def crop_delete(request, crop_id):
         description = crop.name
         crop.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'crop', description)
-        messages.success(request, f'{description} was deleted.')
+        messages.success(request, _('%(description)s was deleted.') % {'description': description})
         return redirect('crops:crop_list')
     return redirect('crops:crop_detail', crop_id=crop.id)
 
@@ -93,7 +94,7 @@ def activity_list(request):
 @log_activity_required
 def activity_create(request):
     if not request.farm.crops.exists():
-        messages.info(request, 'Add a crop first.')
+        messages.info(request, _('Add a crop first.'))
         return redirect('crops:crop_create')
 
     form = CropActivityForm(request.POST or None, farm=request.farm)
@@ -108,7 +109,11 @@ def activity_create(request):
             request.farm, request.user, Notification.Verb.CREATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'
         )
-        messages.success(request, f'{activity.get_activity_type_display()} logged for {activity.crop.name}.')
+        messages.success(
+            request,
+            _('%(activity)s logged for %(crop)s.')
+            % {'activity': activity.get_activity_type_display(), 'crop': activity.crop.name}
+        )
         return redirect('crops:activity_list')
     return render(request, 'crops/activity_form.html', {'form': form})
 
@@ -125,7 +130,7 @@ def activity_edit(request, activity_id):
             request.farm, request.user, Notification.Verb.UPDATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'
         )
-        messages.success(request, 'Crop activity updated.')
+        messages.success(request, _('Crop activity updated.'))
         return redirect('crops:activity_list')
     return render(request, 'crops/activity_form.html', {'form': form, 'activity': activity})
 
@@ -140,5 +145,5 @@ def activity_delete(request, activity_id):
             activity.stock_movement.delete()
         activity.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'crop activity', description)
-        messages.success(request, 'Crop activity deleted.')
+        messages.success(request, _('Crop activity deleted.'))
     return redirect('crops:activity_list')

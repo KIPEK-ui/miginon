@@ -1,0 +1,56 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Advisory" %} - FarmIQ{% endblock %}
+{% block app_content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Advisory" %}</h1>
+    <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% trans "Practical guidance for the farm - what to watch for, how to do it, and where to get help." %}</p>
+</div>
+
+<div class="grid gap-4 sm:grid-cols-2">
+    <a href="{% url 'advisory:disease_list' %}?category=dairy" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+            <ion-icon name="medkit-outline" class="text-2xl"></ion-icon>
+        </span>
+        <div class="min-w-0">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{% trans "Dairy cattle diseases" %}</p>
+            <p class="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{% blocktrans count c=dairy_disease_count %}{{ c }} entry{% plural %}{{ c }} entries{% endblocktrans %} &middot; {% trans "symptoms, prevention & treatment" %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'advisory:disease_list' %}?category=crop" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-white">
+            <ion-icon name="bug-outline" class="text-2xl"></ion-icon>
+        </span>
+        <div class="min-w-0">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{% trans "Crop diseases & pests" %}</p>
+            <p class="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{% blocktrans count c=crop_disease_count %}{{ c }} entry{% plural %}{{ c }} entries{% endblocktrans %} &middot; {% trans "symptoms, prevention & treatment" %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'advisory:guide_list' %}" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-fuchsia-500 text-white">
+            <ion-icon name="book-outline" class="text-2xl"></ion-icon>
+        </span>
+        <div class="min-w-0">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{% trans "How-to guides" %}</p>
+            <p class="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{% blocktrans count c=guide_count %}{{ c }} guide{% plural %}{{ c }} guides{% endblocktrans %} &middot; {% trans "silage, value addition, planting & more" %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'advisory:agri_centers' %}" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-white">
+            <ion-icon name="location-outline" class="text-2xl"></ion-icon>
+        </span>
+        <div class="min-w-0">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{% trans "Nearest agri centers" %}</p>
+            <p class="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{% trans "KALRO research & extension centers near this farm" %}</p>
+        </div>
+    </a>
+</div>
+
+<p class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+    <ion-icon name="information-circle-outline" class="mr-1 align-text-bottom"></ion-icon>
+    {% trans "General guidance only - for a sick animal or a spreading crop problem, contact a licensed veterinarian, your county agricultural officer, or the nearest KALRO center for a proper diagnosis." %}
+</p>
+{% endblock %}

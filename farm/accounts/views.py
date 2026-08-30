@@ -4,13 +4,16 @@ from django.contrib import messages
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from core.email import send_styled_email_safely
 from farms.kenya_data import COUNTY_TOWNS
 from farms.models import Farm, FarmMembership, FarmRole
+from farms.services import geocode_farm_location
 from notifications.models import Notification
 from notifications.services import notify
 
@@ -59,6 +62,19 @@ def _already_authenticated_redirect(request):
     return None
 
 
+def _login_redirect(target, user):
+    """redirect(target), plus the LANGUAGE_COOKIE set from the user's saved
+    preference - LocaleMiddleware is cookie-only (no session-based language
+    key as of Django 4+), so this is what makes a language choice saved on
+    one device show up on a fresh login elsewhere."""
+    response = redirect(target)
+    response.set_cookie(
+        settings.LANGUAGE_COOKIE_NAME, user.language,
+        max_age=settings.LANGUAGE_COOKIE_AGE or 60 * 60 * 24 * 365,
+    )
+    return response
+
+
 def _try_issue_otp(request, email, purpose, farm=None):
     """issue_otp(), but turned into a friendly retry message instead of a
     raw 500 when the email provider rejects or throttles the send (e.g. an
@@ -69,7 +85,7 @@ def _try_issue_otp(request, email, purpose, farm=None):
     except OTPDeliveryError:
         messages.error(
             request,
-            "We couldn't send the verification code right now. Please wait a moment and try again."
+            _("We couldn't send the verification code right now. Please wait a moment and try again.")
         )
         return False
 
@@ -87,7 +103,7 @@ def login_farm(request):
         try:
             farm = Farm.objects.get(code=code, is_active=True)
         except Farm.DoesNotExist:
-            form.add_error('code', "We couldn't find a farm with that ID. Double-check the code and try again.")
+            form.add_error('code', _("We couldn't find a farm with that ID. Double-check the code and try again."))
         else:
             request.session['login_farm_id'] = farm.id
             request.session['login_farm_code'] = farm.code
@@ -124,13 +140,14 @@ def login_email(request):
         if not membership:
             form.add_error(
                 'email',
-                f"No account found for this email at {farm.name}. "
-                "Ask the farm owner to add you as a worker, or sign up to create your own farm."
+                _('No account found for this email at %(farm)s. '
+                  'Ask the farm owner to add you as a worker, or sign up to create your own farm.')
+                % {'farm': farm.name}
             )
         elif _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=farm):
             request.session['login_email'] = email
             request.session['login_role'] = membership.get_role_display()
-            messages.success(request, f'A 6-digit code was sent to {email}.')
+            messages.success(request, _('A 6-digit code was sent to %(email)s.') % {'email': email})
             return redirect('accounts:login_otp')
 
     return render(request, 'accounts/login_email.html', {'form': form, 'farm': farm, 'step': 2})
@@ -158,10 +175,10 @@ def login_otp(request):
             .first()
         )
         if not otp or not otp.is_valid():
-            form.add_error('code', 'That code has expired. Request a new one below.')
+            form.add_error('code', _('That code has expired. Request a new one below.'))
         elif otp.code != code:
             otp.register_failed_attempt()
-            form.add_error('code', 'Incorrect code. Please try again.')
+            form.add_error('code', _('Incorrect code. Please try again.'))
         else:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
@@ -172,8 +189,8 @@ def login_otp(request):
             request.session['active_farm_id'] = farm.id
             for key in ('login_farm_id', 'login_farm_code', 'login_farm_name', 'login_email', 'login_role'):
                 request.session.pop(key, None)
-            messages.success(request, f'Welcome back, {user.get_short_name()}!')
-            return redirect('farms:dashboard')
+            messages.success(request, _('Welcome back, %(name)s!') % {'name': user.get_short_name()})
+            return _login_redirect('farms:dashboard', user)
 
     last_otp = (
         EmailOTP.objects.filter(email=email, farm=farm, purpose=EmailOTP.Purpose.LOGIN)
@@ -206,9 +223,9 @@ def resend_login_otp(request):
     )
     if can_resend(last_otp):
         if _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=farm):
-            messages.success(request, 'A new code is on its way.')
+            messages.success(request, _('A new code is on its way.'))
     else:
-        messages.warning(request, 'Please wait a little before requesting another code.')
+        messages.warning(request, _('Please wait a little before requesting another code.'))
     return redirect('accounts:login_otp')
 
 
@@ -224,10 +241,10 @@ def admin_login(request):
         email = form.cleaned_data['email']
         user = User.objects.filter(email=email).first()
         if not user or not user.is_platform_admin:
-            form.add_error('email', 'No platform admin account matches this email.')
+            form.add_error('email', _('No platform admin account matches this email.'))
         elif _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=None):
             request.session['admin_login_email'] = email
-            messages.success(request, f'A 6-digit code was sent to {email}.')
+            messages.success(request, _('A 6-digit code was sent to %(email)s.') % {'email': email})
             return redirect('accounts:admin_login_otp')
 
     return render(request, 'accounts/admin_login.html', {'form': form})
@@ -251,17 +268,17 @@ def admin_login_otp(request):
             .first()
         )
         if not otp or not otp.is_valid():
-            form.add_error('code', 'That code has expired. Request a new one below.')
+            form.add_error('code', _('That code has expired. Request a new one below.'))
         elif otp.code != code:
             otp.register_failed_attempt()
-            form.add_error('code', 'Incorrect code. Please try again.')
+            form.add_error('code', _('Incorrect code. Please try again.'))
         else:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
             user = User.objects.get(email=email)
             django_login(request, user)
             request.session.pop('admin_login_email', None)
-            return redirect('farms:dashboard')
+            return _login_redirect('farms:dashboard', user)
 
     last_otp = (
         EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.LOGIN)
@@ -285,9 +302,9 @@ def resend_admin_otp(request):
     )
     if can_resend(last_otp):
         if _try_issue_otp(request, email, EmailOTP.Purpose.LOGIN, farm=None):
-            messages.success(request, 'A new code is on its way.')
+            messages.success(request, _('A new code is on its way.'))
     else:
-        messages.warning(request, 'Please wait a little before requesting another code.')
+        messages.warning(request, _('Please wait a little before requesting another code.'))
     return redirect('accounts:admin_login_otp')
 
 
@@ -295,7 +312,7 @@ def resend_admin_otp(request):
 
 def logout_view(request):
     django_logout(request)
-    messages.success(request, 'You have been signed out.')
+    messages.success(request, _('You have been signed out.'))
     return redirect('core:landing')
 
 
@@ -340,7 +357,7 @@ def signup_review(request):
 
     if request.method == 'POST':
         if _try_issue_otp(request, account['email'], EmailOTP.Purpose.SIGNUP, farm=None):
-            messages.success(request, f"A 6-digit code was sent to {account['email']}.")
+            messages.success(request, _('A 6-digit code was sent to %(email)s.') % {'email': account['email']})
             return redirect('accounts:signup_otp')
 
     return render(
@@ -368,10 +385,10 @@ def signup_otp(request):
             .first()
         )
         if not otp or not otp.is_valid():
-            form.add_error('code', 'That code has expired. Request a new one below.')
+            form.add_error('code', _('That code has expired. Request a new one below.'))
         elif otp.code != code:
             otp.register_failed_attempt()
-            form.add_error('code', 'Incorrect code. Please try again.')
+            form.add_error('code', _('Incorrect code. Please try again.'))
         else:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
@@ -389,13 +406,14 @@ def signup_otp(request):
                 county=farm_data.get('county', ''),
                 location=farm_data.get('location', ''),
             )
+            geocode_farm_location(farm)
             FarmMembership.objects.create(
                 user=user, farm=farm, role=FarmRole.FARMER, status=FarmMembership.Status.ACTIVE,
             )
             notify(farm, user, Notification.Verb.CREATED, 'farm', farm.name)
             send_styled_email_safely(
                 to=user.email,
-                subject=f'Welcome to Farm IQ - your Farm ID is {farm.code}',
+                subject=_('Welcome to FarmIQ - your Farm ID is %(code)s') % {'code': farm.code},
                 template_name='emails/welcome.html',
                 context={
                     'user': user, 'farm': farm,
@@ -407,7 +425,7 @@ def signup_otp(request):
             request.session['new_farm_id'] = farm.id
             for key in (SIGNUP_ACCOUNT_KEY, SIGNUP_FARM_KEY):
                 request.session.pop(key, None)
-            return redirect('farms:signup_complete')
+            return _login_redirect('farms:signup_complete', user)
 
     last_otp = (
         EmailOTP.objects.filter(email=email, farm=None, purpose=EmailOTP.Purpose.SIGNUP)
@@ -432,9 +450,9 @@ def resend_signup_otp(request):
     )
     if can_resend(last_otp):
         if _try_issue_otp(request, email, EmailOTP.Purpose.SIGNUP, farm=None):
-            messages.success(request, 'A new code is on its way.')
+            messages.success(request, _('A new code is on its way.'))
     else:
-        messages.warning(request, 'Please wait a little before requesting another code.')
+        messages.warning(request, _('Please wait a little before requesting another code.'))
     return redirect('accounts:signup_otp')
 
 
@@ -445,7 +463,7 @@ def settings_view(request):
     form = ProfileForm(request.POST or None, instance=request.user)
     if request.method == 'POST' and form.is_valid():
         form.save()
-        messages.success(request, 'Profile updated.')
+        messages.success(request, _('Profile updated.'))
         return redirect('accounts:settings')
     notification_form = NotificationPreferenceForm(instance=request.user)
     return render(request, 'accounts/settings.html', {'form': form, 'notification_form': notification_form})
@@ -456,7 +474,7 @@ def settings_notifications(request):
     form = NotificationPreferenceForm(request.POST or None, instance=request.user)
     if request.method == 'POST' and form.is_valid():
         form.save()
-        messages.success(request, 'Notification preference updated.')
+        messages.success(request, _('Notification preference updated.'))
     return redirect('accounts:settings')
 
 
@@ -477,12 +495,12 @@ def delete_account(request):
 
     if request.method == 'POST':
         if request.POST.get('confirm', '').strip().upper() != 'DELETE':
-            messages.error(request, 'Type DELETE to confirm.')
+            messages.error(request, _('Type DELETE to confirm.'))
         else:
             user = request.user
             django_logout(request)
             user.delete()
-            messages.success(request, 'Your account has been deleted.')
+            messages.success(request, _('Your account has been deleted.'))
             return redirect('core:landing')
 
     return render(request, 'accounts/delete_account.html', {
@@ -498,7 +516,7 @@ def settings_email(request):
         new_email = form.cleaned_data['new_email']
         if _try_issue_otp(request, new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None):
             request.session[EMAIL_CHANGE_KEY] = new_email
-            messages.success(request, f'A 6-digit code was sent to {new_email}.')
+            messages.success(request, _('A 6-digit code was sent to %(email)s.') % {'email': new_email})
             return redirect('accounts:settings_email_otp')
     return render(request, 'accounts/settings_email.html', {'form': form})
 
@@ -518,19 +536,19 @@ def settings_email_otp(request):
             .first()
         )
         if not otp or not otp.is_valid():
-            form.add_error('code', 'That code has expired. Request a new one below.')
+            form.add_error('code', _('That code has expired. Request a new one below.'))
         elif otp.code != code:
             otp.register_failed_attempt()
-            form.add_error('code', 'Incorrect code. Please try again.')
+            form.add_error('code', _('Incorrect code. Please try again.'))
         elif User.objects.filter(email=new_email).exists():
-            form.add_error(None, 'That email was just taken by another account.')
+            form.add_error(None, _('That email was just taken by another account.'))
         else:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
             request.user.email = new_email
             request.user.save(update_fields=['email'])
             request.session.pop(EMAIL_CHANGE_KEY, None)
-            messages.success(request, 'Your email address has been updated.')
+            messages.success(request, _('Your email address has been updated.'))
             return redirect('accounts:settings')
 
     last_otp = (
@@ -556,7 +574,7 @@ def resend_settings_email_otp(request):
     )
     if can_resend(last_otp):
         if _try_issue_otp(request, new_email, EmailOTP.Purpose.EMAIL_CHANGE, farm=None):
-            messages.success(request, 'A new code is on its way.')
+            messages.success(request, _('A new code is on its way.'))
     else:
-        messages.warning(request, 'Please wait a little before requesting another code.')
+        messages.warning(request, _('Please wait a little before requesting another code.'))
     return redirect('accounts:settings_email_otp')

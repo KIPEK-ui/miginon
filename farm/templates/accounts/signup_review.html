@@ -1,33 +1,34 @@
 {% extends "accounts/_auth_base.html" %}
-{% block title %}Review & confirm - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Review & confirm" %} - FarmIQ{% endblock %}
 {% block progress %}
 {% include "partials/step_progress.html" with step=3 labels="1234"|make_list %}
 {% endblock %}
 {% block icon %}<ion-icon name="checkmark-circle-outline"></ion-icon>{% endblock %}
-{% block heading %}Review & confirm{% endblock %}
-{% block subheading %}Check your details, then we'll email you a verification code.{% endblock %}
+{% block heading %}{% trans "Review & confirm" %}{% endblock %}
+{% block subheading %}{% trans "Check your details, then we'll email you a verification code." %}{% endblock %}
 {% block form_content %}
 <div class="mb-6 space-y-4">
-    <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Your account</p>
-        <p class="mt-1 font-semibold text-stone-800">{{ account.first_name }} {{ account.last_name }}</p>
-        <p class="text-sm text-stone-500">{{ account.email }}{% if account.phone %} · {{ account.phone }}{% endif %}</p>
+    <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-800">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Your account" %}</p>
+        <p class="mt-1 font-semibold text-stone-800 dark:text-stone-100">{{ account.first_name }} {{ account.last_name }}</p>
+        <p class="text-sm text-stone-500 dark:text-stone-400">{{ account.email }}{% if account.phone %} · {{ account.phone }}{% endif %}</p>
     </div>
-    <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4">
-        <p class="text-xs font-bold uppercase tracking-wide text-stone-400">Your farm</p>
-        <p class="mt-1 font-semibold text-stone-800">{{ farm.farm_name }}</p>
-        <p class="text-sm text-stone-500">{{ farm.location }}, {{ farm.county }} County, {{ country_name }}</p>
+    <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-800">
+        <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Your farm" %}</p>
+        <p class="mt-1 font-semibold text-stone-800 dark:text-stone-100">{{ farm.farm_name }}</p>
+        <p class="text-sm text-stone-500 dark:text-stone-400">{% blocktrans with location=farm.location county=farm.county country=country_name %}{{ location }}, {{ county }} County, {{ country }}{% endblocktrans %}</p>
     </div>
 </div>
 <form method="post" novalidate onsubmit="this.querySelector('button[type=submit]').disabled = true;">
     {% csrf_token %}
-    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
-        Send verification code →
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+        {% trans "Send verification code" %} →
     </button>
 </form>
 {% endblock %}
 {% block below_card %}
 <div class="mt-6 text-center text-sm text-emerald-50/90">
-    <a href="{% url 'accounts:signup_farm' %}" class="text-emerald-100/70 hover:text-white">← Back</a>
+    <a href="{% url 'accounts:signup_farm' %}" class="text-emerald-100/70 hover:text-white">← {% trans "Back" %}</a>
 </div>
 {% endblock %}

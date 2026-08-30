@@ -1,26 +1,27 @@
+{% load i18n %}
 {% if vapid_public_key %}
 <div id="push-banner" class="fixed inset-x-0 top-0 z-40 hidden w-full">
-    <div class="w-full border-b border-emerald-100 bg-white px-4 py-5 shadow-soft sm:px-6">
+    <div class="w-full border-b border-emerald-100 bg-white px-4 py-5 shadow-soft dark:border-emerald-900 dark:bg-stone-900 sm:px-6">
         <div class="mx-auto flex max-w-3xl items-start gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-lg text-emerald-700">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-lg text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
                 <ion-icon name="notifications-outline"></ion-icon>
             </span>
             <div class="min-w-0 flex-1">
-                <p class="text-sm font-bold text-stone-900">Turn on notifications</p>
-                <p class="mt-1 text-xs leading-relaxed text-stone-500">
-                    Get notified on this device when a task is assigned to you, a task you assigned is completed,
-                    or an inventory item runs low - even when the app isn't open.
+                <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Turn on notifications" %}</p>
+                <p class="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                    {% blocktrans %}Get notified on this device when a task is assigned to you, a task you assigned is completed,
+                    or an inventory item runs low - even when the app isn't open.{% endblocktrans %}
                 </p>
                 <div class="mt-3 flex gap-2">
                     <button id="push-enable-btn" type="button" class="flex items-center gap-1.5 rounded-full bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800">
-                        <ion-icon name="notifications-outline"></ion-icon> Enable
+                        <ion-icon name="notifications-outline"></ion-icon> {% trans "Enable" %}
                     </button>
-                    <button id="push-dismiss-btn" type="button" class="rounded-full border border-stone-200 px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-50">
-                        Not now
+                    <button id="push-dismiss-btn" type="button" class="rounded-full border border-stone-200 px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-50 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800">
+                        {% trans "Not now" %}
                     </button>
                 </div>
             </div>
-            <button id="push-close-btn" type="button" class="shrink-0 text-stone-400 hover:text-stone-600" aria-label="Dismiss">
+            <button id="push-close-btn" type="button" class="shrink-0 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300" aria-label="{% trans 'Dismiss' %}">
                 <ion-icon name="close-outline" class="text-lg"></ion-icon>
             </button>
         </div>

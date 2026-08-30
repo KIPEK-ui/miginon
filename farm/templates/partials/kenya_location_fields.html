@@ -1,30 +1,31 @@
+{% load i18n %}
 <div class="mb-4">
-    <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Country</label>
-    <div class="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600">
-        <ion-icon name="flag-outline" class="text-stone-400"></ion-icon> Kenya
+    <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Country" %}</label>
+    <div class="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-300">
+        <ion-icon name="flag-outline" class="text-stone-400 dark:text-stone-500"></ion-icon> {% trans "Kenya" %}
     </div>
     {{ form.country }}
-    {% for error in form.country.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+    {% for error in form.country.errors %}<p class="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
 </div>
 
 <div class="mb-4">
-    <label for="{{ form.county.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">County *</label>
+    <label for="{{ form.county.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "County" %} *</label>
     {{ form.county }}
-    {% for error in form.county.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+    {% for error in form.county.errors %}<p class="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
 </div>
 
 <div class="mb-4">
-    <label for="{{ form.location.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Nearest town *</label>
+    <label for="{{ form.location.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Nearest town" %} *</label>
     <select name="location" id="{{ form.location.id_for_label }}"
-        class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition">
+        class="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
         {% for county, towns in county_towns.items %}
             {% for town in towns %}
             <option value="{{ town }}" data-county="{{ county }}" {% if form.location.value == town %}selected{% endif %}>{{ town }}</option>
             {% endfor %}
         {% endfor %}
     </select>
-    <p class="mt-1 text-xs text-stone-400">Towns are filtered to the county you picked above.</p>
-    {% for error in form.location.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+    <p class="mt-1 text-xs text-stone-400 dark:text-stone-500">{% trans "Towns are filtered to the county you picked above." %}</p>
+    {% for error in form.location.errors %}<p class="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
 </div>
 
 <script>

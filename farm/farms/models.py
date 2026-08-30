@@ -4,6 +4,7 @@ import string
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 
 
@@ -35,6 +36,8 @@ class Farm(models.Model):
     country = CountryField(default='KE', blank=True)
     county = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=200, blank=True)
+    latitude = models.DecimalField(max_digits=8, decimal_places=5, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=8, decimal_places=5, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     setup_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,10 +87,10 @@ class Block(models.Model):
 
 
 class FarmRole(models.TextChoices):
-    FARMER = 'farmer', 'Farmer (Owner)'
-    MANAGER = 'farm_manager', 'Farm Manager'
-    SUPERVISOR = 'farm_supervisor', 'Farm Supervisor'
-    WORKER = 'farm_worker', 'Farm Worker'
+    FARMER = 'farmer', _('Farmer (Owner)')
+    MANAGER = 'farm_manager', _('Farm Manager')
+    SUPERVISOR = 'farm_supervisor', _('Farm Supervisor')
+    WORKER = 'farm_worker', _('Farm Worker')
 
 
 # Roles a given role is allowed to invite/assign to new members.
@@ -105,9 +108,9 @@ ROLES_THAT_RECORD_PRODUCTION = {
 
 class FarmMembership(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'pending', 'Pending'
-        ACTIVE = 'active', 'Active'
-        SUSPENDED = 'suspended', 'Suspended'
+        PENDING = 'pending', _('Pending')
+        ACTIVE = 'active', _('Active')
+        SUSPENDED = 'suspended', _('Suspended')
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='farm_memberships'

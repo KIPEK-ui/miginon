@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from farms.permissions import any_member_required, manage_workers_required
 from notifications.models import Notification
@@ -25,9 +26,9 @@ def _can_view(request, task):
 def task_list(request):
     tasks = _visible_tasks(request).exclude(status=Task.Status.CANCELLED)
     status_groups = [
-        (Task.Status.PENDING, 'Pending'),
-        (Task.Status.IN_PROGRESS, 'In progress'),
-        (Task.Status.DONE, 'Done'),
+        (Task.Status.PENDING, _('Pending')),
+        (Task.Status.IN_PROGRESS, _('In progress')),
+        (Task.Status.DONE, _('Done')),
     ]
     return render(request, 'tasks/task_list.html', {'tasks': tasks, 'status_groups': status_groups})
 
@@ -44,7 +45,12 @@ def task_create(request):
             request.farm, request.user, Notification.Verb.CREATED, 'task', task.title,
             recipient=task.assigned_to.user if task.assigned_to.user_id != request.user.id else None,
         )
-        messages.success(request, f'"{task.title}" assigned to {task.assigned_to.user.get_short_name()}.')
+        messages.success(
+            request,
+            _('"%(title)s" assigned to %(name)s.') % {
+                'title': task.title, 'name': task.assigned_to.user.get_short_name(),
+            },
+        )
         return redirect('tasks:task_list')
     return render(request, 'tasks/task_form.html', {'form': form})
 
@@ -69,7 +75,7 @@ def task_edit(request, task_id):
     if request.method == 'POST' and form.is_valid():
         form.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'task', task.title)
-        messages.success(request, f'"{task.title}" updated.')
+        messages.success(request, _('"%(title)s" updated.') % {'title': task.title})
         return redirect('tasks:task_detail', task_id=task.id)
     return render(request, 'tasks/task_form.html', {'form': form, 'task': task})
 
@@ -81,7 +87,7 @@ def task_delete(request, task_id):
         title = task.title
         task.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'task', title)
-        messages.success(request, f'"{title}" deleted.')
+        messages.success(request, _('"%(title)s" deleted.') % {'title': title})
         return redirect('tasks:task_list')
     return redirect('tasks:task_detail', task_id=task.id)
 
@@ -102,5 +108,10 @@ def task_status_update(request, task_id):
             f'{task.title} - {task.get_status_display()}',
             recipient=notify_recipient,
         )
-        messages.success(request, f'"{task.title}" marked {task.get_status_display().lower()}.')
+        messages.success(
+            request,
+            _('"%(title)s" marked %(status)s.') % {
+                'title': task.title, 'status': task.get_status_display().lower(),
+            },
+        )
     return redirect('tasks:task_detail', task_id=task.id)

@@ -1,4 +1,6 @@
 from django import forms
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 from core.formhelpers import OTP_INPUT_CLASSES, TailwindFormMixin
 from farms.forms import KenyaLocationFieldsMixin
@@ -6,7 +8,7 @@ from farms.forms import KenyaLocationFieldsMixin
 
 class FarmCodeForm(TailwindFormMixin, forms.Form):
     code = forms.CharField(
-        label='Farm ID',
+        label=_l('Farm ID'),
         max_length=8,
         min_length=6,
         widget=forms.TextInput(attrs={
@@ -14,7 +16,8 @@ class FarmCodeForm(TailwindFormMixin, forms.Form):
             'class': 'w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-center '
                      'text-lg tracking-[0.3em] font-semibold uppercase text-stone-900 '
                      'placeholder-stone-400 focus:border-emerald-600 focus:ring-2 '
-                     'focus:ring-emerald-100 focus:outline-none transition',
+                     'focus:ring-emerald-100 focus:outline-none transition '
+                     'dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder-stone-500',
             'autocapitalize': 'characters',
         }),
     )
@@ -34,7 +37,7 @@ class EmailLoginForm(TailwindFormMixin, forms.Form):
 
 class OTPForm(TailwindFormMixin, forms.Form):
     code = forms.CharField(
-        label='6-digit code',
+        label=_l('6-digit code'),
         max_length=6,
         min_length=6,
         widget=forms.TextInput(attrs={
@@ -48,7 +51,7 @@ class OTPForm(TailwindFormMixin, forms.Form):
     def clean_code(self):
         code = self.cleaned_data['code'].strip()
         if not code.isdigit():
-            raise forms.ValidationError('Enter the 6-digit numeric code.')
+            raise forms.ValidationError(_('Enter the 6-digit numeric code.'))
         return code
 
 
@@ -65,14 +68,14 @@ class SignupAccountForm(TailwindFormMixin, forms.Form):
         email = self.cleaned_data['email'].strip().lower()
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError(
-                'An account with this email already exists. Try logging in instead.'
+                _('An account with this email already exists. Try logging in instead.')
             )
         return email
 
 
 class SignupFarmForm(TailwindFormMixin, KenyaLocationFieldsMixin, forms.Form):
-    farm_name = forms.CharField(label='Farm name', max_length=150, widget=forms.TextInput(
-        attrs={'placeholder': 'e.g. Miginon Dairy Farm'}
+    farm_name = forms.CharField(label=_l('Farm name'), max_length=150, widget=forms.TextInput(
+        attrs={'placeholder': 'e.g. Green Valley Dairy Farm'}
     ))
 
     def __init__(self, *args, **kwargs):
@@ -95,11 +98,11 @@ class NotificationPreferenceForm(TailwindFormMixin, forms.ModelForm):
         from .models import User
         model = User
         fields = ['notification_delivery']
-        labels = {'notification_delivery': 'Notify me via'}
+        labels = {'notification_delivery': _l('Notify me via')}
 
 
 class EmailChangeForm(TailwindFormMixin, forms.Form):
-    new_email = forms.EmailField(label='New email address')
+    new_email = forms.EmailField(label=_l('New email address'))
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,7 +112,7 @@ class EmailChangeForm(TailwindFormMixin, forms.Form):
         from .models import User
         email = self.cleaned_data['new_email'].strip().lower()
         if self.user and email == self.user.email:
-            raise forms.ValidationError('That is already your current email address.')
+            raise forms.ValidationError(_('That is already your current email address.'))
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError('An account with this email already exists.')
+            raise forms.ValidationError(_('An account with this email already exists.'))
         return email

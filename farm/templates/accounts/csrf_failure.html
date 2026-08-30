@@ -1,15 +1,16 @@
 {% extends "accounts/_auth_base.html" %}
-{% block title %}One moment - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "One moment" %} - FarmIQ{% endblock %}
 {% block icon %}<ion-icon name="refresh-outline"></ion-icon>{% endblock %}
-{% block heading %}That page went stale{% endblock %}
+{% block heading %}{% trans "That page went stale" %}{% endblock %}
 {% block subheading %}
-    Your last request used an outdated security token - usually from a page that sat open a while, or was reloaded
-    from your browser's back button. Nothing was submitted. Taking you onward now.
+    {% blocktrans %}Your last request used an outdated security token - usually from a page that sat open a while, or was reloaded
+    from your browser's back button. Nothing was submitted. Taking you onward now.{% endblocktrans %}
 {% endblock %}
 {% block form_content %}
 <a href="{{ destination }}" id="csrf-continue-link"
-    class="flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
-    Continue →
+    class="flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+    {% trans "Continue" %} →
 </a>
 <script>
     setTimeout(function () {

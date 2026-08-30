@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext, gettext_lazy as _
 
 from core.formhelpers import SELECT_CLASSES, TailwindFormMixin
 
@@ -22,11 +23,11 @@ class KenyaLocationFieldsMixin:
             initial=KENYA, widget=forms.HiddenInput(), required=False,
         )
         self.fields['county'] = forms.ChoiceField(
-            choices=KENYA_COUNTY_CHOICES, label='County', initial='Uasin Gishu',
+            choices=KENYA_COUNTY_CHOICES, label=_('County'), initial='Uasin Gishu',
             widget=forms.Select(attrs={'class': SELECT_CLASSES}),
         )
         self.fields['location'] = forms.ChoiceField(
-            choices=ALL_TOWN_CHOICES, label='Nearest town', initial='Eldoret',
+            choices=ALL_TOWN_CHOICES, label=_('Nearest town'), initial='Eldoret',
             widget=forms.Select(attrs={'class': SELECT_CLASSES}),
         )
         # These were added after TailwindFormMixin's own __init__ already
@@ -47,14 +48,15 @@ class KenyaLocationFieldsMixin:
         if county and location and location not in COUNTY_TOWNS.get(county, []):
             self.add_error(
                 'location',
-                f'{location} is not listed under {county}. Pick a town from the dropdown for your county.'
+                gettext('%(location)s is not listed under %(county)s. Pick a town from the dropdown for your county.')
+                % {'location': location, 'county': county}
             )
         return cleaned
 
 
 class FarmForm(TailwindFormMixin, KenyaLocationFieldsMixin, forms.Form):
-    farm_name = forms.CharField(label='Farm name', max_length=150, widget=forms.TextInput(
-        attrs={'placeholder': 'e.g. Miginon Dairy Farm'}
+    farm_name = forms.CharField(label=_('Farm name'), max_length=150, widget=forms.TextInput(
+        attrs={'placeholder': _('e.g. Green Valley Dairy Farm')}
     ))
 
     def __init__(self, *args, **kwargs):
@@ -65,9 +67,9 @@ class FarmForm(TailwindFormMixin, KenyaLocationFieldsMixin, forms.Form):
 class FarmSettingsForm(TailwindFormMixin, forms.ModelForm):
     country = forms.CharField(initial=KENYA, widget=forms.HiddenInput(), required=False)
     county = forms.ChoiceField(
-        choices=KENYA_COUNTY_CHOICES, label='County', initial='Uasin Gishu',
+        choices=KENYA_COUNTY_CHOICES, label=_('County'), initial='Uasin Gishu',
     )
-    location = forms.ChoiceField(choices=ALL_TOWN_CHOICES, label='Nearest town', initial='Eldoret')
+    location = forms.ChoiceField(choices=ALL_TOWN_CHOICES, label=_('Nearest town'), initial='Eldoret')
 
     class Meta:
         model = Farm
@@ -83,7 +85,8 @@ class FarmSettingsForm(TailwindFormMixin, forms.ModelForm):
         if county and location and location not in COUNTY_TOWNS.get(county, []):
             self.add_error(
                 'location',
-                f'{location} is not listed under {county}. Pick a town from the dropdown for your county.'
+                gettext('%(location)s is not listed under %(county)s. Pick a town from the dropdown for your county.')
+                % {'location': location, 'county': county}
             )
         return cleaned
 
@@ -93,8 +96,8 @@ class BlockForm(TailwindFormMixin, forms.ModelForm):
         model = Block
         fields = ['name', 'description']
         widgets = {
-            'name': forms.TextInput(attrs={'placeholder': 'e.g. Block A'}),
-            'description': forms.TextInput(attrs={'placeholder': 'Optional notes about this block'}),
+            'name': forms.TextInput(attrs={'placeholder': _('e.g. Block A')}),
+            'description': forms.TextInput(attrs={'placeholder': _('Optional notes about this block')}),
         }
 
 

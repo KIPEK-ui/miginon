@@ -1,20 +1,21 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class Task(models.Model):
     class Priority(models.TextChoices):
-        LOW = 'low', 'Low'
-        NORMAL = 'normal', 'Normal'
-        HIGH = 'high', 'High'
-        URGENT = 'urgent', 'Urgent'
+        LOW = 'low', _('Low')
+        NORMAL = 'normal', _('Normal')
+        HIGH = 'high', _('High')
+        URGENT = 'urgent', _('Urgent')
 
     class Status(models.TextChoices):
-        PENDING = 'pending', 'Pending'
-        IN_PROGRESS = 'in_progress', 'In progress'
-        DONE = 'done', 'Done'
-        CANCELLED = 'cancelled', 'Cancelled'
+        PENDING = 'pending', _('Pending')
+        IN_PROGRESS = 'in_progress', _('In progress')
+        DONE = 'done', _('Done')
+        CANCELLED = 'cancelled', _('Cancelled')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='tasks')
     title = models.CharField(max_length=150)

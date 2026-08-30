@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from core.email import send_styled_email_safely
 from farms.permissions import (
@@ -46,7 +47,7 @@ def cow_create(request):
         cow.added_by = request.user
         cow.save()
         notify(request.farm, request.user, Notification.Verb.CREATED, 'cow', str(cow))
-        messages.success(request, f'{cow} added to {cow.block.name}.')
+        messages.success(request, _('%(cow)s added to %(block)s.') % {'cow': cow, 'block': cow.block.name})
         return redirect('cows:cow_list')
     return render(request, 'cows/cow_form.html', {'form': form})
 
@@ -65,7 +66,7 @@ def cow_edit(request, cow_id):
     if request.method == 'POST' and form.is_valid():
         form.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'cow', str(cow))
-        messages.success(request, f'{cow} updated.')
+        messages.success(request, _('%(cow)s updated.') % {'cow': cow})
         return redirect('cows:cow_detail', cow_id=cow.id)
     return render(request, 'cows/cow_form.html', {'form': form, 'cow': cow})
 
@@ -77,7 +78,7 @@ def cow_delete(request, cow_id):
         description = str(cow)
         cow.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'cow', description)
-        messages.success(request, f'{description} was deleted.')
+        messages.success(request, _('%(description)s was deleted.') % {'description': description})
         return redirect('cows:cow_list')
     return redirect('cows:cow_detail', cow_id=cow.id)
 
@@ -86,7 +87,7 @@ def cow_delete(request, cow_id):
 def cow_transfer(request, cow_id):
     cow = get_object_or_404(Cow, id=cow_id, farm=request.farm)
     if not request.farm.blocks.exclude(id=cow.block_id).exists():
-        messages.info(request, 'Add another block first to transfer cows between blocks.')
+        messages.info(request, _('Add another block first to transfer cows between blocks.'))
         return redirect('cows:cow_detail', cow_id=cow.id)
 
     form = CowTransferForm(request.POST or None, cow=cow)
@@ -107,7 +108,7 @@ def cow_transfer(request, cow_id):
             request.farm, request.user, Notification.Verb.UPDATED, 'cow',
             f'{cow.tag_id} moved from {from_block.name} to {to_block.name}'
         )
-        messages.success(request, f'{cow} moved to {to_block.name}.')
+        messages.success(request, _('%(cow)s moved to %(block)s.') % {'cow': cow, 'block': to_block.name})
         return redirect('cows:cow_detail', cow_id=cow.id)
     return render(request, 'cows/cow_transfer.html', {'form': form, 'cow': cow})
 
@@ -196,7 +197,7 @@ def _sync_feed_movement(record, quantity_field, movement_field, item_name, farm,
 @record_production_required
 def feeding_create(request):
     if not request.farm.cows.filter(status=Cow.Status.ACTIVE).exists():
-        messages.info(request, 'Add an active cow first.')
+        messages.info(request, _('Add an active cow first.'))
         return redirect('cows:cow_create')
 
     form = FeedingRecordForm(request.POST or None, farm=request.farm)
@@ -215,7 +216,11 @@ def feeding_create(request):
             request.farm, request.user, Notification.Verb.CREATED, 'feeding record',
             f'{record.block.name} - {record.date} {record.get_session_display()}'
         )
-        messages.success(request, f'Feeding record saved for {record.block.name} ({record.get_session_display()}).')
+        messages.success(
+            request,
+            _('Feeding record saved for %(block)s (%(session)s).')
+            % {'block': record.block.name, 'session': record.get_session_display()}
+        )
         return redirect('cows:feeding_list')
 
     return render(request, 'cows/feeding_form.html', _feeding_form_context(request, form))
@@ -238,7 +243,7 @@ def feeding_edit(request, record_id):
             request.farm, request.user, Notification.Verb.UPDATED, 'feeding record',
             f'{updated.block.name} - {updated.date} {updated.get_session_display()}'
         )
-        messages.success(request, 'Feeding record updated.')
+        messages.success(request, _('Feeding record updated.'))
         return redirect('cows:feeding_list')
 
     return render(request, 'cows/feeding_form.html', _feeding_form_context(request, form, record))
@@ -255,7 +260,7 @@ def feeding_delete(request, record_id):
                 movement.delete()
         record.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'feeding record', description)
-        messages.success(request, 'Feeding record deleted.')
+        messages.success(request, _('Feeding record deleted.'))
     return redirect('cows:feeding_list')
 
 
@@ -268,7 +273,7 @@ def milk_list(request):
 @record_production_required
 def milk_create(request):
     if not request.farm.cows.filter(status=Cow.Status.ACTIVE).exists():
-        messages.info(request, 'Add an active cow first.')
+        messages.info(request, _('Add an active cow first.'))
         return redirect('cows:cow_create')
 
     form = MilkRecordForm(request.POST or None, farm=request.farm)
@@ -288,19 +293,23 @@ def milk_create(request):
         if MilkRecord.objects.filter(farm=request.farm).count() == 1:
             send_styled_email_safely(
                 to=request.farm.owner.email,
-                subject=f'🎉 First milk record logged on {request.farm.name}!',
+                subject=_('🎉 First milk record logged on %(farm)s!') % {'farm': request.farm.name},
                 template_name='emails/milestone.html',
                 context={
                     'farm': request.farm,
-                    'title': 'First milk record logged!',
+                    'title': _('First milk record logged!'),
                     'description': (
-                        f'{record.cow} just produced its first recorded {record.liters}L on Farm IQ. '
-                        'Every record from here builds your farm\'s production history.'
+                        _("%(cow)s just produced its first recorded %(liters)sL on FarmIQ. Every record from here builds your farm's production history.")
+                        % {'cow': record.cow, 'liters': record.liters}
                     ),
                     'dashboard_url': request.build_absolute_uri(reverse('farms:dashboard')),
                 },
             )
-        messages.success(request, f'Milk record saved for {record.cow} ({record.get_session_display()}).')
+        messages.success(
+            request,
+            _('Milk record saved for %(cow)s (%(session)s).')
+            % {'cow': record.cow, 'session': record.get_session_display()}
+        )
         return redirect('cows:milk_list')
     return render(request, 'cows/milk_form.html', {'form': form})
 
@@ -330,7 +339,7 @@ def milk_edit(request, record_id):
             request.farm, request.user, Notification.Verb.UPDATED, 'milk record',
             f'{updated.cow.tag_id} - {updated.date} {updated.get_session_display()} - {updated.liters}L'
         )
-        messages.success(request, 'Milk record updated.')
+        messages.success(request, _('Milk record updated.'))
         return redirect('cows:milk_list')
     return render(request, 'cows/milk_form.html', {'form': form, 'record': record})
 
@@ -345,5 +354,5 @@ def milk_delete(request, record_id):
             record.stock_movement.delete()
         record.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'milk record', description)
-        messages.success(request, 'Milk record deleted.')
+        messages.success(request, _('Milk record deleted.'))
     return redirect('cows:milk_list')

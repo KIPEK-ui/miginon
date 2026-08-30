@@ -1,5 +1,6 @@
 {% extends "app_base.html" %}
-{% block title %}Farm Map - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Farm Map" %} - FarmIQ{% endblock %}
 
 {% block extra_head %}
 <script type="importmap">
@@ -15,82 +16,82 @@
 {% block app_content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">Farm Map</h1>
-        <p class="mt-1 text-sm text-stone-500">
-            Your paddocks, herd, feed troughs, storage, crop fields, workers and this month's finances, laid out across the farm.
-            Drag to rotate, scroll to zoom, click anything to open it.
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Farm Map" %}</h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
+            {% trans "Your paddocks, herd, feed troughs, storage, crop fields, workers and this month's finances, laid out across the farm." %}
+            {% trans "Drag to rotate, scroll to zoom, click anything to open it." %}
         </p>
     </div>
-    <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50">List view</a>
+    <a href="{% url 'farms:block_list' %}" class="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800">{% trans "List view" %}</a>
 </div>
 
 {% if blocks or cows_data or inventory_data or finance_data.income or finance_data.expense or crops_data or workers_data or tasks_data %}
-<div id="farm-map" class="relative h-[75vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+<div id="farm-map" class="relative h-[75vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-800">
     <div id="map-tooltip" class="pointer-events-none absolute z-10 hidden rounded-lg bg-stone-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"></div>
-    <div class="absolute left-3 top-3 z-10 flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white/95 p-3 text-xs font-bold text-stone-700 shadow-soft backdrop-blur">
-        <p class="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400">Layers</p>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="cows" checked class="accent-emerald-600"> Cows</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="feeding" checked class="accent-emerald-600"> Feeding</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="inventory" checked class="accent-emerald-600"> Inventory</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="finance" checked class="accent-emerald-600"> Finance</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="crops" checked class="accent-emerald-600"> Crops</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="workers" checked class="accent-emerald-600"> Workers</label>
-        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="tasks" checked class="accent-emerald-600"> Tasks</label>
+    <div class="absolute left-3 top-3 z-10 flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white/95 p-3 text-xs font-bold text-stone-700 shadow-soft backdrop-blur dark:border-stone-800 dark:bg-stone-900/95 dark:text-stone-200">
+        <p class="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Layers" %}</p>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="cows" checked class="accent-emerald-600"> {% trans "Cows" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="feeding" checked class="accent-emerald-600"> {% trans "Feeding" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="inventory" checked class="accent-emerald-600"> {% trans "Inventory" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="finance" checked class="accent-emerald-600"> {% trans "Finance" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="crops" checked class="accent-emerald-600"> {% trans "Crops" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="workers" checked class="accent-emerald-600"> {% trans "Workers" %}</label>
+        <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" data-layer="tasks" checked class="accent-emerald-600"> {% trans "Tasks" %}</label>
     </div>
 
-    <details class="absolute right-3 top-3 z-10 rounded-2xl border border-stone-200 bg-white/95 shadow-soft backdrop-blur">
-        <summary class="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-xs font-bold text-stone-700">
-            <ion-icon name="information-circle-outline"></ion-icon> Legend
-            <ion-icon name="chevron-down-outline" class="text-[10px] text-stone-400"></ion-icon>
+    <details class="absolute right-3 top-3 z-10 rounded-2xl border border-stone-200 bg-white/95 shadow-soft backdrop-blur dark:border-stone-800 dark:bg-stone-900/95">
+        <summary class="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-200">
+            <ion-icon name="information-circle-outline"></ion-icon> {% trans "Legend" %}
+            <ion-icon name="chevron-down-outline" class="text-[10px] text-stone-400 dark:text-stone-500"></ion-icon>
         </summary>
-        <div class="max-h-[60vh] w-64 overflow-y-auto border-t border-stone-100 p-3 text-xs text-stone-600">
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Paddocks</p>
-            <p class="mb-3">Ground shade deepens to green with more active cows in that block.</p>
+        <div class="max-h-[60vh] w-64 overflow-y-auto border-t border-stone-100 p-3 text-xs text-stone-600 dark:border-stone-800 dark:text-stone-300">
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Paddocks" %}</p>
+            <p class="mb-3">{% trans "Ground shade deepens to green with more active cows in that block." %}</p>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Cows</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Cows" %}</p>
             <div class="mb-3 space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d8b48a"></span> Calf</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b98a5a"></span> Heifer</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#2b2b2b"></span> Cow (black &amp; white)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#3d2b1f"></span> Bull</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#9c9c9c"></span> Dry (any category, greyed)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d8b48a"></span> {% trans "Calf" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b98a5a"></span> {% trans "Heifer" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#2b2b2b"></span> {% trans "Cow (black & white)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#3d2b1f"></span> {% trans "Bull" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#9c9c9c"></span> {% trans "Dry (any category, greyed)" %}</div>
             </div>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Tasks</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Tasks" %}</p>
             <div class="mb-3 space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#f2990f"></span> Pending</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> In progress</div>
-                <p class="text-[11px] text-stone-400">Planted at the linked block/crop, or by the worker if unlinked.</p>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#f2990f"></span> {% trans "Pending" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> {% trans "In progress" %}</div>
+                <p class="text-[11px] text-stone-400 dark:text-stone-500">{% trans "Planted at the linked block/crop, or by the worker if unlinked." %}</p>
             </div>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Workers</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Workers" %}</p>
             <div class="mb-3 space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#146a4a"></span> Farmer (owner)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> Farm manager</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d6760a"></span> Supervisor</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#78716c"></span> Worker</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#146a4a"></span> {% trans "Farmer (owner)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#25a56f"></span> {% trans "Farm manager" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d6760a"></span> {% trans "Supervisor" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#78716c"></span> {% trans "Worker" %}</div>
             </div>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Inventory</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Inventory" %}</p>
             <div class="mb-3 space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9b35c"></span> Feed (silo)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full border border-stone-300" style="background:#ffffff"></span> Veterinary (crate)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> Equipment (crate)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9c08a"></span> Other (sack)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#dc2626"></span> Low stock (any shape)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9b35c"></span> {% trans "Feed (silo)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full border border-stone-300 dark:border-stone-600" style="background:#ffffff"></span> {% trans "Veterinary (crate)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> {% trans "Equipment (crate)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#d9c08a"></span> {% trans "Other (sack)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#dc2626"></span> {% trans "Low stock (any shape)" %}</div>
             </div>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Crops</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Crops" %}</p>
             <div class="mb-3 space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> Planned (bare soil)</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#4d7c33"></span> Growing</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b59a5b"></span> Harvested (stubble)</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#8a6d3a"></span> {% trans "Planned (bare soil)" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#4d7c33"></span> {% trans "Growing" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b59a5b"></span> {% trans "Harvested (stubble)" %}</div>
             </div>
 
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Finance</p>
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Finance" %}</p>
             <div class="space-y-1">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#17835a"></span> Income, this month</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b45309"></span> Expense, this month</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#17835a"></span> {% trans "Income, this month" %}</div>
+                <div class="flex items-center gap-2"><span class="h-3 w-3 shrink-0 rounded-full" style="background:#b45309"></span> {% trans "Expense, this month" %}</div>
             </div>
         </div>
     </details>
@@ -102,11 +103,11 @@
 {{ crops_data|json_script:"crops-data" }}
 {{ workers_data|json_script:"workers-data" }}
 {{ tasks_data|json_script:"tasks-data" }}
-<p class="mt-2 text-xs text-stone-400" id="feeding-url" data-url="{{ feeding_url }}">
-    Trough fill shows how much has been fed to that paddock today. Low-stock inventory is tinted red.
+<p class="mt-2 text-xs text-stone-400 dark:text-stone-500" id="feeding-url" data-url="{{ feeding_url }}">
+    {% trans "Trough fill shows how much has been fed to that paddock today. Low-stock inventory is tinted red." %}
 </p>
 {% else %}
-<p class="text-sm text-stone-400">Nothing to show on the map yet. Add a block, cow, inventory item, crop, worker or transaction to see it here.</p>
+<p class="text-sm text-stone-400 dark:text-stone-500">{% trans "Nothing to show on the map yet. Add a block, cow, inventory item, crop, worker or transaction to see it here." %}</p>
 {% endif %}
 {% endblock %}
 

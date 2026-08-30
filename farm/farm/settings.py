@@ -87,6 +87,8 @@ INSTALLED_APPS = [
     'analysis',
     'notifications',
     'tasks',
+    'weather',
+    'advisory',
 
     'pwa',
 ]
@@ -94,6 +96,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -116,9 +119,11 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'farms.context_processors.active_farm',
+                'core.context_processors.theme',
             ],
         },
     },
@@ -160,6 +165,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
+LANGUAGES = [
+    ('en', 'English'),
+    ('sw', 'Kiswahili'),
+]
+
+LOCALE_PATHS = [BASE_DIR / 'locale']
+
 TIME_ZONE = 'Africa/Nairobi'
 
 USE_I18N = True
@@ -184,7 +196,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Miginon Farm project settings -----------------------------------------
+# --- FarmIQ project settings -----------------------------------------
 
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -204,7 +216,7 @@ EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')  # type: ignore[arg-type]
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')  # type: ignore[arg-type]
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Farm IQ <noreply@farmiq.solutions>')  # type: ignore[arg-type]
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='FarmIQ <noreply@farmiq.solutions>')  # type: ignore[arg-type]
 
 OTP_VALIDITY_MINUTES = 10
 OTP_MAX_ATTEMPTS = 5
@@ -220,7 +232,7 @@ MESSAGE_TAGS = {
 
 # --- Progressive Web App (django-pwa) ---------------------------------------
 
-PWA_APP_NAME = 'Miginon Farm'
+PWA_APP_NAME = 'FarmIQ'
 PWA_APP_DESCRIPTION = 'Smart dairy management - milk, feeding, herd, crops, inventory and finance in one app.'
 PWA_APP_THEME_COLOR = '#047857'       # emerald-700, matches the app shell
 PWA_APP_BACKGROUND_COLOR = '#f5f5f4'  # stone-100, matches the app background

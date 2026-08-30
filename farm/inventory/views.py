@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from farms.models import FarmMembership
 from farms.permissions import (
@@ -32,7 +33,7 @@ def item_create(request):
         item.added_by = request.user
         item.save()
         notify(request.farm, request.user, Notification.Verb.CREATED, 'inventory item', item.name)
-        messages.success(request, f'{item.name} added to inventory.')
+        messages.success(request, _('%(name)s added to inventory.') % {'name': item.name})
         return redirect('inventory:item_list')
     return render(request, 'inventory/item_form.html', {'form': form})
 
@@ -50,7 +51,7 @@ def item_detail(request, item_id):
 @edit_delete_required
 def item_composition(request, item_id):
     item = get_object_or_404(InventoryItem, id=item_id, farm=request.farm)
-    composition, _ = FeedComposition.objects.get_or_create(item=item)
+    composition, _created = FeedComposition.objects.get_or_create(item=item)
 
     suggested = None
     if request.method == 'GET' and request.GET.get('target_protein'):
@@ -59,7 +60,7 @@ def item_composition(request, item_id):
             ingredients, achieved = suggest_composition(target)
             suggested = {'ingredients': ingredients, 'achieved_protein_pct': achieved, 'target': target}
         except (ValueError, TypeError):
-            messages.error(request, 'Enter a valid target protein percentage.')
+            messages.error(request, _('Enter a valid target protein percentage.'))
 
     if request.method == 'POST':
         names = request.POST.getlist('ingredient_name')
@@ -79,7 +80,7 @@ def item_composition(request, item_id):
         composition.crude_protein_pct = crude_protein_raw or None
         composition.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'feed composition', item.name)
-        messages.success(request, f'Composition saved for {item.name}.')
+        messages.success(request, _('Composition saved for %(name)s.') % {'name': item.name})
         return redirect('inventory:item_detail', item_id=item.id)
 
     ROW_COUNT = 8
@@ -104,7 +105,7 @@ def item_edit(request, item_id):
     if request.method == 'POST' and form.is_valid():
         form.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'inventory item', item.name)
-        messages.success(request, f'{item.name} updated.')
+        messages.success(request, _('%(name)s updated.') % {'name': item.name})
         return redirect('inventory:item_detail', item_id=item.id)
     return render(request, 'inventory/item_form.html', {'form': form, 'item': item})
 
@@ -116,7 +117,7 @@ def item_delete(request, item_id):
         description = item.name
         item.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'inventory item', description)
-        messages.success(request, f'{description} was deleted.')
+        messages.success(request, _('%(name)s was deleted.') % {'name': description})
         return redirect('inventory:item_list')
     return redirect('inventory:item_detail', item_id=item.id)
 
@@ -130,7 +131,7 @@ def movement_list(request):
 @log_activity_required
 def movement_create(request):
     if not request.farm.inventory_items.exists():
-        messages.info(request, 'Add an inventory item first.')
+        messages.info(request, _('Add an inventory item first.'))
         return redirect('inventory:item_create')
 
     form = StockMovementForm(request.POST or None, farm=request.farm)
@@ -154,7 +155,10 @@ def movement_create(request):
                         f'{movement.item.name} is low on stock ({movement.item.current_stock} {movement.item.unit} left)',
                         recipient=m.user,
                     )
-        messages.success(request, f'{movement.get_movement_type_display()} recorded for {movement.item.name}.')
+        messages.success(
+            request,
+            _('%(type)s recorded for %(name)s.') % {'type': movement.get_movement_type_display(), 'name': movement.item.name}
+        )
         return redirect('inventory:movement_list')
     return render(request, 'inventory/movement_form.html', {'form': form})
 
@@ -179,9 +183,9 @@ def milk_usage_create(request):
 
         record_milk_internal_use(request.farm, liters, date, request.user, note=description, used_by=used_by)
         notify(request.farm, request.user, Notification.Verb.CREATED, 'milk usage', description)
-        messages.success(request, f'{description} recorded.')
+        messages.success(request, _('%(description)s recorded.') % {'description': description})
         if stock_before - liters < 0:
-            messages.warning(request, 'Milk stock is now negative - check for missing production records.')
+            messages.warning(request, _('Milk stock is now negative - check for missing production records.'))
         return redirect('inventory:movement_list')
     return render(request, 'inventory/milk_usage_form.html', {'form': form})
 
@@ -197,5 +201,5 @@ def movement_delete(request, movement_id):
         reverse_movement(movement)
         movement.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'stock movement', description)
-        messages.success(request, 'Stock movement deleted and stock level restored.')
+        messages.success(request, _('Stock movement deleted and stock level restored.'))
     return redirect('inventory:movement_list')

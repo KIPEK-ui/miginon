@@ -8,6 +8,7 @@ from cows.models import Cow, FeedingRecord, MilkRecord
 from crops.models import CropActivity
 from finance.models import Transaction
 from inventory.models import InventoryItem, StockMovement
+from weather.services import get_forecast_summary
 
 
 def _last_day_of_month(year, month):
@@ -143,6 +144,11 @@ def build_report(farm, start, end, period_label):
         'start_date': start,
         'end_date': end,
         'generated_at': timezone.now(),
+        # Weather has no "for this period" meaning (Open-Meteo's free tier
+        # is forecast-only, no historical archive) - this is a snapshot of
+        # current conditions/outlook as of generated_at, included for
+        # context alongside the period's historical numbers.
+        'weather': get_forecast_summary(farm),
         'milk': {
             'total_liters': milk_total,
             'avg_per_cow': avg_per_cow,

@@ -1,10 +1,10 @@
-// Miginon Farm service worker.
+// FarmIQ service worker.
 //
 // Network-first: this is a live farm records app, so a page should always
 // show fresh data when the device is online. The cache only exists to make
 // the app shell (icons + the offline page) available when there's no
 // connection at all - it deliberately does not cache farm data pages.
-var CACHE_NAME = 'miginon-farm-v3';
+var CACHE_NAME = 'farmiq-v1';
 var FILES_TO_CACHE = [
     '/offline/',
     '/static/images/icons/icon-192x192.png',
@@ -37,7 +37,9 @@ self.addEventListener('activate', function (event) {
         caches.keys().then(function (cacheNames) {
             return Promise.all(
                 cacheNames
-                    .filter(function (name) { return name.startsWith('miginon-farm-') && name !== CACHE_NAME; })
+                    .filter(function (name) {
+                        return (name.startsWith('farmiq-') || name.startsWith('miginon-farm-')) && name !== CACHE_NAME;
+                    })
                     .map(function (name) { return caches.delete(name); })
             );
         }).then(function () { return self.clients.claim(); })
@@ -59,7 +61,7 @@ self.addEventListener('fetch', function (event) {
 // Device push notifications (see notifications/push.py for the send side).
 // The payload is the JSON string notify() builds: {title, body, url}.
 self.addEventListener('push', function (event) {
-    var data = { title: 'Miginon Farm', body: 'You have a new notification.', url: '/notifications/' };
+    var data = { title: 'FarmIQ', body: 'You have a new notification.', url: '/notifications/' };
     if (event.data) {
         try { data = Object.assign(data, event.data.json()); } catch (e) { /* keep defaults */ }
     }

@@ -1,19 +1,33 @@
+{% load i18n static %}
 <header class="relative z-10">
     <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
         <a href="{% url 'core:landing' %}" class="flex shrink-0 items-center gap-2">
-            <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20 text-base text-white sm:h-9 sm:w-9 sm:text-lg">
-                <ion-icon name="leaf-outline"></ion-icon>
-            </span>
-            <span class="text-base font-extrabold tracking-tight text-white sm:text-lg">Farm IQ</span>
+            <img src="{% static 'images/logo-mark.svg' %}" alt="FarmIQ" class="h-8 w-8 rounded-xl sm:h-9 sm:w-9">
+            <span class="text-base font-extrabold tracking-tight text-white sm:text-lg">FarmIQ</span>
         </a>
         <div class="hidden items-center gap-8 text-sm font-semibold text-white/80 md:flex">
-            <a href="#features" class="transition hover:text-white">Features</a>
-            <a href="#how-it-works" class="transition hover:text-white">How it works</a>
-            <a href="#roles" class="transition hover:text-white">Roles</a>
+            <a href="#features" class="transition hover:text-white">{% trans "Features" %}</a>
+            <a href="#how-it-works" class="transition hover:text-white">{% trans "How it works" %}</a>
+            <a href="#roles" class="transition hover:text-white">{% trans "Roles" %}</a>
         </div>
-        <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-            <a href="{% url 'accounts:login_farm' %}" class="rounded-full px-3 py-2 text-xs font-semibold text-white/90 hover:text-white sm:px-4 sm:text-sm">Log in</a>
-            <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-white px-4 py-2 text-xs font-bold text-emerald-800 shadow-soft transition hover:bg-emerald-50 sm:px-5 sm:py-2.5 sm:text-sm">Get started free</a>
+        <div class="flex shrink-0 items-center gap-1 sm:gap-2">
+            <form method="post" action="{% url 'core:set_theme' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white" aria-label="{% trans 'Toggle dark mode' %}">
+                    <ion-icon name="{% if theme == 'dark' %}sunny-outline{% else %}moon-outline{% endif %}" class="text-base"></ion-icon>
+                </button>
+            </form>
+            <form method="post" action="{% url 'core:set_language' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="language" value="{% if LANGUAGE_CODE == 'sw' %}en{% else %}sw{% endif %}">
+                <button type="submit" class="flex h-9 items-center justify-center rounded-full px-2 text-xs font-bold text-white/80 hover:bg-white/10 hover:text-white" aria-label="{% trans 'Switch language' %}">
+                    {% if LANGUAGE_CODE == 'sw' %}EN{% else %}SW{% endif %}
+                </button>
+            </form>
+            <a href="{% url 'accounts:login_farm' %}" class="rounded-full px-2 py-2 text-xs font-semibold text-white/90 hover:text-white sm:px-4 sm:text-sm">{% trans "Log in" %}</a>
+            <a href="{% url 'accounts:signup_account' %}" class="rounded-full bg-white px-3 py-2 text-xs font-bold text-emerald-800 shadow-soft transition hover:bg-emerald-50 sm:px-5 sm:py-2.5 sm:text-sm">{% trans "Get started free" %}</a>
         </div>
     </nav>
 </header>

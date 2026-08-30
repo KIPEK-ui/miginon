@@ -1,70 +1,74 @@
 {% extends "app_base.html" %}
-{% block title %}{{ crop.name }} - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{{ crop.name }} - FarmIQ{% endblock %}
 {% block app_content %}
+{% trans "No field set" as no_field_set %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900">{{ crop.name }}</h1>
-        <p class="mt-1 text-sm text-stone-500">{{ crop.field_name|default:"No field set" }} · {{ crop.get_status_display }}</p>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{{ crop.name }}</h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{{ crop.field_name|default:no_field_set }} · {{ crop.get_status_display }}</p>
     </div>
     <div class="flex items-center gap-3">
         {% if active_membership.can_edit_or_delete %}
-        <a href="{% url 'crops:crop_edit' crop.id %}" class="text-sm font-semibold text-stone-500 hover:text-stone-800">Edit</a>
+        <a href="{% url 'crops:crop_edit' crop.id %}" class="text-sm font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">{% trans "Edit" %}</a>
         {% url 'crops:crop_delete' crop.id as delete_url %}
-        {% include "partials/delete_button.html" with url=delete_url label="crop" %}
+        {% trans "crop" as crop_label %}
+        {% include "partials/delete_button.html" with url=delete_url label=crop_label %}
         {% endif %}
         {% if active_membership.can_record_production %}
-        <a href="{% url 'crops:activity_create' %}" class="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-bold text-emerald-950 hover:bg-amber-400">+ Log activity</a>
+        <a href="{% url 'crops:activity_create' %}" class="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-bold text-emerald-950 hover:bg-amber-400 dark:bg-amber-600 dark:hover:bg-amber-500">{% trans "+ Log activity" %}</a>
         {% endif %}
     </div>
 </div>
 
 <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-    <div class="rounded-2xl border border-stone-200 bg-white p-4">
-        <dt class="text-xs font-bold uppercase tracking-wide text-stone-400">Planted</dt>
-        <dd class="mt-1 font-semibold text-stone-800">{{ crop.planted_on|default:"—" }}</dd>
+    <div class="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+        <dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Planted" %}</dt>
+        <dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ crop.planted_on|default:"—" }}</dd>
     </div>
-    <div class="rounded-2xl border border-stone-200 bg-white p-4">
-        <dt class="text-xs font-bold uppercase tracking-wide text-stone-400">Expected harvest</dt>
-        <dd class="mt-1 font-semibold text-stone-800">{{ crop.expected_harvest|default:"—" }}</dd>
+    <div class="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+        <dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Expected harvest" %}</dt>
+        <dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ crop.expected_harvest|default:"—" }}</dd>
     </div>
 </dl>
 
-<div class="mt-8 rounded-2xl border border-stone-200 bg-white">
-    <div class="border-b border-stone-100 px-6 py-4">
-        <h2 class="font-bold text-stone-900">Activity log</h2>
+<div class="mt-8 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+    <div class="border-b border-stone-100 px-6 py-4 dark:border-stone-800">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Activity log" %}</h2>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
-            <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400">
+            <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">
                 <tr>
-                    <th class="px-6 py-3">Date</th>
-                    <th class="px-6 py-3">Activity</th>
-                    <th class="px-6 py-3">Harvested</th>
-                    <th class="px-6 py-3">Notes</th>
+                    <th class="px-6 py-3">{% trans "Date" %}</th>
+                    <th class="px-6 py-3">{% trans "Activity" %}</th>
+                    <th class="px-6 py-3">{% trans "Harvested" %}</th>
+                    <th class="px-6 py-3">{% trans "Notes" %}</th>
                     {% if active_membership.can_edit_or_delete %}<th class="px-6 py-3"></th>{% endif %}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-stone-100">
+            <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
                 {% for a in activities %}
                 <tr>
-                    <td class="px-6 py-3 text-stone-600">{{ a.date }}</td>
+                    <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ a.date }}</td>
                     <td class="px-6 py-3">
-                        <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600">{{ a.get_activity_type_display }}</span>
+                        <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ a.get_activity_type_display }}</span>
                     </td>
-                    <td class="px-6 py-3 font-semibold text-stone-800">{{ a.quantity_harvested_kg|default:"—" }}{% if a.quantity_harvested_kg %} kg{% endif %}</td>
-                    <td class="px-6 py-3 text-stone-500">{{ a.notes|default:"—" }}</td>
+                    <td class="px-6 py-3 font-semibold text-stone-800 dark:text-stone-200">{{ a.quantity_harvested_kg|default:"—" }}{% if a.quantity_harvested_kg %} kg{% endif %}</td>
+                    <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ a.notes|default:"—" }}</td>
                     {% if active_membership.can_edit_or_delete %}
                     <td class="px-6 py-3">
                         <div class="flex justify-end gap-3">
-                            <a href="{% url 'crops:activity_edit' a.id %}" class="text-xs font-semibold text-stone-500 hover:text-stone-800">Edit</a>
+                            <a href="{% url 'crops:activity_edit' a.id %}" class="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">{% trans "Edit" %}</a>
                             {% url 'crops:activity_delete' a.id as delete_url %}
-                            {% include "partials/delete_button.html" with url=delete_url label="activity" %}
+                            {% trans "activity" as activity_label %}
+                            {% include "partials/delete_button.html" with url=delete_url label=activity_label %}
                         </div>
                     </td>
                     {% endif %}
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="px-6 py-8 text-center text-stone-400">No activity logged yet.</td></tr>
+                <tr><td colspan="5" class="px-6 py-8 text-center text-stone-400 dark:text-stone-500">{% trans "No activity logged yet." %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

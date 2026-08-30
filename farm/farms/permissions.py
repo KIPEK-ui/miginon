@@ -3,6 +3,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
+from django.utils.translation import gettext_lazy as _
 
 from .models import FarmMembership, FarmRole
 
@@ -27,14 +28,14 @@ def get_active_membership(request):
     return membership
 
 
-def farm_permission_required(check, message="You don't have permission to do that."):
+def farm_permission_required(check, message=_("You don't have permission to do that.")):
     def decorator(view_func):
         @wraps(view_func)
         @login_required
         def _wrapped(request, *args, **kwargs):
             membership = get_active_membership(request)
             if not membership:
-                messages.error(request, 'You need to belong to a farm to do that.')
+                messages.error(request, _('You need to belong to a farm to do that.'))
                 return redirect('farms:dashboard')
             if not check(membership):
                 messages.error(request, message)
@@ -47,13 +48,13 @@ def farm_permission_required(check, message="You don't have permission to do tha
 
 
 manage_workers_required = farm_permission_required(
-    lambda m: m.can_manage_workers, "Only farmers and farm managers can manage workers."
+    lambda m: m.can_manage_workers, _("Only farmers and farm managers can manage workers.")
 )
 manage_herd_required = farm_permission_required(
-    lambda m: m.can_manage_herd, "You don't have permission to manage the herd."
+    lambda m: m.can_manage_herd, _("You don't have permission to manage the herd.")
 )
 record_production_required = farm_permission_required(
-    lambda m: m.can_record_production, "You don't have permission to add records."
+    lambda m: m.can_record_production, _("You don't have permission to add records.")
 )
 any_member_required = farm_permission_required(lambda m: True)
 
@@ -70,14 +71,14 @@ log_activity_required = record_production_required
 # Analysis is available to the same tier that manages the herd (Farmer,
 # Farm Manager, Farm Supervisor) - Farm Workers get data entry, not reports.
 analysis_required = farm_permission_required(
-    lambda m: m.can_manage_herd, 'Analysis is available to farmers, managers and supervisors.'
+    lambda m: m.can_manage_herd, _('Analysis is available to farmers, managers and supervisors.')
 )
 
 # Editing or deleting an existing record is restricted to Farmer, Farm
 # Manager and Farm Supervisor - a Farm Worker can log new records but can't
 # alter or remove what's already been recorded.
 edit_delete_required = farm_permission_required(
-    lambda m: m.can_edit_or_delete, 'Only farmers, managers and supervisors can edit or delete records.'
+    lambda m: m.can_edit_or_delete, _('Only farmers, managers and supervisors can edit or delete records.')
 )
 
 
@@ -88,7 +89,7 @@ def farmer_required(view_func):
         if not FarmMembership.objects.filter(
             user=request.user, role=FarmRole.FARMER, status=FarmMembership.Status.ACTIVE
         ).exists():
-            messages.error(request, 'Only farm owners can add new farms.')
+            messages.error(request, _('Only farm owners can add new farms.'))
             return redirect('farms:dashboard')
         return view_func(request, *args, **kwargs)
     return _wrapped
@@ -99,7 +100,7 @@ def platform_admin_required(view_func):
     @login_required
     def _wrapped(request, *args, **kwargs):
         if not request.user.is_platform_admin:
-            messages.error(request, 'Platform admin access only.')
+            messages.error(request, _('Platform admin access only.'))
             return redirect('farms:dashboard')
         return view_func(request, *args, **kwargs)
     return _wrapped

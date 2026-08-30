@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class Crop(models.Model):
     class Status(models.TextChoices):
-        PLANNED = 'planned', 'Planned'
-        GROWING = 'growing', 'Growing'
-        HARVESTED = 'harvested', 'Harvested'
+        PLANNED = 'planned', _('Planned')
+        GROWING = 'growing', _('Growing')
+        HARVESTED = 'harvested', _('Harvested')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='crops')
     name = models.CharField(max_length=100)
@@ -29,12 +30,12 @@ class Crop(models.Model):
 
 class CropActivity(models.Model):
     class ActivityType(models.TextChoices):
-        PLANTING = 'planting', 'Planting'
-        WEEDING = 'weeding', 'Weeding'
-        SPRAYING = 'spraying', 'Spraying'
-        FERTILIZING = 'fertilizing', 'Fertilizing'
-        HARVESTING = 'harvesting', 'Harvesting'
-        OTHER = 'other', 'Other'
+        PLANTING = 'planting', _('Planting')
+        WEEDING = 'weeding', _('Weeding')
+        SPRAYING = 'spraying', _('Spraying')
+        FERTILIZING = 'fertilizing', _('Fertilizing')
+        HARVESTING = 'harvesting', _('Harvesting')
+        OTHER = 'other', _('Other')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='crop_activities')
     crop = models.ForeignKey(Crop, on_delete=models.CASCADE, related_name='activities')
@@ -42,7 +43,7 @@ class CropActivity(models.Model):
     activity_type = models.CharField(max_length=15, choices=ActivityType.choices)
     quantity_harvested_kg = models.DecimalField(
         max_digits=8, decimal_places=2, null=True, blank=True,
-        help_text='Only relevant for a harvesting activity'
+        help_text=_('Only relevant for a harvesting activity')
     )
     notes = models.CharField(max_length=255, blank=True)
     recorded_by = models.ForeignKey(
@@ -52,7 +53,7 @@ class CropActivity(models.Model):
     stock_movement = models.ForeignKey(
         'inventory.StockMovement', null=True, blank=True, editable=False,
         on_delete=models.SET_NULL, related_name='+',
-        help_text='The produce inventory restock this harvesting activity produced.'
+        help_text=_('The produce inventory restock this harvesting activity produced.')
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

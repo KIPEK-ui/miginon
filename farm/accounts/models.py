@@ -6,6 +6,7 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -47,13 +48,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_superuser which grants full Django admin access."""
 
     class PlatformRole(models.TextChoices):
-        NONE = '', 'Farm user'
-        ADMIN = 'admin', 'Platform Admin'
+        NONE = '', _('Farm user')
+        ADMIN = 'admin', _('Platform Admin')
 
     class NotificationDelivery(models.TextChoices):
-        IN_APP = 'in_app', 'In-app only'
-        PUSH = 'push', 'Device notifications only'
-        BOTH = 'both', 'Both'
+        IN_APP = 'in_app', _('In-app only')
+        PUSH = 'push', _('Device notifications only')
+        BOTH = 'both', _('Both')
+
+    class ThemePreference(models.TextChoices):
+        LIGHT = 'light', _('Light')
+        DARK = 'dark', _('Dark')
+
+    class Language(models.TextChoices):
+        # Deliberately NOT wrapped in _(): a language's own name is
+        # conventionally shown in that language regardless of the current
+        # UI language (a Kiswahili speaker sees "English", not a translation
+        # of it, and vice versa).
+        ENGLISH = 'en', 'English'
+        KISWAHILI = 'sw', 'Kiswahili'
 
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=60)
@@ -65,8 +78,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     notification_delivery = models.CharField(
         max_length=10, choices=NotificationDelivery.choices, default=NotificationDelivery.BOTH,
-        help_text='How you want to be notified about things targeted at you specifically '
-                   '(a task assigned to you, low stock, etc.) - not the general farm activity feed.'
+        help_text=_('How you want to be notified about things targeted at you specifically '
+                    '(a task assigned to you, low stock, etc.) - not the general farm activity feed.')
+    )
+    theme_preference = models.CharField(
+        max_length=5, choices=ThemePreference.choices, default=ThemePreference.LIGHT,
+    )
+    language = models.CharField(
+        max_length=2, choices=Language.choices, default=Language.ENGLISH,
     )
 
     is_active = models.BooleanField(default=True)

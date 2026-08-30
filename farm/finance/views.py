@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from farms.permissions import any_member_required, edit_delete_required, log_activity_required
 from inventory.models import InventoryItem
@@ -42,7 +43,10 @@ def transaction_create(request):
             request.farm, request.user, Notification.Verb.CREATED, 'transaction',
             f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
         )
-        messages.success(request, f'{transaction.get_kind_display()} of {transaction.amount} recorded.')
+        messages.success(
+            request,
+            _('%(kind)s of %(amount)s recorded.') % {'kind': transaction.get_kind_display(), 'amount': transaction.amount}
+        )
         return redirect('finance:transaction_list')
     return render(request, 'finance/transaction_form.html', {'form': form})
 
@@ -66,9 +70,12 @@ def milk_sale_create(request):
         record_milk_sale(request.farm, liters, date, request.user)
         notify(request.farm, request.user, Notification.Verb.CREATED, 'transaction', description)
 
-        messages.success(request, f'Milk sale of {liters}L for {amount} recorded.')
+        messages.success(
+            request,
+            _('Milk sale of %(liters)sL for %(amount)s recorded.') % {'liters': liters, 'amount': amount}
+        )
         if stock_before - liters < 0:
-            messages.warning(request, 'Milk stock is now negative - check for missing production records.')
+            messages.warning(request, _('Milk stock is now negative - check for missing production records.'))
         return redirect('finance:transaction_list')
     return render(request, 'finance/milk_sale_form.html', {'form': form})
 
@@ -83,7 +90,7 @@ def transaction_edit(request, transaction_id):
             request.farm, request.user, Notification.Verb.UPDATED, 'transaction',
             f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
         )
-        messages.success(request, 'Transaction updated.')
+        messages.success(request, _('Transaction updated.'))
         return redirect('finance:transaction_list')
     return render(request, 'finance/transaction_form.html', {'form': form, 'transaction': transaction})
 
@@ -95,5 +102,5 @@ def transaction_delete(request, transaction_id):
         description = f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
         transaction.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'transaction', description)
-        messages.success(request, 'Transaction deleted.')
+        messages.success(request, _('Transaction deleted.'))
     return redirect('finance:transaction_list')

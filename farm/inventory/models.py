@@ -2,22 +2,23 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class InventoryItem(models.Model):
     class Category(models.TextChoices):
-        FEED = 'feed', 'Feed'
-        VETERINARY = 'veterinary', 'Veterinary & Medicine'
-        EQUIPMENT = 'equipment', 'Equipment'
-        PRODUCE = 'produce', 'Produce'
-        OTHER = 'other', 'Other'
+        FEED = 'feed', _('Feed')
+        VETERINARY = 'veterinary', _('Veterinary & Medicine')
+        EQUIPMENT = 'equipment', _('Equipment')
+        PRODUCE = 'produce', _('Produce')
+        OTHER = 'other', _('Other')
 
     class Unit(models.TextChoices):
-        KG = 'kg', 'Kilograms'
-        LITRES = 'l', 'Litres'
-        BAGS = 'bags', 'Bags'
-        PIECES = 'pcs', 'Pieces'
-        BOXES = 'boxes', 'Boxes'
+        KG = 'kg', _('Kilograms')
+        LITRES = 'l', _('Litres')
+        BAGS = 'bags', _('Bags')
+        PIECES = 'pcs', _('Pieces')
+        BOXES = 'boxes', _('Boxes')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='inventory_items')
     name = models.CharField(max_length=100)
@@ -26,7 +27,7 @@ class InventoryItem(models.Model):
     current_stock = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     reorder_level = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0'),
-        help_text='Get a low-stock warning at or below this level. Leave at 0 to disable.'
+        help_text=_('Get a low-stock warning at or below this level. Leave at 0 to disable.')
     )
     added_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
@@ -48,9 +49,9 @@ class InventoryItem(models.Model):
 
 class StockMovement(models.Model):
     class MovementType(models.TextChoices):
-        RESTOCK = 'in', 'Restock (in)'
-        USAGE = 'out', 'Usage (out)'
-        ADJUSTMENT = 'adjust', 'Correction'
+        RESTOCK = 'in', _('Restock (in)')
+        USAGE = 'out', _('Usage (out)')
+        ADJUSTMENT = 'adjust', _('Correction')
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='stock_movements')
     item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE, related_name='movements')
@@ -58,11 +59,11 @@ class StockMovement(models.Model):
     movement_type = models.CharField(max_length=10, choices=MovementType.choices)
     quantity = models.DecimalField(
         max_digits=10, decimal_places=2,
-        help_text='For a correction, this is the new stock level. Otherwise the amount moved.'
+        help_text=_('For a correction, this is the new stock level. Otherwise the amount moved.')
     )
     stock_before = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0'), editable=False,
-        help_text='Snapshot of current_stock right before this movement was applied.'
+        help_text=_('Snapshot of current_stock right before this movement was applied.')
     )
     note = models.CharField(max_length=255, blank=True)
     recorded_by = models.ForeignKey(
@@ -72,8 +73,8 @@ class StockMovement(models.Model):
     used_by = models.ForeignKey(
         'farms.FarmMembership', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='equipment_usage',
-        help_text='Who used/consumed this (most relevant for equipment) - separate from '
-                   'recorded_by, who logged the entry.'
+        help_text=_('Who used/consumed this (most relevant for equipment) - separate from '
+                    'recorded_by, who logged the entry.')
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -92,9 +93,9 @@ class FeedComposition(models.Model):
     the production analytics/prediction models (see analysis.ml)."""
 
     item = models.OneToOneField(InventoryItem, on_delete=models.CASCADE, related_name='composition')
-    ingredients = models.JSONField(default=list, blank=True, help_text='List of {"name": ..., "percent": ...}.')
+    ingredients = models.JSONField(default=list, blank=True, help_text=_('List of {"name": ..., "percent": ...}.'))
     crude_protein_pct = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True, help_text='Overall crude protein %, e.g. 16.0'
+        max_digits=5, decimal_places=2, null=True, blank=True, help_text=_('Overall crude protein %, e.g. 16.0')
     )
     updated_at = models.DateTimeField(auto_now=True)
 

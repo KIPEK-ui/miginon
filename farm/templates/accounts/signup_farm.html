@@ -1,14 +1,15 @@
 {% extends "accounts/_auth_base.html" %}
-{% block title %}Tell us about your farm - Miginon Farm{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Tell us about your farm" %} - FarmIQ{% endblock %}
 {% block progress %}
 {% include "partials/step_progress.html" with step=2 labels="1234"|make_list %}
 {% endblock %}
 {% block icon %}<ion-icon name="business-outline"></ion-icon>{% endblock %}
-{% block heading %}Tell us about your farm{% endblock %}
-{% block subheading %}We'll generate a unique Farm ID from your farm's name.{% endblock %}
+{% block heading %}{% trans "Tell us about your farm" %}{% endblock %}
+{% block subheading %}{% trans "We'll generate a unique Farm ID from your farm's name." %}{% endblock %}
 {% block form_content %}
 {% if form.non_field_errors %}
-<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
     {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
 </div>
 {% endif %}
@@ -17,18 +18,18 @@
     {% include "partials/kenya_location_fields.html" %}
 
     <div class="mb-6">
-        <label for="{{ form.farm_name.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Farm name *</label>
+        <label for="{{ form.farm_name.id_for_label }}" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">{% trans "Farm name" %} *</label>
         {{ form.farm_name }}
-        {% for error in form.farm_name.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}
+        {% for error in form.farm_name.errors %}<p class="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
     </div>
 
-    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800">
-        Continue →
+    <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-soft transition hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+        {% trans "Continue" %} →
     </button>
 </form>
 {% endblock %}
 {% block below_card %}
 <div class="mt-6 text-center text-sm text-emerald-50/90">
-    <a href="{% url 'accounts:signup_account' %}" class="text-emerald-100/70 hover:text-white">← Back</a>
+    <a href="{% url 'accounts:signup_account' %}" class="text-emerald-100/70 hover:text-white">← {% trans "Back" %}</a>
 </div>
 {% endblock %}

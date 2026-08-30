@@ -1,12 +1,26 @@
 {% load static %}
+{% load i18n %}
 {% load pwa %}<!DOCTYPE html>
-<html lang="en" class="h-full scroll-smooth bg-stone-50">
+<html lang="{{ LANGUAGE_CODE }}" class="h-full scroll-smooth{% if theme == 'dark' %} dark{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Farm IQ{% endblock %}</title>
+    <title>{% block title %}FarmIQ{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'images/icons/favicon-32.png' %}">
     {% progressive_web_app_meta %}
+    {% if not user.is_authenticated %}
+    <script>
+      // Anonymous visitors have no saved theme_preference to render server-side -
+      // fall back to the OS preference on first visit only (never overrides an
+      // explicit choice, which is always present as the `theme` cookie once set).
+      (function () {
+        if (document.cookie.indexOf('theme=') === -1
+            && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    {% endif %}
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
@@ -14,6 +28,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] },
@@ -36,23 +51,133 @@
       body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui; }
       .bg-farm-gradient { background: radial-gradient(circle at 15% 0%, #1f6b4a 0%, #0f4531 55%, #0a2e21 100%); }
       .otp-input:focus { letter-spacing: 0.6em; }
+      @keyframes btn-spin { to { transform: rotate(360deg); } }
+      .btn-loading-spinner {
+        display: inline-block; width: 1em; height: 1em; margin-right: 0.45em;
+        border: 2px solid currentColor; border-right-color: transparent;
+        border-radius: 9999px; animation: btn-spin 0.6s linear infinite;
+        vertical-align: -0.2em;
+      }
+      button[disabled] { opacity: 0.65; cursor: not-allowed; }
+
+      #page-loading-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(250, 250, 249, 0.8);
+        backdrop-filter: blur(2px);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.15s ease-out;
+      }
+      #page-loading-overlay.is-visible { opacity: 1; pointer-events: all; }
+      .dark #page-loading-overlay { background: rgba(12, 10, 9, 0.8); }
+      .page-loading-spinner {
+        width: 2.5rem; height: 2.5rem;
+        border: 3px solid #17835a; border-right-color: transparent;
+        border-radius: 9999px; animation: btn-spin 0.6s linear infinite;
+      }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full text-stone-900 antialiased">
+<body class="h-full bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
+    <div id="page-loading-overlay" aria-hidden="true">
+        <span class="page-loading-spinner"></span>
+    </div>
+
     {% if messages %}
     <div class="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2 px-4 sm:px-0">
         {% for message in messages %}
-        <div class="rounded-xl border px-4 py-3 text-sm shadow-soft backdrop-blur
-            {% if message.tags == 'success' %} border-emerald-200 bg-emerald-50 text-emerald-800
-            {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-700
-            {% elif message.tags == 'warning' %} border-amber-200 bg-amber-50 text-amber-800
-            {% else %} border-stone-200 bg-white text-stone-700 {% endif %}">
-            {{ message }}
+        <div class="flash-message flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-soft backdrop-blur transition-opacity duration-500 ease-out
+            {% if message.tags == 'success' %} border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200
+            {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300
+            {% elif message.tags == 'warning' %} border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300
+            {% else %} border-stone-200 bg-white text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 {% endif %}">
+            <span>{{ message }}</span>
+            <button type="button" class="flash-dismiss flex-shrink-0 opacity-60 hover:opacity-100" aria-label="{% trans 'Dismiss' %}">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
         </div>
         {% endfor %}
     </div>
+    <script>
+      (function () {
+        var DISPLAY_MS = 3000;
+        document.querySelectorAll('.flash-message').forEach(function (el, i) {
+          function dismiss() {
+            el.style.opacity = '0';
+            setTimeout(function () { el.remove(); }, 500);
+          }
+          var timer = setTimeout(dismiss, DISPLAY_MS + i * 300);
+          var btn = el.querySelector('.flash-dismiss');
+          if (btn) btn.addEventListener('click', function () {
+            clearTimeout(timer);
+            dismiss();
+          });
+        });
+      })();
+    </script>
     {% endif %}
+
+    <script>
+      // Site-wide: show a full-page loading overlay while a link navigates
+      // to a new page. The 150ms delay means a fast/cached page never
+      // flickers the overlay - it only appears once a navigation is
+      // genuinely taking a moment, which is what real page loads (a fresh
+      // GET rendering a form, a list with a few queries) look like here.
+      (function () {
+        var overlay = document.getElementById('page-loading-overlay');
+        var showTimer = null;
+
+        function showOverlay() {
+          overlay.classList.add('is-visible');
+          setTimeout(function () { overlay.classList.remove('is-visible'); }, 20000);
+        }
+
+        document.addEventListener('click', function (e) {
+          if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          var link = e.target.closest('a[href]');
+          if (!link) return;
+          var href = link.getAttribute('href');
+          if (!href || href.charAt(0) === '#') return;
+          if (href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0 || href.indexOf('javascript:') === 0) return;
+          if (link.target && link.target !== '_self') return;
+          if (link.hasAttribute('download')) return;
+          if (link.origin !== window.location.origin) return;
+          if (link.pathname === window.location.pathname && link.search === window.location.search) return;
+          showTimer = setTimeout(showOverlay, 150);
+        });
+
+        window.addEventListener('pageshow', function () {
+          if (showTimer) clearTimeout(showTimer);
+          overlay.classList.remove('is-visible');
+        });
+      })();
+    </script>
+
+    <script>
+      // Site-wide: on every form submission, disable and spin the submit
+      // button(s) so a second click/tap can't fire a duplicate operation
+      // while the first request is still in flight. e.defaultPrevented lets
+      // a form's own onsubmit (e.g. the delete confirm() dialog) cancel the
+      // submission without this ever kicking in. The timeout is a fallback
+      // for the cases that don't navigate away (a CSV/PDF/Excel download
+      // stays on the same page) so buttons never get stuck disabled.
+      document.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) return;
+        var form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (btn) {
+          if (btn.disabled) return;
+          btn.disabled = true;
+          var spinner = document.createElement('span');
+          spinner.className = 'btn-loading-spinner';
+          btn.insertBefore(spinner, btn.firstChild);
+          setTimeout(function () {
+            btn.disabled = false;
+            if (spinner.parentNode) spinner.remove();
+          }, 8000);
+        });
+      });
+    </script>
 
     {% include "partials/pwa_install_banner.html" %}
     {% include "partials/notification_permission_banner.html" %}
