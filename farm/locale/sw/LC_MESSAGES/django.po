@@ -2963,3 +2963,54 @@ msgstr "Alama ya mkopo ya 0-100 inayohesabiwa kutoka historia ya shughuli za sha
 
 msgid "Exact per-factor drivers of your score (not approximated), scaled relative to the strongest factor this time - not literal score points."
 msgstr "Vichocheo halisi vya kila kipengele katika alama yako (havijakadiriwa), vimepimwa kulingana na kipengele chenye nguvu zaidi wakati huu - si pointi halisi za alama."
+
+msgid "5-day forecast for your farm's location"
+msgstr "Utabiri wa siku 5 kwa mahali pa shamba lako"
+
+msgid "Milk, feed, crops, stock & expenses"
+msgstr "Maziwa, chakula, mazao, bidhaa na matumizi"
+
+msgid "Manage cows by block"
+msgstr "Simamia ng'ombe kwa kizuizi"
+
+msgid "%(liters)sL"
+msgstr "Lita %(liters)s"
+
+msgid "Log AM, noon & PM sessions"
+msgstr "Rekodi vipindi vya asubuhi, mchana na jioni"
+
+msgid "Assign and track farm work"
+msgstr "Gawa na fuatilia kazi za shamba"
+
+msgid "Disease guides & KALRO centers"
+msgstr "Miongozo ya magonjwa na vituo vya KALRO"
+
+msgid "FIQ rewards, verified on Hedera"
+msgstr "Zawadi za FIQ, zilizothibitishwa kwenye Hedera"
+
+msgid "AI score from your real farm history"
+msgstr "Alama ya AI kutoka historia halisi ya shamba lako"
+
+msgid "Organize paddocks and land"
+msgstr "Panga vizuizi na ardhi"
+
+msgid "Track planting to harvest"
+msgstr "Fuatilia kutoka upanzi hadi mavuno"
+
+msgid "Feed, supplies & equipment"
+msgstr "Chakula, vifaa na zana"
+
+msgid "Income, expenses & net position"
+msgstr "Mapato, matumizi na hali halisi ya fedha"
+
+msgid "Analytics, AI predictions & exports"
+msgstr "Uchambuzi, utabiri wa AI na upakuaji"
+
+msgid "Invite and manage workers"
+msgstr "Alika na simamia wafanyakazi"
+
+msgid "Profile & notifications"
+msgstr "Wasifu na arifa"
+
+msgid "Run more than one farm"
+msgstr "Endesha zaidi ya shamba moja"

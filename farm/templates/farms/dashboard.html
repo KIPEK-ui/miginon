@@ -15,32 +15,33 @@
     </a>
 </div>
 
-<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-
-    <a href="{% url 'weather:forecast' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <div class="flex items-center justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-sky-500 text-white">
-                <ion-icon name="{% if weather_summary %}{{ weather_summary.icon }}{% else %}cloud-outline{% endif %}" class="text-xl"></ion-icon>
-            </span>
-            {% if weather_summary %}
-            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ weather_summary.temp|floatformat:0 }}&deg;C</span>
-            {% endif %}
-        </div>
-        <div>
-            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Weather" %}</p>
-            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if weather_summary %}{{ weather_summary.condition }}{% else %}{% trans "Tap for forecast" %}{% endif %}</p>
-        </div>
-    </a>
+{% comment %}
+Bento grid mixing three tile shapes - tall ("Log a record" spans 2 rows),
+wide (Weather and Reports each span 2 columns) and normal (everything
+else, 1x1) - none of them explicitly positioned. CSS grid's own auto-
+placement flows every tile around the spanning ones in reading order
+(grid-flow-dense backfills any gap a wide tile leaves), so this stays
+correct however many tiles a role actually sees (Workers see far fewer
+than a Farmer owner) without hand-placing anything. Every tile shares one
+anatomy: a soft tinted icon badge (not a solid-color circle - flat
+colour-on-white reads harsher than a tint), an optional plain count or
+coloured pill top-right, a title, and a one-line description of what the
+module actually does.
+{% endcomment %}
+<div class="grid grid-flow-row-dense grid-cols-2 gap-3 lg:grid-cols-4">
 
     {% if quick_actions %}
-    <details class="group relative min-h-[132px] rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
-        <summary class="flex min-h-[132px] cursor-pointer list-none flex-col justify-between gap-4 rounded-2xl p-4 hover:border-emerald-200">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white dark:bg-emerald-500">
+    <details class="group relative row-span-2 min-h-[280px] rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/40 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/50 dark:to-emerald-900/20">
+        <summary class="flex min-h-[280px] cursor-pointer list-none flex-col justify-between gap-4 rounded-2xl p-5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
                 <ion-icon name="add-outline" class="text-2xl"></ion-icon>
             </span>
-            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Log a record" %}</p>
+            <div>
+                <p class="text-base font-bold text-stone-900 dark:text-stone-100">{% trans "Log a record" %}</p>
+                <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{% trans "Milk, feed, crops, stock & expenses" %}</p>
+            </div>
         </summary>
-        <div class="absolute left-0 right-0 z-30 mt-1 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-soft dark:border-stone-700 dark:bg-stone-900">
+        <div class="absolute left-3 right-3 z-30 mt-1 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-soft dark:border-stone-700 dark:bg-stone-900">
             {% for action in quick_actions %}
             <a href="{% url action.url_name %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800">
                 <ion-icon name="{{ action.icon }}"></ion-icon> {{ action.label }}
@@ -50,69 +51,99 @@
     </details>
     {% endif %}
 
-    <a href="{% url 'cows:cow_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-600 text-white">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
-                <path d="M8 6C6.5 6 5 4.8 5 3"/>
-                <path d="M16 6c1.5 0 3-1.2 3-3"/>
-                <ellipse cx="4.3" cy="10.5" rx="1.6" ry="2.4" transform="rotate(-20 4.3 10.5)"/>
-                <ellipse cx="19.7" cy="10.5" rx="1.6" ry="2.4" transform="rotate(20 19.7 10.5)"/>
-                <rect x="6" y="7" width="12" height="11" rx="5.5"/>
-                <circle cx="9.3" cy="12" r=".7" fill="currentColor" stroke="none"/>
-                <circle cx="14.7" cy="12" r=".7" fill="currentColor" stroke="none"/>
-                <ellipse cx="12" cy="15.5" rx="2.3" ry="1.4"/>
-                <circle cx="11" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
-                <circle cx="13" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
-            </svg>
-        </span>
+    <a href="{% url 'weather:forecast' %}" class="col-span-2 flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400">
+                <ion-icon name="{% if weather_summary %}{{ weather_summary.icon }}{% else %}cloud-outline{% endif %}" class="text-xl"></ion-icon>
+            </span>
+            {% if weather_summary %}
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ weather_summary.temp|floatformat:0 }}&deg;C</span>
+            {% endif %}
+        </div>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Weather" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if weather_summary %}{{ weather_summary.condition }}{% else %}{% trans "5-day forecast for your farm's location" %}{% endif %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'cows:cow_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
+                    <path d="M8 6C6.5 6 5 4.8 5 3"/>
+                    <path d="M16 6c1.5 0 3-1.2 3-3"/>
+                    <ellipse cx="4.3" cy="10.5" rx="1.6" ry="2.4" transform="rotate(-20 4.3 10.5)"/>
+                    <ellipse cx="19.7" cy="10.5" rx="1.6" ry="2.4" transform="rotate(20 19.7 10.5)"/>
+                    <rect x="6" y="7" width="12" height="11" rx="5.5"/>
+                    <circle cx="9.3" cy="12" r=".7" fill="currentColor" stroke="none"/>
+                    <circle cx="14.7" cy="12" r=".7" fill="currentColor" stroke="none"/>
+                    <ellipse cx="12" cy="15.5" rx="2.3" ry="1.4"/>
+                    <circle cx="11" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
+                    <circle cx="13" cy="15.5" r=".35" fill="currentColor" stroke="none"/>
+                </svg>
+            </span>
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ cow_count }}</span>
+        </div>
         <div>
             <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Herd" %}</p>
-            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans count c=cow_count %}{{ c }} cow{% plural %}{{ c }} cows{% endblocktrans %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Manage cows by block" %}</p>
         </div>
     </a>
 
-    <a href="{% url 'cows:milk_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white">
-            <ion-icon name="water-outline" class="text-xl"></ion-icon>
-        </span>
+    <a href="{% url 'cows:milk_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                <ion-icon name="water-outline" class="text-xl"></ion-icon>
+            </span>
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{% blocktrans with liters=milk_today %}{{ liters }}L{% endblocktrans %}</span>
+        </div>
         <div>
             <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Milk" %}</p>
-            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans with liters=milk_today %}{{ liters }}L today{% endblocktrans %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Log AM, noon & PM sessions" %}</p>
         </div>
     </a>
 
-    <a href="{% url 'tasks:task_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'tasks:task_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500 text-white">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
                 <ion-icon name="checkbox-outline" class="text-xl"></ion-icon>
             </span>
             {% if my_open_task_count %}
             <span class="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">{{ my_open_task_count }}</span>
             {% endif %}
         </div>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Tasks" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Tasks" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Assign and track farm work" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'advisory:home' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-500 text-white">
+    <a href="{% url 'advisory:home' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/40 dark:text-fuchsia-400">
             <ion-icon name="school-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Advisory" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Advisory" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Disease guides & KALRO centers" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'blockchain:wallet' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'blockchain:wallet' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
                 <ion-icon name="wallet-outline" class="text-xl"></ion-icon>
             </span>
             <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ fiq_balance }} FIQ</span>
         </div>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Wallet" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Wallet" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "FIQ rewards, verified on Hedera" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'creditscore:overview' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'creditscore:overview' %}" class="row-span-2 flex min-h-[280px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-600 text-white">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400">
                 <ion-icon name="speedometer-outline" class="text-xl"></ion-icon>
             </span>
             {% if latest_credit_score %}
@@ -125,77 +156,101 @@
         </div>
         <div>
             <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Credit score" %}</p>
-            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if latest_credit_score %}{{ latest_credit_score.get_tier_display }}{% else %}{% trans "Not yet computed" %}{% endif %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if latest_credit_score %}{{ latest_credit_score.get_tier_display }}{% else %}{% trans "AI score from your real farm history" %}{% endif %}</p>
         </div>
     </a>
 
     {% if membership.can_manage_herd %}
-    <a href="{% url 'farms:block_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-white">
+    <a href="{% url 'farms:block_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
             <ion-icon name="map-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Blocks" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Blocks" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Organize paddocks and land" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'crops:crop_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-lime-600 text-white">
+    <a href="{% url 'crops:crop_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-50 text-lime-600 dark:bg-lime-950/40 dark:text-lime-400">
             <ion-icon name="leaf-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Crops" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Crops" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Track planting to harvest" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'inventory:item_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'inventory:item_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-violet-500 text-white">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400">
                 <ion-icon name="cube-outline" class="text-xl"></ion-icon>
             </span>
             {% if low_stock_count %}
             <span class="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">{{ low_stock_count }}</span>
             {% endif %}
         </div>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Inventory" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Inventory" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Feed, supplies & equipment" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'finance:transaction_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-teal-600 text-white">
+    <a href="{% url 'finance:transaction_list' %}" class="row-span-2 flex min-h-[280px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
             <ion-icon name="cash-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Finance" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Finance" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Income, expenses & net position" %}</p>
+        </div>
     </a>
 
-    <a href="{% url 'analysis:overview' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500 text-white">
+    <a href="{% url 'analysis:overview' %}" class="col-span-2 flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
             <ion-icon name="stats-chart-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Reports" %}</p>
-    </a>
-    {% endif %}
-
-    {% if membership.can_manage_workers %}
-    <a href="{% url 'farms:worker_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-white">
-            <ion-icon name="people-outline" class="text-xl"></ion-icon>
-        </span>
         <div>
-            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Team" %}</p>
-            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% blocktrans count c=worker_count %}{{ c }} member{% plural %}{{ c }} members{% endblocktrans %}</p>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Reports" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Analytics, AI predictions & exports" %}</p>
         </div>
     </a>
     {% endif %}
 
-    <a href="{% url 'accounts:settings' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-500 text-white">
+    {% if membership.can_manage_workers %}
+    <a href="{% url 'farms:worker_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                <ion-icon name="people-outline" class="text-xl"></ion-icon>
+            </span>
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ worker_count }}</span>
+        </div>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Team" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Invite and manage workers" %}</p>
+        </div>
+    </a>
+    {% endif %}
+
+    <a href="{% url 'accounts:settings' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
             <ion-icon name="settings-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Settings" %}</p>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Settings" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Profile & notifications" %}</p>
+        </div>
     </a>
 
     {% if membership.can_add_farms %}
-    <a href="{% url 'farms:add_farm' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 p-4 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:hover:bg-emerald-900">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-700 text-white dark:bg-emerald-600">
+    <a href="{% url 'farms:add_farm' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 p-4 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40 dark:hover:bg-emerald-950">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
             <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
         </span>
-        <p class="text-sm font-bold text-emerald-800 dark:text-emerald-300">{% trans "Add another farm" %}</p>
+        <div>
+            <p class="text-sm font-bold text-emerald-800 dark:text-emerald-300">{% trans "Add another farm" %}</p>
+            <p class="mt-0.5 text-xs text-emerald-700/70 dark:text-emerald-400/70">{% trans "Run more than one farm" %}</p>
+        </div>
     </a>
     {% endif %}
 
