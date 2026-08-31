@@ -1,5 +1,5 @@
 {% extends "app_base.html" %}
-{% load i18n %}
+{% load i18n hedera %}
 {% block title %}{{ cow }} - FarmIQ{% endblock %}
 {% block app_content %}
 <div class="mx-auto max-w-2xl">
@@ -12,6 +12,12 @@
             <div class="flex items-center gap-3">
                 <span class="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ cow.get_category_display }}</span>
                 <span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">{{ cow.get_status_display }}</span>
+                {% if cow.hedera_token_id %}
+                {% hedera_token_url cow.hedera_token_id cow.hedera_serial_number as hedera_url %}
+                <a href="{{ hedera_url }}" target="_blank" rel="noopener" class="flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100 dark:bg-violet-950 dark:text-violet-400 dark:hover:bg-violet-900">
+                    <ion-icon name="shield-checkmark-outline"></ion-icon> {% trans "Verified on Hedera" %}
+                </a>
+                {% endif %}
                 {% if active_membership.can_edit_or_delete %}
                 <a href="{% url 'cows:cow_edit' cow.id %}" class="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">{% trans "Edit" %}</a>
                 {% url 'cows:cow_delete' cow.id as delete_url %}

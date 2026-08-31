@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from .models import InventoryItem, StockMovement
 
 
@@ -15,20 +17,30 @@ def movement_delta(movement: StockMovement):
 
 def apply_movement(movement: StockMovement):
     """Adjust the parent item's current_stock for a newly created movement,
-    snapshotting the stock level beforehand so it can be reversed later."""
-    item = movement.item
-    movement.stock_before = item.current_stock
-    movement.save(update_fields=['stock_before'])
-    item.current_stock += movement_delta(movement)
-    item.save(update_fields=['current_stock'])
+    snapshotting the stock level beforehand so it can be reversed later.
+
+    select_for_update() + atomic() locks the item row for the duration of
+    this read-modify-write - without it, two concurrent movements on the
+    same item (e.g. two workers logging milk at once) could both read the
+    same current_stock and each write back based on stale data, silently
+    losing one of the two updates. This matters more now that stock
+    movements feed FIQ reward amounts and, eventually, credit scoring -
+    those numbers need to be exactly right, not just eventually-close."""
+    with transaction.atomic():
+        item = InventoryItem.objects.select_for_update().get(pk=movement.item_id)
+        movement.stock_before = item.current_stock
+        movement.save(update_fields=['stock_before'])
+        item.current_stock += movement_delta(movement)
+        item.save(update_fields=['current_stock'])
 
 
 def reverse_movement(movement: StockMovement):
     """Undo a movement's effect on its item's current_stock (used before
-    deleting a movement)."""
-    item = movement.item
-    item.current_stock -= movement_delta(movement)
-    item.save(update_fields=['current_stock'])
+    deleting a movement). Same locking rationale as apply_movement."""
+    with transaction.atomic():
+        item = InventoryItem.objects.select_for_update().get(pk=movement.item_id)
+        item.current_stock -= movement_delta(movement)
+        item.save(update_fields=['current_stock'])
 
 
 def _get_milk_item(farm):

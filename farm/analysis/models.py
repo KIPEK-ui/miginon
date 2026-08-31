@@ -27,6 +27,11 @@ class MilkPrediction(models.Model):
     contributions = models.JSONField(default=list, blank=True)
     explanation = models.CharField(max_length=255, blank=True)
     trained_at = models.DateTimeField(auto_now=True)
+    content_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    hedera_topic_id = models.CharField(max_length=20, blank=True)
+    hedera_sequence_number = models.PositiveIntegerField(null=True, blank=True)
+    hedera_consensus_timestamp = models.CharField(max_length=40, blank=True)
+    hedera_anchored_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('farm', 'scope', 'cow', 'block', 'predicted_date')

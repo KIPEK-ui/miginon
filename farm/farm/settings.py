@@ -89,6 +89,8 @@ INSTALLED_APPS = [
     'tasks',
     'weather',
     'advisory',
+    'blockchain',
+    'creditscore',
 
     'pwa',
 ]
@@ -310,3 +312,17 @@ PWA_SERVICE_WORKER_PATH = str(BASE_DIR / 'static' / 'pwa' / 'serviceworker.js')
 VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')  # type: ignore[arg-type]
 VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')  # type: ignore[arg-type]
 VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='admin@farmiq.solutions')  # type: ignore[arg-type]
+
+# --- Hedera Hashgraph ---------------------------------------------------------
+# One admin/treasury account pays every fee and holds every mint - farms never
+# get their own Hedera account; "who owns what" lives in FarmIQ's own database
+# (see blockchain.models.FiqLedgerEntry and the hedera_* fields on Cow/
+# CropActivity/MilkPrediction/Transaction). Only these two are real secrets,
+# so only these two live in .env, never committed - see .env.example. The
+# platform's 5 shared token/topic IDs are NOT secrets (they're public
+# identifiers, same as any HashScan link) - they live in the database
+# (blockchain.models.HederaConfig) and are created automatically the first
+# time each is actually needed, so there's nothing to paste here for them.
+HEDERA_NETWORK = env('HEDERA_NETWORK', default='testnet')  # type: ignore[arg-type]
+HEDERA_OPERATOR_ID = env('HEDERA_OPERATOR_ID', default='')  # type: ignore[arg-type]
+HEDERA_OPERATOR_KEY = env('HEDERA_OPERATOR_KEY', default='')  # type: ignore[arg-type]

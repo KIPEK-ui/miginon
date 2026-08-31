@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from .models import FarmMembership
 
@@ -32,10 +32,17 @@ def active_farm(request):
     since = active_membership.last_notifications_read_at or active_membership.created_at
     unread_notifications_count = notif_qs.filter(created_at__gt=since).count()
 
+    from blockchain.models import FiqLedgerEntry
+
+    fiq_balance = FiqLedgerEntry.objects.filter(
+        farm=active_membership.farm
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
     return {
         'my_memberships': memberships,
         'active_membership': active_membership,
         'active_farm_obj': active_membership.farm,
         'unread_notifications_count': unread_notifications_count,
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
+        'fiq_balance': fiq_balance,
     }

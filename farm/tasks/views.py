@@ -3,12 +3,28 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
+from blockchain.models import FiqLedgerEntry
+from blockchain.services import FIQ_REWARD_PER_TASK, mint_fiq
 from farms.permissions import any_member_required, manage_workers_required
 from notifications.models import Notification
 from notifications.services import notify
 
 from .forms import TaskForm
 from .models import Task
+
+
+def _reward_task_completion(task, worker_user):
+    """Live-mints FIQ for finishing a task - low enough frequency (a handful
+    a day per worker, not per data-entry keystroke) that a real Hedera
+    transaction per completion is fine, unlike raw record logging (see
+    blockchain.services and the DATA_RECORDED batching in blockchain.views).
+    Best-effort: a Hedera hiccup never blocks marking the task done."""
+    result = mint_fiq(FIQ_REWARD_PER_TASK)
+    if result:
+        FiqLedgerEntry.objects.create(
+            farm=task.farm, amount=FIQ_REWARD_PER_TASK, reason=FiqLedgerEntry.Reason.TASK_COMPLETED,
+            hedera_transaction_id=result['transaction_id'], task=task, earned_by=worker_user,
+        )
 
 
 def _visible_tasks(request):
@@ -99,7 +115,11 @@ def task_status_update(request, task_id):
         raise Http404
     new_status = request.POST.get('status')
     if request.method == 'POST' and new_status in Task.Status.values:
+        was_done = task.status == Task.Status.DONE
         task.mark_status(new_status)
+        if new_status == Task.Status.DONE and not was_done:
+            worker_user = task.assigned_to.user if task.assigned_to_id else request.user
+            _reward_task_completion(task, worker_user)
         notify_recipient = None
         if new_status == Task.Status.DONE and task.created_by_id and task.created_by_id != request.user.id:
             notify_recipient = task.created_by

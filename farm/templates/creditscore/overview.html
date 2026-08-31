@@ -1,0 +1,131 @@
+{% extends "app_base.html" %}
+{% load i18n hedera %}
+{% block title %}{% trans "Credit score" %} - FarmIQ{% endblock %}
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Credit score" %}</h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% trans "Derived from your farm's own operations - production, finance, tasks, and FIQ activity - and anchored on Hedera whenever it changes." %}</p>
+    </div>
+    {% if active_membership.can_manage_herd %}
+    <form method="post" action="{% url 'creditscore:recompute' %}">
+        {% csrf_token %}
+        <button type="submit" class="rounded-full bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-500">{% trans "Recompute" %}</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if latest %}
+<div class="rounded-2xl border border-cyan-200 bg-cyan-50 p-6 dark:border-cyan-900 dark:bg-cyan-950">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <p class="text-xs font-bold uppercase tracking-wide text-cyan-700 dark:text-cyan-400">{% trans "Score" %}</p>
+            <p class="mt-1 text-4xl font-extrabold text-cyan-900 dark:text-cyan-200">{{ latest.score }}<span class="text-lg font-bold">/100</span></p>
+        </div>
+        <span class="rounded-full px-3 py-1.5 text-sm font-bold text-white
+            {% if latest.tier == 'poor' %}bg-red-500{% elif latest.tier == 'fair' %}bg-amber-500{% elif latest.tier == 'good' %}bg-emerald-500{% else %}bg-emerald-700{% endif %}">
+            {{ latest.get_tier_display }}
+        </span>
+    </div>
+    <p class="mt-3 text-sm text-cyan-800 dark:text-cyan-300">
+        {% if latest.method == 'population' %}
+        {% blocktrans with n=latest.population_size %}Ranked against {{ n }} peer farms on the platform right now - this score is relative to your current peers, not an absolute measure, and can move if they change even if you don't.{% endblocktrans %}
+        {% else %}
+        {% trans "Provisional score - there aren't enough peer farms on the platform yet for a population-relative ranking, so this is a standalone estimate from your own data only." %}
+        {% endif %}
+    </p>
+    <p class="mt-2 text-xs text-cyan-700 dark:text-cyan-400">{% trans "Computed" %} {{ latest.computed_at|date:"d M Y, H:i" }}
+        {% if latest.hedera_anchored_at %}
+        · {% hedera_topic_url latest.hedera_topic_id as topic_url %}
+        <a href="{{ topic_url }}" target="_blank" rel="noopener" class="font-semibold underline hover:text-cyan-900 dark:hover:text-cyan-200">{% trans "Verified on Hedera" %} ↗</a>
+        {% endif %}
+    </p>
+</div>
+
+<div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Why this score" %}</h2>
+    <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{{ latest.explanation|capfirst }}</p>
+    <div class="mt-4 space-y-2">
+        {% for c in contributions_display %}
+        <div class="flex items-center gap-3">
+            <span class="w-44 shrink-0 text-xs font-semibold text-stone-500 dark:text-stone-400">{{ c.label|capfirst }}</span>
+            <div class="relative h-4 flex-1 rounded-full bg-stone-100 dark:bg-stone-800">
+                {% if c.impact >= 0 %}
+                <div class="absolute left-1/2 h-4 rounded-r-full bg-emerald-500" style="width: {% widthratio c.impact 100 50 %}%; max-width: 50%;"></div>
+                {% else %}
+                <div class="absolute right-1/2 h-4 rounded-l-full bg-red-400" style="width: {% widthratio c.impact -100 50 %}%; max-width: 50%;"></div>
+                {% endif %}
+                <div class="absolute left-1/2 h-4 w-px bg-stone-300 dark:bg-stone-600"></div>
+            </div>
+            <span class="w-10 shrink-0 text-right text-xs font-bold {% if c.impact >= 0 %}text-emerald-700 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                {% if c.impact >= 0 %}+{% endif %}{{ c.impact }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    <p class="mt-3 text-[11px] text-stone-400 dark:text-stone-500">
+        {% trans "Exact per-factor drivers of your score (not approximated), scaled relative to the strongest factor this time - not literal score points." %}
+    </p>
+</div>
+
+<div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Category breakdown" %}</h2>
+    <div class="mt-4 space-y-3">
+        {% for category, value in latest.category_breakdown.items %}
+        <div>
+            <div class="mb-1 flex items-center justify-between text-sm">
+                <span class="font-semibold text-stone-700 dark:text-stone-300">{{ category|capfirst }}</span>
+                <span class="font-bold text-stone-900 dark:text-stone-100">{{ value|floatformat:0 }}</span>
+            </div>
+            <div class="h-2 rounded-full bg-stone-100 dark:bg-stone-800">
+                <div class="h-2 rounded-full bg-cyan-600" style="width: {{ value }}%;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+    <div class="border-b border-stone-100 px-6 py-4 dark:border-stone-800">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "History" %}</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">
+                <tr>
+                    <th class="px-6 py-3">{% trans "Date" %}</th>
+                    <th class="px-6 py-3">{% trans "Score" %}</th>
+                    <th class="px-6 py-3">{% trans "Tier" %}</th>
+                    <th class="px-6 py-3">{% trans "Method" %}</th>
+                    <th class="px-6 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
+                {% for snapshot in history %}
+                <tr>
+                    <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ snapshot.computed_at|date:"d M Y, H:i" }}</td>
+                    <td class="px-6 py-3 font-bold text-stone-900 dark:text-stone-100">{{ snapshot.score }}</td>
+                    <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ snapshot.get_tier_display }}</td>
+                    <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ snapshot.get_method_display }}</td>
+                    <td class="px-6 py-3 text-right">
+                        {% if snapshot.hedera_anchored_at %}
+                        {% hedera_topic_url snapshot.hedera_topic_id as snap_topic_url %}
+                        <a href="{{ snap_topic_url }}" target="_blank" rel="noopener" class="text-xs font-semibold text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300">↗</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
+    {% if active_membership.can_manage_herd %}
+    {% trans "No credit score yet - tap Recompute to generate one from your farm's operational history." %}
+    {% else %}
+    {% trans "No credit score yet. A farmer, manager or supervisor needs to compute one first." %}
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

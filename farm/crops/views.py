@@ -1,7 +1,10 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from blockchain.models import FiqLedgerEntry
+from blockchain.services import FIQ_REWARD_PER_KG_HARVESTED, mint_fiq, mint_harvest_nft
 from farms.permissions import (
     any_member_required,
     edit_delete_required,
@@ -31,6 +34,36 @@ def _sync_harvest_movement(activity, farm, user):
     if activity.activity_type == CropActivity.ActivityType.HARVESTING and activity.quantity_harvested_kg:
         activity.stock_movement = record_crop_harvest(
             farm, activity.crop.name, activity.quantity_harvested_kg, activity.date, user
+        )
+
+
+def _sync_harvest_certificate(activity):
+    """Mint a harvest-certificate NFT (plus a proportional FIQ reward) the
+    first time this activity becomes a qualifying harvest. Idempotent via
+    the hedera_token_id guard - unlike the stock movement this can't be
+    meaningfully un-minted/re-minted on a later edit, so once set it's left
+    alone even if activity_type later changes away from harvesting (honest
+    provenance: this harvest happened and was certified at the time,
+    regardless of later reclassification)."""
+    if not (
+        activity.activity_type == CropActivity.ActivityType.HARVESTING
+        and activity.quantity_harvested_kg
+        and not activity.hedera_token_id
+    ):
+        return
+    result = mint_harvest_nft(activity)
+    if not result:
+        return
+    activity.hedera_token_id = result['token_id']
+    activity.hedera_serial_number = result['serial_number']
+    activity.hedera_transaction_id = result['transaction_id']
+    activity.hedera_minted_at = timezone.now()
+    fiq_amount = activity.quantity_harvested_kg * FIQ_REWARD_PER_KG_HARVESTED
+    fiq_result = mint_fiq(fiq_amount)
+    if fiq_result:
+        FiqLedgerEntry.objects.create(
+            farm=activity.farm, amount=fiq_amount, reason=FiqLedgerEntry.Reason.HARVEST_LOGGED,
+            hedera_transaction_id=fiq_result['transaction_id'], crop_activity=activity,
         )
 
 
@@ -104,7 +137,11 @@ def activity_create(request):
         activity.recorded_by = request.user
         activity.save()
         _sync_harvest_movement(activity, request.farm, request.user)
-        activity.save(update_fields=['stock_movement'])
+        _sync_harvest_certificate(activity)
+        activity.save(update_fields=[
+            'stock_movement', 'hedera_token_id', 'hedera_serial_number',
+            'hedera_transaction_id', 'hedera_minted_at',
+        ])
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'
@@ -125,7 +162,11 @@ def activity_edit(request, activity_id):
     if request.method == 'POST' and form.is_valid():
         form.save()
         _sync_harvest_movement(activity, request.farm, request.user)
-        activity.save(update_fields=['stock_movement'])
+        _sync_harvest_certificate(activity)
+        activity.save(update_fields=[
+            'stock_movement', 'hedera_token_id', 'hedera_serial_number',
+            'hedera_transaction_id', 'hedera_minted_at',
+        ])
         notify(
             request.farm, request.user, Notification.Verb.UPDATED, 'crop activity',
             f'{activity.get_activity_type_display()} - {activity.crop.name}'

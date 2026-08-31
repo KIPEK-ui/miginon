@@ -100,6 +100,35 @@
         <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Advisory" %}</p>
     </a>
 
+    <a href="{% url 'blockchain:wallet' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white">
+                <ion-icon name="wallet-outline" class="text-xl"></ion-icon>
+            </span>
+            <span class="text-sm font-extrabold text-stone-900 dark:text-stone-100">{{ fiq_balance }} FIQ</span>
+        </div>
+        <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Wallet" %}</p>
+    </a>
+
+    <a href="{% url 'creditscore:overview' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-600 text-white">
+                <ion-icon name="speedometer-outline" class="text-xl"></ion-icon>
+            </span>
+            {% if latest_credit_score %}
+            <span class="rounded-full px-2 py-0.5 text-xs font-bold text-white
+                {% if latest_credit_score.tier == 'poor' %}bg-red-500
+                {% elif latest_credit_score.tier == 'fair' %}bg-amber-500
+                {% elif latest_credit_score.tier == 'good' %}bg-emerald-500
+                {% else %}bg-emerald-700{% endif %}">{{ latest_credit_score.score }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Credit score" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if latest_credit_score %}{{ latest_credit_score.get_tier_display }}{% else %}{% trans "Not yet computed" %}{% endif %}</p>
+        </div>
+    </a>
+
     {% if membership.can_manage_herd %}
     <a href="{% url 'farms:block_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
         <span class="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-white">

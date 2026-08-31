@@ -22,6 +22,7 @@ from .ml.correlation import feed_milk_correlation
 from .ml.predict import predict_block, predict_cow, predict_farm
 from .models import MilkPrediction
 from .reports import build_report, resolve_period
+from .services import anchor_changed_predictions
 
 logger = logging.getLogger(__name__)
 
@@ -146,8 +147,9 @@ def email_report(request):
 # ------------------------------------------------------- AI production analytics
 
 def _store_predictions(farm, scope, predictions, cow=None, block=None):
+    stored = []
     for p in predictions:
-        MilkPrediction.objects.update_or_create(
+        obj, _created = MilkPrediction.objects.update_or_create(
             farm=farm, scope=scope, cow=cow, block=block, predicted_date=p['date'],
             defaults={
                 'predicted_liters': p['predicted_liters'],
@@ -155,6 +157,9 @@ def _store_predictions(farm, scope, predictions, cow=None, block=None):
                 'explanation': p.get('explanation', ''),
             },
         )
+        stored.append(obj)
+    anchor_changed_predictions(stored)
+    return stored
 
 
 @analysis_required
@@ -164,8 +169,11 @@ def predictions_overview(request):
     start = today - timedelta(days=29)
 
     farm_forecast = predict_farm(farm)
+    anchored_dates = {}
     if farm_forecast:
-        _store_predictions(farm, MilkPrediction.Scope.FARM, farm_forecast['daily'])
+        stored = _store_predictions(farm, MilkPrediction.Scope.FARM, farm_forecast['daily'])
+        anchored_dates = {obj.predicted_date: obj for obj in stored if obj.hedera_anchored_at}
+    prediction_topic_id = next((obj.hedera_topic_id for obj in anchored_dates.values()), '')
 
     correlation = feed_milk_correlation(farm, start, today)
     blocks = Block.objects.filter(farm=farm).order_by('name')
@@ -174,6 +182,8 @@ def predictions_overview(request):
         'forecast': farm_forecast['daily'] if farm_forecast else None,
         'correlation': correlation,
         'blocks': blocks,
+        'anchored_dates': anchored_dates,
+        'prediction_topic_id': prediction_topic_id,
     })
 
 
@@ -188,8 +198,11 @@ def predictions_block(request, block_id):
 
     cows = block_obj.cows.filter(status=Cow.Status.ACTIVE)
     result = predict_block(farm, block_obj, cows)
+    anchored_dates = {}
     if result:
-        _store_predictions(farm, MilkPrediction.Scope.BLOCK, result['daily'], block=block_obj)
+        stored = _store_predictions(farm, MilkPrediction.Scope.BLOCK, result['daily'], block=block_obj)
+        anchored_dates = {obj.predicted_date: obj for obj in stored if obj.hedera_anchored_at}
+    prediction_topic_id = next((obj.hedera_topic_id for obj in anchored_dates.values()), '')
 
     correlation = feed_milk_correlation(farm, start, today, block=block_obj)
 
@@ -198,6 +211,8 @@ def predictions_block(request, block_id):
         'forecast': result['daily'] if result else None,
         'correlation': correlation,
         'cows': cows,
+        'anchored_dates': anchored_dates,
+        'prediction_topic_id': prediction_topic_id,
     })
 
 
@@ -209,8 +224,11 @@ def predictions_cow(request, cow_id):
     start = today - timedelta(days=29)
 
     predictions = predict_cow(farm, cow)
+    anchored_dates = {}
     if predictions:
-        _store_predictions(farm, MilkPrediction.Scope.COW, predictions, cow=cow)
+        stored = _store_predictions(farm, MilkPrediction.Scope.COW, predictions, cow=cow)
+        anchored_dates = {obj.predicted_date: obj for obj in stored if obj.hedera_anchored_at}
+    prediction_topic_id = next((obj.hedera_topic_id for obj in anchored_dates.values()), '')
 
     correlation = feed_milk_correlation(farm, start, today, cow=cow)
 
@@ -218,4 +236,6 @@ def predictions_cow(request, cow_id):
         'cow': cow,
         'predictions': predictions,
         'correlation': correlation,
+        'anchored_dates': anchored_dates,
+        'prediction_topic_id': prediction_topic_id,
     })

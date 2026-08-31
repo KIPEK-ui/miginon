@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _l
 from accounts.models import User
 from core.email import send_styled_email_safely
 from cows.models import Cow, FeedingRecord, MilkRecord
+from creditscore.models import CreditScoreSnapshot
 from crops.models import Crop
 from finance.models import Transaction
 from inventory.models import InventoryItem
@@ -125,6 +126,7 @@ def dashboard(request):
         'worker_count': FarmMembership.objects.filter(
             farm=farm, status=FarmMembership.Status.ACTIVE
         ).exclude(role=FarmRole.FARMER).count(),
+        'latest_credit_score': CreditScoreSnapshot.objects.filter(farm=farm).first(),
     }
     return render(request, 'farms/dashboard.html', context)
 

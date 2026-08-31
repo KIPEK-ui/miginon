@@ -1,5 +1,5 @@
 {% extends "app_base.html" %}
-{% load i18n %}
+{% load i18n hedera %}
 {% block title %}{{ crop.name }} - FarmIQ{% endblock %}
 {% block app_content %}
 {% trans "No field set" as no_field_set %}
@@ -53,6 +53,12 @@
                     <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ a.date }}</td>
                     <td class="px-6 py-3">
                         <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ a.get_activity_type_display }}</span>
+                        {% if a.hedera_token_id %}
+                        {% hedera_token_url a.hedera_token_id a.hedera_serial_number as hedera_url %}
+                        <a href="{{ hedera_url }}" target="_blank" rel="noopener" class="ml-1 inline-flex items-center text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300" title="{% trans 'Verified on Hedera' %}">
+                            <ion-icon name="shield-checkmark-outline"></ion-icon>
+                        </a>
+                        {% endif %}
                     </td>
                     <td class="px-6 py-3 font-semibold text-stone-800 dark:text-stone-200">{{ a.quantity_harvested_kg|default:"—" }}{% if a.quantity_harvested_kg %} kg{% endif %}</td>
                     <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ a.notes|default:"—" }}</td>

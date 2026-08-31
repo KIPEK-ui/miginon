@@ -31,6 +31,11 @@ class Transaction(models.Model):
         on_delete=models.SET_NULL, related_name='transactions'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    content_hash = models.CharField(max_length=64, blank=True)
+    hedera_topic_id = models.CharField(max_length=20, blank=True)
+    hedera_sequence_number = models.PositiveIntegerField(null=True, blank=True)
+    hedera_consensus_timestamp = models.CharField(max_length=40, blank=True)
+    hedera_anchored_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-date', '-created_at']

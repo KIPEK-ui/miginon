@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import transaction as db_transaction
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
@@ -11,6 +12,7 @@ from notifications.services import notify
 
 from .forms import MilkSaleForm, TransactionForm
 from .models import Transaction
+from .services import anchor_transaction
 
 
 @any_member_required
@@ -38,7 +40,9 @@ def transaction_create(request):
         transaction = form.save(commit=False)
         transaction.farm = request.farm
         transaction.recorded_by = request.user
-        transaction.save()
+        with db_transaction.atomic():
+            transaction.save()
+        anchor_transaction(transaction)
         notify(
             request.farm, request.user, Notification.Verb.CREATED, 'transaction',
             f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
@@ -61,13 +65,21 @@ def milk_sale_create(request):
         note = form.cleaned_data['note']
 
         description = f'{liters}L milk sale' + (f' - {note}' if note else '')
-        transaction = Transaction.objects.create(
-            farm=request.farm, kind=Transaction.Kind.INCOME, category=Transaction.Category.SALES,
-            amount=amount, date=date, note=description, recorded_by=request.user,
-        )
         milk_item = InventoryItem.objects.filter(farm=request.farm, name='Milk').first()
         stock_before = milk_item.current_stock if milk_item else 0
-        record_milk_sale(request.farm, liters, date, request.user)
+        # The income record and the stock it draws down must succeed or fail
+        # together - without this, a mid-write failure could leave a sale
+        # "recorded" with no matching stock deduction (or vice versa), and
+        # that kind of silent mismatch is exactly what the coming credit-
+        # scoring module (reading finance + FIQ data as ground truth) can't
+        # tolerate.
+        with db_transaction.atomic():
+            transaction = Transaction.objects.create(
+                farm=request.farm, kind=Transaction.Kind.INCOME, category=Transaction.Category.SALES,
+                amount=amount, date=date, note=description, recorded_by=request.user,
+            )
+            record_milk_sale(request.farm, liters, date, request.user)
+        anchor_transaction(transaction)
         notify(request.farm, request.user, Notification.Verb.CREATED, 'transaction', description)
 
         messages.success(
@@ -85,7 +97,8 @@ def transaction_edit(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, farm=request.farm)
     form = TransactionForm(request.POST or None, instance=transaction)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        with db_transaction.atomic():
+            form.save()
         notify(
             request.farm, request.user, Notification.Verb.UPDATED, 'transaction',
             f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
@@ -100,7 +113,8 @@ def transaction_delete(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, farm=request.farm)
     if request.method == 'POST':
         description = f'{transaction.get_kind_display()} - {transaction.amount} ({transaction.get_category_display()})'
-        transaction.delete()
+        with db_transaction.atomic():
+            transaction.delete()
         notify(request.farm, request.user, Notification.Verb.DELETED, 'transaction', description)
         messages.success(request, _('Transaction deleted.'))
     return redirect('finance:transaction_list')

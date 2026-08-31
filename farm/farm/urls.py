@@ -18,6 +18,8 @@ urlpatterns = [
     path('tasks/', include('tasks.urls')),
     path('weather/', include('weather.urls')),
     path('advisory/', include('advisory.urls')),
+    path('wallet/', include('blockchain.urls')),
+    path('credit-score/', include('creditscore.urls')),
 ]
 
 if settings.DEBUG:

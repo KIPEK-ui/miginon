@@ -56,6 +56,10 @@ class CropActivity(models.Model):
         help_text=_('The produce inventory restock this harvesting activity produced.')
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    hedera_token_id = models.CharField(max_length=20, blank=True)
+    hedera_serial_number = models.PositiveIntegerField(null=True, blank=True)
+    hedera_transaction_id = models.CharField(max_length=40, blank=True)
+    hedera_minted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-date', '-created_at']

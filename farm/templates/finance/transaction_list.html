@@ -1,5 +1,5 @@
 {% extends "app_base.html" %}
-{% load i18n %}
+{% load i18n hedera %}
 {% block title %}{% trans "Finance" %} - FarmIQ{% endblock %}
 {% block app_content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -53,7 +53,14 @@
                     <td class="px-6 py-3 font-bold {% if t.kind == 'income' %}text-emerald-700 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">
                         {% if t.kind == 'income' %}+{% else %}-{% endif %}{{ t.amount }}
                     </td>
-                    <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ t.note|default:"—" }}</td>
+                    <td class="px-6 py-3 text-stone-500 dark:text-stone-400">
+                        {{ t.note|default:"—" }}
+                        {% if t.hedera_anchored_at %}
+                        <a href="{% hedera_topic_url t.hedera_topic_id %}" target="_blank" rel="noopener" class="ml-1 inline-flex items-center text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300" title="{% trans 'Verified on Hedera' %}">
+                            <ion-icon name="shield-checkmark-outline"></ion-icon>
+                        </a>
+                        {% endif %}
+                    </td>
                     {% if active_membership.can_edit_or_delete %}
                     <td class="px-6 py-3">
                         <div class="flex justify-end gap-3">

@@ -3,8 +3,11 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from blockchain.models import FiqLedgerEntry
+from blockchain.services import FIQ_REWARD_PER_COW, mint_cow_nft, mint_fiq
 from core.email import send_styled_email_safely
 from farms.permissions import (
     any_member_required,
@@ -46,6 +49,19 @@ def cow_create(request):
         cow.farm = request.farm
         cow.added_by = request.user
         cow.save()
+        result = mint_cow_nft(cow)
+        if result:
+            cow.hedera_token_id = result['token_id']
+            cow.hedera_serial_number = result['serial_number']
+            cow.hedera_transaction_id = result['transaction_id']
+            cow.hedera_minted_at = timezone.now()
+            cow.save(update_fields=['hedera_token_id', 'hedera_serial_number', 'hedera_transaction_id', 'hedera_minted_at'])
+            fiq_result = mint_fiq(FIQ_REWARD_PER_COW)
+            if fiq_result:
+                FiqLedgerEntry.objects.create(
+                    farm=request.farm, amount=FIQ_REWARD_PER_COW, reason=FiqLedgerEntry.Reason.COW_REGISTERED,
+                    hedera_transaction_id=fiq_result['transaction_id'], cow=cow,
+                )
         notify(request.farm, request.user, Notification.Verb.CREATED, 'cow', str(cow))
         messages.success(request, _('%(cow)s added to %(block)s.') % {'cow': cow, 'block': cow.block.name})
         return redirect('cows:cow_list')
