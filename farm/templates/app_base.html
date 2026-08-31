@@ -7,7 +7,7 @@
             <a href="{% url 'farms:dashboard' %}" class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl opacity-90 hover:opacity-100" aria-label="{% trans 'Home' %}">
                 <img src="{% static 'images/logo-mark.svg' %}" alt="FarmIQ" class="h-9 w-9 rounded-xl">
             </a>
-            {% if my_memberships|length > 1 %}
+            {% if my_memberships|length > 1 or active_membership.can_add_farms %}
             <div class="relative">
                 <details class="group">
                     <summary class="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-900">
@@ -24,6 +24,12 @@
                             </button>
                         </form>
                         {% endfor %}
+                        {% if active_membership.can_add_farms %}
+                        <div class="my-1 h-px bg-stone-100 dark:bg-stone-800"></div>
+                        <a href="{% url 'farms:add_farm' %}" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950">
+                            <ion-icon name="add-circle-outline"></ion-icon> {% trans "Add another farm" %}
+                        </a>
+                        {% endif %}
                     </div>
                 </details>
             </div>

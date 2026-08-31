@@ -126,8 +126,14 @@ def build_report(farm, start, end, period_label):
     income = tx_totals['income'] or 0
     expense = tx_totals['expense'] or 0
 
-    kind_labels = dict(Transaction.Kind.choices)
-    category_labels = dict(Transaction.Category.choices)
+    # str() each label eagerly - Transaction.Kind.choices labels are
+    # gettext_lazy proxies, not real str instances. CSV/PDF happen to work
+    # anyway (csv.writer and str(v) in exporters.build_pdf_bytes both coerce
+    # implicitly), but openpyxl's Cell rejects anything that isn't a true
+    # str/int/float/bool/datetime, so the untouched proxy blows up XLSX
+    # export specifically with "Cannot convert 'Income' to Excel".
+    kind_labels = {value: str(label) for value, label in Transaction.Kind.choices}
+    category_labels = {value: str(label) for value, label in Transaction.Category.choices}
     tx_by_category = [
         {
             'kind': kind_labels.get(row['kind'], row['kind']),
