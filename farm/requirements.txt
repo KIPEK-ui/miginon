@@ -41,6 +41,7 @@ polib==1.2.0
 propcache==0.5.2
 protobuf==7.36.0
 psutil==7.2.2
+psycopg==3.3.4
 psycopg-binary==3.3.4
 py-vapid==1.9.4
 pycparser==3.0
