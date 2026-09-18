@@ -38,4 +38,18 @@ def notify(farm, actor, verb, kind, description, recipient=None):
             url='/notifications/',
         )
 
+    # WhatsApp is a separate opt-in from the in-app/push delivery choice
+    # above (see accounts.User.whatsapp_notifications_enabled) - a user can
+    # turn it on regardless of their notification_delivery setting. Scoped
+    # to targeted notifications only, same rule as push.
+    if recipient is not None and recipient.whatsapp_notifications_enabled and recipient.whatsapp_number:
+        from .whatsapp import send_whatsapp_message
+
+        who = actor.get_short_name() if actor else 'Someone'
+        verb_label = dict(Notification.Verb.choices).get(verb, verb)
+        send_whatsapp_message(
+            recipient.whatsapp_number,
+            f'{farm.name}: {who} {verb_label} {kind}: {description}',
+        )
+
     return notification

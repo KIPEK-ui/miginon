@@ -1,0 +1,56 @@
+{% extends "website/public_base.html" %}
+{% load i18n hedera %}
+{% block site_content %}
+<section class="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-20">
+    <div class="text-center">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-violet-700 dark:bg-violet-950 dark:text-violet-400">
+            <ion-icon name="shield-checkmark-outline"></ion-icon> {% trans "Verified on Hedera Hashgraph" %}
+        </span>
+        <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{{ page.headline|default:page.title }}</h1>
+        {% if page.subheading %}
+        <p class="mx-auto mt-3 max-w-xl text-stone-500 dark:text-stone-400">{{ page.subheading }}</p>
+        {% endif %}
+    </div>
+
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Active herd" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ stats.active_cows }}</p>
+        </div>
+        <div class="rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Cows verified on-chain" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ stats.verified_cows }}</p>
+        </div>
+        <div class="rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Harvests verified on-chain" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ stats.verified_harvests }}</p>
+        </div>
+        <div class="rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Milk production certified" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ stats.certified_liters }} L</p>
+        </div>
+        <div class="rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Years on FarmIQ" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{{ stats.years_active }}</p>
+        </div>
+        {% if stats.latest_score %}
+        <div class="rounded-2xl border border-violet-100 bg-violet-50 p-5 dark:border-violet-900 dark:bg-violet-950">
+            <p class="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-400">{% trans "Credit tier" %}</p>
+            <p class="mt-2 text-2xl font-extrabold text-violet-900 dark:text-violet-200">{{ stats.latest_score.get_tier_display }}</p>
+            {% if stats.latest_score.hedera_anchored_at %}
+            {% hedera_topic_url stats.latest_score.hedera_topic_id as score_topic_url %}
+            <a href="{{ score_topic_url }}" target="_blank" rel="noopener" class="mt-1 inline-block text-xs font-semibold text-violet-700 underline hover:text-violet-900 dark:text-violet-400 dark:hover:text-violet-200">{% trans "Verify independently" %} ↗</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if page.body %}
+    <div class="mt-10 text-center text-sm text-stone-500 dark:text-stone-400" style="white-space: pre-line;">{{ page.body }}</div>
+    {% endif %}
+
+    <p class="mt-10 text-center text-xs text-stone-400 dark:text-stone-500">
+        {% trans "Every figure above comes straight from this farm's own FarmIQ records - herd and harvest counts are backed by real tokens on Hedera Hashgraph, independently checkable by anyone." %}
+    </p>
+</section>
+{% endblock %}

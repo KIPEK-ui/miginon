@@ -81,6 +81,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text=_('How you want to be notified about things targeted at you specifically '
                     '(a task assigned to you, low stock, etc.) - not the general farm activity feed.')
     )
+    whatsapp_number = models.CharField(
+        max_length=20, blank=True,
+        help_text=_('In international format, e.g. +2547XXXXXXXX - required to enable WhatsApp notifications below.')
+    )
+    whatsapp_notifications_enabled = models.BooleanField(
+        default=False,
+        help_text=_('Also send targeted notifications (a task assigned to you, low stock, etc.) to WhatsApp. '
+                    'Independent of the in-app/push preference above.')
+    )
     theme_preference = models.CharField(
         max_length=5, choices=ThemePreference.choices, default=ThemePreference.LIGHT,
     )
@@ -88,6 +97,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=2, choices=Language.choices, default=Language.ENGLISH,
     )
 
+    has_seen_dashboard_tour = models.BooleanField(
+        default=False,
+        help_text=_('Whether this user has already been shown the interactive dashboard '
+                    'walkthrough - per-user (not per-farm), so a worker invited onto an '
+                    'already-set-up farm still sees it once on their own first login.')
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)

@@ -32,4 +32,6 @@ urlpatterns = [
     path('settings/email/', views.settings_email, name='settings_email'),
     path('settings/email/otp/', views.settings_email_otp, name='settings_email_otp'),
     path('settings/email/otp/resend/', views.resend_settings_email_otp, name='resend_settings_email_otp'),
+
+    path('tour/seen/', views.mark_tour_seen, name='mark_tour_seen'),
 ]

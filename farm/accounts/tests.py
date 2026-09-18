@@ -199,3 +199,40 @@ class PermissionTests(TestCase):
         self.assertRedirects(r, '/farm/')
         messages_text = ' '.join(str(m) for m in r.context['messages'])
         self.assertIn('only farmers and farm managers', messages_text.lower())
+
+
+class DashboardTourTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email='new@example.com', first_name='New')
+        self.farm = Farm.objects.create(name='Tour Farm', owner=self.user, country='KE')
+        FarmMembership.objects.create(user=self.user, farm=self.farm, role='farmer', status=FarmMembership.Status.ACTIVE)
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['active_farm_id'] = self.farm.id
+        session.save()
+
+    def test_show_tour_is_true_for_a_fresh_user(self):
+        response = self.client.get('/farm/')
+        self.assertTrue(response.context['show_tour'])
+
+    def test_show_tour_is_false_once_seen(self):
+        self.user.has_seen_dashboard_tour = True
+        self.user.save(update_fields=['has_seen_dashboard_tour'])
+        response = self.client.get('/farm/')
+        self.assertFalse(response.context['show_tour'])
+
+    def test_mark_tour_seen_sets_the_flag(self):
+        self.assertFalse(self.user.has_seen_dashboard_tour)
+        response = self.client.post('/accounts/tour/seen/')
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.has_seen_dashboard_tour)
+
+    def test_mark_tour_seen_requires_login(self):
+        self.client.logout()
+        response = self.client.post('/accounts/tour/seen/')
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_mark_tour_seen_requires_post(self):
+        response = self.client.get('/accounts/tour/seen/')
+        self.assertNotEqual(response.status_code, 200)

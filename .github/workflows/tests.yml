@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: farm
+    env:
+      # Every other setting in farm/settings.py already falls back to a safe
+      # empty/console default (EMAIL, VAPID, TOMTOM, AWS, Hedera) - only the
+      # database needs overriding here, so CI never touches the real Neon
+      # instance configured in the (gitignored) local .env.
+      DATABASE_URL: "sqlite:///:memory:"
+      SECRET_KEY: "ci-test-secret-key"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: farm/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django checks
+        run: python manage.py check
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: python manage.py test

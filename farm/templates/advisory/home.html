@@ -38,6 +38,16 @@
         </div>
     </a>
 
+    <a href="{% url 'advisory:learning_path_list' %}" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+            <ion-icon name="school-outline" class="text-2xl"></ion-icon>
+        </span>
+        <div class="min-w-0">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{% trans "Learning paths" %}</p>
+            <p class="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{% trans "Getting started with your dairy farm & more" %}</p>
+        </div>
+    </a>
+
     <a href="{% url 'advisory:agri_centers' %}" class="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-800">
         <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-white">
             <ion-icon name="location-outline" class="text-2xl"></ion-icon>

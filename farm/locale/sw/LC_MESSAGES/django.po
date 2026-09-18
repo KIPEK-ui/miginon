@@ -3014,3 +3014,215 @@ msgstr "Wasifu na arifa"
 
 msgid "Run more than one farm"
 msgstr "Endesha zaidi ya shamba moja"
+
+msgid "Website"
+msgstr "Tovuti"
+
+msgid "Publish your farm's public site"
+msgstr "Chapisha tovuti ya umma ya shamba lako"
+
+msgid "Publish your own public site - marketing pages, and your verified farm record, at one address."
+msgstr "Chapisha tovuti yako ya umma - kurasa za uuzaji, na rekodi yako ya shamba iliyothibitishwa, kwenye anwani moja."
+
+msgid "Your address"
+msgstr "Anwani yako"
+
+msgid "Live"
+msgstr "Hai"
+
+msgid "Draft - not public yet"
+msgstr "Rasimu - bado haijachapishwa hadharani"
+
+msgid "View your live site"
+msgstr "Tazama tovuti yako hai"
+
+msgid "Save settings"
+msgstr "Hifadhi mipangilio"
+
+msgid "Pages"
+msgstr "Kurasa"
+
+msgid "%(c)s page published to your site"
+msgid_plural "%(c)s pages published to your site"
+msgstr[0] "ukurasa %(c)s umechapishwa kwenye tovuti yako"
+msgstr[1] "kurasa %(c)s zimechapishwa kwenye tovuti yako"
+
+msgid "Manage pages"
+msgstr "Simamia kurasa"
+
+msgid "Powered by FarmIQ"
+msgstr "Inaendeshwa na FarmIQ"
+
+msgid "Edit page"
+msgstr "Hariri ukurasa"
+
+msgid "Add page"
+msgstr "Ongeza ukurasa"
+
+msgid "Add a page"
+msgstr "Ongeza ukurasa"
+
+msgid "About layouts"
+msgstr "Kuhusu miundo"
+
+msgid "Hero landing & Article - use headline, subheading, body, image and the call-to-action button."
+msgstr "Ukurasa mkuu na Makala - tumia kichwa, kichwa kidogo, maandishi, picha na kitufe cha wito wa kutenda."
+
+msgid "Verified farm stats - fills itself in from your real, Hedera-verified farm record. No fields needed."
+msgstr "Takwimu za shamba zilizothibitishwa - hujaza yenyewe kutoka rekodi yako halisi ya shamba iliyothibitishwa na Hedera. Hakuna sehemu zinazohitajika."
+
+msgid "Contact - uses body plus your phone and email."
+msgstr "Wasiliana - hutumia maandishi pamoja na simu na barua pepe yako."
+
+msgid "Add page →"
+msgstr "Ongeza ukurasa →"
+
+msgid "Every page on your public website."
+msgstr "Kila ukurasa kwenye tovuti yako ya umma."
+
+msgid "Delete page"
+msgstr "Futa ukurasa"
+
+msgid "Delete this page? This cannot be undone."
+msgstr "Futa ukurasa huu? Hili haliwezi kutenduliwa."
+
+msgid "Draft preview - not visible to the public yet"
+msgstr "Muhtasari wa rasimu - bado haujaonekana kwa umma"
+
+msgid "Emerald"
+msgstr "Zumaridi"
+
+msgid "Harvest (amber)"
+msgstr "Mavuno (rangi ya dhahabu)"
+
+msgid "Sky (blue)"
+msgstr "Anga (bluu)"
+
+msgid "Berry (rose)"
+msgstr "Beri (waridi)"
+
+msgid "Earth (terracotta)"
+msgstr "Udongo (kaharabu)"
+
+msgid "Site settings"
+msgstr "Mipangilio ya tovuti"
+
+msgid "+ Add page"
+msgstr "+ Ongeza ukurasa"
+
+msgid "Title"
+msgstr "Kichwa"
+
+msgid "Address"
+msgstr "Anwani"
+
+msgid "Layout"
+msgstr "Muundo"
+
+msgid "Homepage"
+msgstr "Ukurasa mkuu"
+
+msgid "No pages yet - add your first one to get your site live."
+msgstr "Hakuna kurasa bado - ongeza ya kwanza ili kuifanya tovuti yako iwe hai."
+
+msgid "Phone"
+msgstr "Simu"
+
+msgid "This site is still being built"
+msgstr "Tovuti hii bado inajengwa"
+
+msgid "%(name)s hasn't published a homepage yet."
+msgstr "%(name)s bado haijachapisha ukurasa mkuu."
+
+msgid "Verified on Hedera Hashgraph"
+msgstr "Imethibitishwa kwenye Hedera Hashgraph"
+
+msgid "Active herd"
+msgstr "Mifugo hai"
+
+msgid "Cows verified on-chain"
+msgstr "Ng'ombe walioidhinishwa kwenye blockchain"
+
+msgid "Harvests verified on-chain"
+msgstr "Mavuno yaliyoidhinishwa kwenye blockchain"
+
+msgid "Milk production certified"
+msgstr "Uzalishaji wa maziwa ulioidhinishwa"
+
+msgid "Years on FarmIQ"
+msgstr "Miaka kwenye FarmIQ"
+
+msgid "Credit tier"
+msgstr "Kiwango cha mkopo"
+
+msgid "Verify independently"
+msgstr "Thibitisha kwa kujitegemea"
+
+msgid "Every figure above comes straight from this farm's own FarmIQ records - herd and harvest counts are backed by real tokens on Hedera Hashgraph, independently checkable by anyone."
+msgstr "Kila nambari hapo juu inatoka moja kwa moja kwenye rekodi za FarmIQ za shamba hili - idadi za mifugo na mavuno zinaungwa mkono na ishara halisi kwenye Hedera Hashgraph, zinazoweza kuthibitishwa na mtu yeyote kwa kujitegemea."
+
+msgid "Hero landing"
+msgstr "Ukurasa mkuu"
+
+msgid "Article / About"
+msgstr "Makala / Kuhusu"
+
+msgid "Verified farm stats"
+msgstr "Takwimu za shamba zilizothibitishwa"
+
+msgid "Contact"
+msgstr "Wasiliana"
+
+msgid "Leave blank to make this the homepage."
+msgstr "Acha wazi kuifanya hii kuwa ukurasa mkuu."
+
+msgid "Link to an image hosted elsewhere."
+msgstr "Kiungo cha picha iliyowekwa mahali pengine."
+
+msgid "e.g. green-valley-farm"
+msgstr "mf. green-valley-farm"
+
+msgid "e.g. Certified dairy, Uasin Gishu"
+msgstr "mf. Maziwa yaliyoidhinishwa, Uasin Gishu"
+
+msgid "That address is already taken - try another."
+msgstr "Anwani hiyo tayari imechukuliwa - jaribu nyingine."
+
+msgid "e.g. Home, About us, Contact"
+msgstr "mf. Nyumbani, Kuhusu sisi, Wasiliana"
+
+msgid "Leave blank for the homepage"
+msgstr "Acha wazi kwa ukurasa mkuu"
+
+msgid "The big line visitors see first"
+msgstr "Mstari mkubwa ambao wageni wanaona kwanza"
+
+msgid "Optional supporting line"
+msgstr "Mstari wa ziada wa hiari"
+
+msgid "e.g. Contact us"
+msgstr "mf. Wasiliana nasi"
+
+msgid "This farm already has a page at that address."
+msgstr "Shamba hili tayari lina ukurasa kwenye anwani hiyo."
+
+msgid "This farm already has a homepage - only one page can be blank."
+msgstr "Shamba hili tayari lina ukurasa mkuu - ukurasa mmoja tu unaweza kuwa wazi."
+
+msgid "Draft"
+msgstr "Rasimu"
+
+msgid "Preview"
+msgstr "Hakiki"
+
+msgid "Mobile"
+msgstr "Simu"
+
+msgid "Desktop"
+msgstr "Kompyuta"
+
+msgid "Publish your site to preview it here"
+msgstr "Chapisha tovuti yako ili kuihakiki hapa"
+
+msgid "Go to site settings"
+msgstr "Nenda kwa mipangilio ya tovuti"

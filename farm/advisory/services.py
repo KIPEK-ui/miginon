@@ -1,8 +1,17 @@
 from math import asin, cos, radians, sin, sqrt
 
-from .models import AgriCenter
+from .models import AgriCenter, CropSuitability
 
 EARTH_RADIUS_KM = 6371
+
+
+def recommended_crops_for_county(county):
+    """Crop suitability rows for `county` - [] for a blank/unmatched county,
+    same graceful-degradation contract as nearest_agri_centers below (a farm
+    with no county set just gets no recommendations, not an error)."""
+    if not county:
+        return []
+    return list(CropSuitability.objects.filter(county=county))
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):

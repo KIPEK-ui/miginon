@@ -11,7 +11,14 @@ class Crop(models.Model):
 
     farm = models.ForeignKey('farms.Farm', on_delete=models.CASCADE, related_name='crops')
     name = models.CharField(max_length=100)
-    field_name = models.CharField(max_length=100, blank=True)
+    field_name = models.CharField(
+        max_length=100, blank=True,
+        help_text=_('Free-text label - used only when this crop has no mapped land_parcel below.')
+    )
+    land_parcel = models.ForeignKey(
+        'geomap.LandParcel', null=True, blank=True, on_delete=models.SET_NULL, related_name='crops',
+        help_text=_('A GPS-mapped field from GeoMap, if this crop has one - preferred over field_name when set.')
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PLANNED)
     planted_on = models.DateField(null=True, blank=True)
     expected_harvest = models.DateField(null=True, blank=True)
@@ -26,6 +33,15 @@ class Crop(models.Model):
 
     def __str__(self):
         return f'{self.name} - {self.farm.name}'
+
+    @property
+    def field_label(self):
+        """The GPS-mapped parcel's name when this crop has one, else the
+        free-text field_name, else nothing - the parcel is authoritative
+        when both are somehow set."""
+        if self.land_parcel_id:
+            return self.land_parcel.name
+        return self.field_name
 
 
 class CropActivity(models.Model):

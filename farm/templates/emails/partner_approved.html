@@ -1,0 +1,35 @@
+{% extends "emails/base_email.html" %}
+{% load i18n %}
+{% block title %}{% trans "Your FarmIQ data partner access is approved" %}{% endblock %}
+{% block preheader %}{% blocktrans with name=partner.name %}{{ name }} is approved for read-only credit-score API access.{% endblocktrans %}{% endblock %}
+{% block content %}
+<h1 class="email-heading" style="margin:0 0 12px; font-size:20px; font-weight:800; color:#1c1917;">{% trans "You're approved" %}</h1>
+<p class="email-text" style="margin:0 0 24px; font-size:14px; line-height:1.6; color:#57534e;">
+    {% blocktrans with name=partner.name %}<strong>{{ name }}</strong> now has read-only access to FarmIQ's credit-score API.{% endblocktrans %}
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-panel" style="margin:0 0 24px; background-color:#fafaf9; border:1px solid #e7e5e4; border-radius:12px;">
+    <tr>
+        <td style="padding:18px 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-text-strong" style="font-family:'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; color:#44403c;">
+                <tr>
+                    <td class="email-text-muted" style="padding:4px 0; color:#a8a29e; width:90px;">{% trans "API key" %}</td>
+                    <td style="padding:4px 0; font-weight:800; letter-spacing:0.5px; word-break:break-all;">{{ partner.api_key }}</td>
+                </tr>
+                <tr>
+                    <td class="email-text-muted" style="padding:4px 0; color:#a8a29e;">{% trans "Endpoint" %}</td>
+                    <td style="padding:4px 0; font-weight:600;">GET /credit-score/api/farms/&lt;farm_id&gt;/score/</td>
+                </tr>
+                <tr>
+                    <td class="email-text-muted" style="padding:4px 0; color:#a8a29e;">{% trans "Header" %}</td>
+                    <td style="padding:4px 0; font-weight:600;">X-API-Key: {{ partner.api_key|slice:":8" }}&hellip;</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p class="email-text" style="margin:0 0 4px; font-size:14px; line-height:1.6; color:#57534e;">
+    {% trans "This key only ever returns a score for a farm that has explicitly agreed to share it with you - a farm that hasn't consented, and a farm that doesn't exist, both look identical (a 404) from your side. Keep this key private; treat it like a password." %}
+</p>
+{% endblock %}

@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404, render
 
 from farms.permissions import any_member_required
 
-from .models import DiseaseCatalog, Guide
+from .models import DiseaseCatalog, Guide, LearningLesson, LearningPath
 from .services import nearest_agri_centers
 
 
@@ -12,6 +12,7 @@ def home(request):
         'dairy_disease_count': DiseaseCatalog.objects.filter(category=DiseaseCatalog.Category.DAIRY).count(),
         'crop_disease_count': DiseaseCatalog.objects.filter(category=DiseaseCatalog.Category.CROP).count(),
         'guide_count': Guide.objects.count(),
+        'learning_paths': LearningPath.objects.all(),
     })
 
 
@@ -51,6 +52,28 @@ def guide_list(request):
 def guide_detail(request, guide_id):
     guide = get_object_or_404(Guide, id=guide_id)
     return render(request, 'advisory/guide_detail.html', {'guide': guide})
+
+
+@any_member_required
+def learning_path_list(request):
+    return render(request, 'advisory/learning_path_list.html', {'paths': LearningPath.objects.all()})
+
+
+@any_member_required
+def learning_path_detail(request, slug):
+    path = get_object_or_404(LearningPath, slug=slug)
+    return render(request, 'advisory/learning_path_detail.html', {'path': path, 'lessons': path.lessons.all()})
+
+
+@any_member_required
+def lesson_detail(request, slug, order):
+    path = get_object_or_404(LearningPath, slug=slug)
+    lesson = get_object_or_404(LearningLesson, path=path, order=order)
+    return render(request, 'advisory/lesson_detail.html', {
+        'path': path, 'lesson': lesson,
+        'next_lesson': path.lessons.filter(order__gt=order).first(),
+        'previous_lesson': path.lessons.filter(order__lt=order).last(),
+    })
 
 
 @any_member_required

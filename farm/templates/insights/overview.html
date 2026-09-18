@@ -1,0 +1,41 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Insights" %} - FarmIQ{% endblock %}
+{% block app_content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Insights" %}</h1>
+    <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
+        {% trans "What your farm's own records are telling you - refreshed every time you open this page. The more you log, the more it can tell you." %}
+    </p>
+</div>
+
+<div class="rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+    <div class="divide-y divide-stone-100 dark:divide-stone-800">
+        {% for insight in insights %}
+        <div class="flex items-start gap-3 px-6 py-4">
+            <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm
+                {% if insight.severity == 'critical' %}bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400
+                {% elif insight.severity == 'warning' %}bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400
+                {% else %}bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400{% endif %}">
+                {% if insight.severity == 'critical' %}<ion-icon name="alert-circle-outline"></ion-icon>
+                {% elif insight.severity == 'warning' %}<ion-icon name="warning-outline"></ion-icon>
+                {% else %}<ion-icon name="bulb-outline"></ion-icon>{% endif %}
+            </span>
+            <div class="flex-1 text-sm">
+                <div class="flex items-center gap-2">
+                    <p class="font-semibold text-stone-900 dark:text-stone-100">{{ insight.title }}</p>
+                    <span class="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">{{ insight.get_category_display }}</span>
+                </div>
+                <p class="mt-0.5 text-stone-600 dark:text-stone-300">{{ insight.description }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-6 py-14 text-center">
+            <ion-icon name="checkmark-circle-outline" class="text-3xl text-emerald-500"></ion-icon>
+            <p class="mt-2 text-sm font-semibold text-stone-600 dark:text-stone-300">{% trans "Nothing needs your attention right now." %}</p>
+            <p class="mt-1 text-xs text-stone-400 dark:text-stone-500">{% trans "Keep logging milk, feed, tasks and finances - insights will show up here as patterns emerge." %}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

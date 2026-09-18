@@ -8,10 +8,13 @@
         <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% trans "Derived from your farm's own operations - production, finance, tasks, and FIQ activity - and anchored on Hedera whenever it changes." %}</p>
     </div>
     {% if active_membership.can_manage_herd %}
-    <form method="post" action="{% url 'creditscore:recompute' %}">
-        {% csrf_token %}
-        <button type="submit" class="rounded-full bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-500">{% trans "Recompute" %}</button>
-    </form>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'creditscore:data_sharing' %}" class="rounded-full border border-cyan-200 px-4 py-2.5 text-sm font-bold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-800 dark:text-cyan-400 dark:hover:bg-cyan-950">{% trans "Data sharing" %}</a>
+        <form method="post" action="{% url 'creditscore:recompute' %}">
+            {% csrf_token %}
+            <button type="submit" class="rounded-full bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-500">{% trans "Recompute" %}</button>
+        </form>
+    </div>
     {% endif %}
 </div>
 

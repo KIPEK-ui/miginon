@@ -1,0 +1,154 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Website" %} - FarmIQ{% endblock %}
+{% block app_content %}
+{% comment %}
+A split-screen site builder: pages sidebar on the left, a live preview of
+the actual public site on the right (a real <iframe> pointing at the real
+public URL, not a client-side mirror of unsaved form state - editing a
+page still happens on its own form page, this is "see what's really
+live/saved", which is an honest, achievable middle ground short of a full
+real-time WYSIWYG engine).
+{% endcomment %}
+<div class="-mx-4 -my-6 flex flex-col overflow-y-auto sm:h-[calc(100vh-4rem)] sm:overflow-y-hidden lg:-mx-8 lg:-my-8">
+    {% comment %}
+    Below the sm breakpoint the two panes stack (sidebar, then preview) and
+    the whole page scrolls normally - the fixed-height split-pane layout
+    only works once both panes fit side by side. Every builder action
+    (add/edit/delete a page) stays reachable on a phone this way, instead
+    of living inside a sidebar that used to just be `hidden` under sm:.
+    {% endcomment %}
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900 lg:px-8">
+        <div>
+            <p class="font-extrabold text-stone-900 dark:text-stone-100">{{ site.farm.name }}</p>
+            <p class="text-xs text-stone-400 dark:text-stone-500">/{{ site.slug }}/</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="rounded-full px-3 py-1.5 text-xs font-bold
+                {% if site.is_published %}bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400{% else %}bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400{% endif %}">
+                {% if site.is_published %}{% trans "Live" %}{% else %}{% trans "Draft" %}{% endif %}
+            </span>
+            <a href="{% url 'website_public:home' site.slug %}" target="_blank" rel="noopener" class="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800">
+                <ion-icon name="eye-outline"></ion-icon> {% trans "Preview" %}
+            </a>
+            <a href="{% url 'website:site_settings' %}" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100" title="{% trans 'Site settings' %}">
+                <ion-icon name="settings-outline" class="text-lg"></ion-icon>
+            </a>
+        </div>
+    </div>
+
+    <div class="flex flex-1 flex-col sm:flex-row sm:overflow-hidden">
+        <aside class="flex w-full flex-shrink-0 flex-col border-b border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950 sm:w-80 sm:overflow-y-auto sm:border-b-0 sm:border-r">
+            {% if edit_form %}
+            {% comment %}
+            Editing/creating stays inside this same shell - top bar and live
+            preview never leave the screen - reached at its own URL
+            (/pages/add/ or /pages/<id>/edit/), not a client-side toggle.
+            {% endcomment %}
+            <a href="{% if editing_page %}?page={{ editing_page.id }}{% else %}{% url 'website:page_list' %}{% endif %}" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">
+                <ion-icon name="chevron-back-outline"></ion-icon>
+                {% if editing_page %}{{ editing_page.title }}{% else %}{% trans "Add page" %}{% endif %}
+            </a>
+
+            <div class="rounded-xl bg-stone-100 p-3 text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                <p class="font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "About layouts" %}</p>
+                <ul class="mt-1.5 space-y-1">
+                    <li>{% trans "Hero landing & Article - use headline, subheading, body, image and the call-to-action button." %}</li>
+                    <li>{% trans "Verified farm stats - fills itself in from your real, Hedera-verified farm record. No fields needed." %}</li>
+                    <li>{% trans "Contact - uses body plus your phone and email." %}</li>
+                </ul>
+            </div>
+
+            <form method="post" class="mt-4" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% include "partials/form_fields.html" with form=edit_form %}
+                <button type="submit" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+                    {% if editing_page %}{% trans "Save changes" %}{% else %}{% trans "Add page" %}{% endif %}
+                </button>
+            </form>
+
+            {% if editing_page %}
+            <form method="post" action="{% url 'website:page_delete' editing_page.id %}" class="mt-3" onsubmit="return confirm('{% trans "Delete this page? This cannot be undone." %}');">
+                {% csrf_token %}
+                <button type="submit" class="w-full rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950">
+                    {% trans "Delete page" %}
+                </button>
+            </form>
+            {% endif %}
+            {% else %}
+            <a href="{% url 'website:page_create' %}" class="flex items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900">
+                <ion-icon name="add-outline" class="text-lg"></ion-icon> {% trans "Add page" %}
+            </a>
+
+            <div class="mt-4 space-y-2">
+                {% for p in pages %}
+                <div class="group flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900 {% if p.id == active_page.id %}ring-2 ring-emerald-500{% endif %}">
+                    <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                        {% if p.template == 'hero' %}<ion-icon name="image-outline"></ion-icon>
+                        {% elif p.template == 'verified_stats' %}<ion-icon name="shield-checkmark-outline"></ion-icon>
+                        {% elif p.template == 'contact' %}<ion-icon name="call-outline"></ion-icon>
+                        {% else %}<ion-icon name="document-text-outline"></ion-icon>{% endif %}
+                    </span>
+                    <a href="?page={{ p.id }}" class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-bold text-stone-900 dark:text-stone-100">{{ p.title }}</p>
+                        <p class="truncate text-xs text-stone-400 dark:text-stone-500">{% if p.is_homepage %}{% trans "Homepage" %}{% else %}/{{ p.slug }}{% endif %}</p>
+                    </a>
+                    <a href="{% url 'website:page_edit' p.id %}" class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200" title="{% trans 'Edit' %}">
+                        <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </a>
+                </div>
+                {% empty %}
+                <p class="mt-6 text-center text-sm text-stone-400 dark:text-stone-500">{% trans "No pages yet - add your first one to get your site live." %}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </aside>
+
+        <div class="flex flex-1 flex-col bg-stone-100 dark:bg-stone-950 sm:overflow-hidden">
+            <div class="flex items-center justify-center gap-2 border-b border-stone-200 bg-white py-2.5 dark:border-stone-800 dark:bg-stone-900">
+                <button type="button" data-preview-width="390" class="preview-toggle flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800">
+                    <ion-icon name="phone-portrait-outline"></ion-icon> {% trans "Mobile" %}
+                </button>
+                <button type="button" data-preview-width="100%" class="preview-toggle flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    <ion-icon name="desktop-outline"></ion-icon> {% trans "Desktop" %}
+                </button>
+            </div>
+            <div class="flex flex-1 items-start justify-center p-4 sm:overflow-auto sm:p-6">
+                {% comment %}
+                The owner can always preview here, published or not - see
+                website.views._can_preview_unpublished. The Live/Draft pill
+                above and the amber banner inside the preview itself (see
+                public_base.html) are what tell them which state they're
+                looking at.
+                {% endcomment %}
+                {% if active_page and not active_page.is_homepage %}
+                {% url 'website_public:page' site.slug active_page.slug as preview_url %}
+                {% else %}
+                {% url 'website_public:home' site.slug as preview_url %}
+                {% endif %}
+                <iframe id="site-preview-frame" src="{{ preview_url }}"
+                        class="h-full min-h-[70vh] w-full rounded-2xl border border-stone-200 bg-white shadow-soft transition-all dark:border-stone-800 sm:min-h-[640px]"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var frame = document.getElementById('site-preview-frame');
+    if (!frame) return;
+    document.querySelectorAll('.preview-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.preview-toggle').forEach(function (b) {
+                b.classList.remove('bg-emerald-50', 'text-emerald-700', 'font-bold', 'dark:bg-emerald-950', 'dark:text-emerald-400');
+                b.classList.add('text-stone-500', 'font-semibold', 'dark:text-stone-400');
+            });
+            btn.classList.remove('text-stone-500', 'font-semibold', 'dark:text-stone-400');
+            btn.classList.add('bg-emerald-50', 'text-emerald-700', 'font-bold', 'dark:bg-emerald-950', 'dark:text-emerald-400');
+            var width = btn.getAttribute('data-preview-width');
+            frame.style.maxWidth = width === '100%' ? 'none' : width + 'px';
+        });
+    });
+})();
+</script>
+{% endblock %}

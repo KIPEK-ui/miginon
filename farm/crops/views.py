@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from advisory.services import recommended_crops_for_county
 from blockchain.models import FiqLedgerEntry
 from blockchain.services import FIQ_REWARD_PER_KG_HARVESTED, mint_fiq, mint_harvest_nft
 from farms.permissions import (
@@ -70,12 +71,14 @@ def _sync_harvest_certificate(activity):
 @any_member_required
 def crop_list(request):
     crops = Crop.objects.filter(farm=request.farm).order_by('-created_at')
-    return render(request, 'crops/crop_list.html', {'crops': crops})
+    recommended_crops = recommended_crops_for_county(request.farm.county)
+    return render(request, 'crops/crop_list.html', {'crops': crops, 'recommended_crops': recommended_crops})
 
 
 @manage_records_required
 def crop_create(request):
-    form = CropForm(request.POST or None)
+    initial = {'name': request.GET.get('name', '')}
+    form = CropForm(request.POST or None, farm=request.farm, initial=initial)
     if request.method == 'POST' and form.is_valid():
         crop = form.save(commit=False)
         crop.farm = request.farm
@@ -97,7 +100,7 @@ def crop_detail(request, crop_id):
 @edit_delete_required
 def crop_edit(request, crop_id):
     crop = get_object_or_404(Crop, id=crop_id, farm=request.farm)
-    form = CropForm(request.POST or None, instance=crop)
+    form = CropForm(request.POST or None, instance=crop, farm=request.farm)
     if request.method == 'POST' and form.is_valid():
         form.save()
         notify(request.farm, request.user, Notification.Verb.UPDATED, 'crop', crop.name)

@@ -1,0 +1,11 @@
+{% extends "accounts/_auth_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Application received" %} - FarmIQ{% endblock %}
+{% block icon %}<ion-icon name="checkmark-circle-outline"></ion-icon>{% endblock %}
+{% block heading %}{% trans "Application received" %}{% endblock %}
+{% block subheading %}{% blocktrans with name=partner.name %}Thanks - we'll review {{ name }}'s request and email your API key to the address you gave once it's approved.{% endblocktrans %}{% endblock %}
+{% block form_content %}
+<div class="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
+    {% trans "No API key works until a farm has separately agreed to share its score with you - approval only unlocks the ability to be granted that access, it doesn't grant it by itself." %}
+</div>
+{% endblock %}

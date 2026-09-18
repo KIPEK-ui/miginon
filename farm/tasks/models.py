@@ -1,3 +1,5 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -33,6 +35,13 @@ class Task(models.Model):
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     due_date = models.DateField(null=True, blank=True)
+    repeat_every_days = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text=_(
+            'If set, completing this task automatically creates the next one '
+            'this many days after the due date, e.g. 90 for a quarterly deworming.'
+        )
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='created_tasks'
@@ -50,3 +59,17 @@ class Task(models.Model):
         self.status = status
         self.completed_at = timezone.now() if status == self.Status.DONE else None
         self.save(update_fields=['status', 'completed_at'])
+
+    def create_next_occurrence(self):
+        """Clone this task into a fresh pending one due `repeat_every_days`
+        after the current due date - called once when a recurring task is
+        marked done (see tasks.views.task_status_update). Anchors off
+        today when there was no due_date to advance from, so recurrence
+        still works for a task that was never given one."""
+        anchor = self.due_date or timezone.now().date()
+        return Task.objects.create(
+            farm=self.farm, title=self.title, description=self.description,
+            assigned_to=self.assigned_to, block=self.block, crop=self.crop,
+            priority=self.priority, due_date=anchor + datetime.timedelta(days=self.repeat_every_days),
+            repeat_every_days=self.repeat_every_days, created_by=self.created_by,
+        )

@@ -1,0 +1,40 @@
+{% extends "website/public_base.html" %}
+{% load i18n %}
+{% block site_content %}
+<section class="mx-auto max-w-2xl px-4 py-14 sm:px-6 sm:py-20">
+    <h1 class="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{{ page.headline|default:page.title }}</h1>
+    {% if page.subheading %}
+    <p class="mt-3 text-lg text-stone-500 dark:text-stone-400">{{ page.subheading }}</p>
+    {% endif %}
+    {% if page.body %}
+    <div class="mt-6 text-base leading-relaxed text-stone-700 dark:text-stone-300" style="white-space: pre-line;">{{ page.body }}</div>
+    {% endif %}
+
+    {% if page.contact_phone or page.contact_email %}
+    <div class="mt-8 grid gap-3 sm:grid-cols-2">
+        {% if page.contact_phone %}
+        <a href="tel:{{ page.contact_phone }}" class="flex items-center gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4 hover:border-stone-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ site.theme_palette.badge_bg }}">
+                <ion-icon name="call-outline"></ion-icon>
+            </span>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Phone" %}</p>
+                <p class="text-sm font-semibold text-stone-800 dark:text-stone-200">{{ page.contact_phone }}</p>
+            </div>
+        </a>
+        {% endif %}
+        {% if page.contact_email %}
+        <a href="mailto:{{ page.contact_email }}" class="flex items-center gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4 hover:border-stone-200 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ site.theme_palette.badge_bg }}">
+                <ion-icon name="mail-outline"></ion-icon>
+            </span>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Email" %}</p>
+                <p class="text-sm font-semibold text-stone-800 dark:text-stone-200">{{ page.contact_email }}</p>
+            </div>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

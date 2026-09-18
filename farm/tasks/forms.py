@@ -10,11 +10,12 @@ from .models import Task
 class TaskForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['title', 'description', 'assigned_to', 'block', 'crop', 'priority', 'due_date']
+        fields = ['title', 'description', 'assigned_to', 'block', 'crop', 'priority', 'due_date', 'repeat_every_days']
         widgets = {
             'title': forms.TextInput(attrs={'placeholder': _('e.g. Clean Block A trough')}),
             'description': forms.TextInput(attrs={'placeholder': _('Optional notes')}),
             'due_date': forms.DateInput(attrs={'type': 'date'}),
+            'repeat_every_days': forms.NumberInput(attrs={'placeholder': _('e.g. 90 for quarterly')}),
         }
 
     def __init__(self, *args, farm=None, **kwargs):
@@ -23,6 +24,7 @@ class TaskForm(TailwindFormMixin, forms.ModelForm):
         self.fields['assigned_to'].label = _('Assign to')
         self.fields['block'].label = _('Block (optional)')
         self.fields['crop'].label = _('Crop (optional)')
+        self.fields['repeat_every_days'].label = _('Repeat every (days, optional)')
         if farm is not None:
             self.fields['assigned_to'].queryset = farm.memberships.filter(
                 status=FarmMembership.Status.ACTIVE

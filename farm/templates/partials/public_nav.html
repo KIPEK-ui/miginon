@@ -9,6 +9,7 @@
             <a href="#features" class="transition hover:text-white">{% trans "Features" %}</a>
             <a href="#how-it-works" class="transition hover:text-white">{% trans "How it works" %}</a>
             <a href="#roles" class="transition hover:text-white">{% trans "Roles" %}</a>
+            <a href="{% url 'core:demo_login' %}" class="transition hover:text-white">{% trans "Live demo" %}</a>
         </div>
         <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <form method="post" action="{% url 'core:set_theme' %}">

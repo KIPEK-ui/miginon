@@ -13,6 +13,7 @@ from cows.models import Cow, FeedingRecord, MilkRecord
 from creditscore.models import CreditScoreSnapshot
 from crops.models import Crop
 from finance.models import Transaction
+from insights.models import FarmInsight
 from inventory.models import InventoryItem
 from notifications.models import Notification
 from notifications.services import notify
@@ -50,6 +51,14 @@ QUICK_ACTIONS = [
     },
     {
         'label': _l('Log feed'), 'url_name': 'cows:feeding_create', 'icon': 'nutrition-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': _l('Log weight'), 'url_name': 'cows:weight_create', 'icon': 'scale-outline',
+        'permission': lambda m: m.can_record_production,
+    },
+    {
+        'label': _l('Log breeding event'), 'url_name': 'cows:reproduction_create', 'icon': 'calendar-outline',
         'permission': lambda m: m.can_record_production,
     },
     {
@@ -127,6 +136,11 @@ def dashboard(request):
             farm=farm, status=FarmMembership.Status.ACTIVE
         ).exclude(role=FarmRole.FARMER).count(),
         'latest_credit_score': CreditScoreSnapshot.objects.filter(farm=farm).first(),
+        'show_tour': not request.user.has_seen_dashboard_tour,
+        # Whatever was last computed on a visit to the insights page itself
+        # (see insights.views.overview) - not force-refreshed here, so the
+        # dashboard doesn't pay the cost of every detector on every load.
+        'insight_count': FarmInsight.objects.filter(farm=farm).count(),
     }
     return render(request, 'farms/dashboard.html', context)
 

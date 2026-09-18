@@ -97,8 +97,15 @@ class NotificationPreferenceForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         from .models import User
         model = User
-        fields = ['notification_delivery']
-        labels = {'notification_delivery': _l('Notify me via')}
+        fields = ['notification_delivery', 'whatsapp_notifications_enabled', 'whatsapp_number']
+        labels = {
+            'notification_delivery': _l('Notify me via'),
+            'whatsapp_notifications_enabled': _l('Also notify me on WhatsApp'),
+            'whatsapp_number': _l('WhatsApp number'),
+        }
+        widgets = {
+            'whatsapp_number': forms.TextInput(attrs={'placeholder': '+2547XXXXXXXX'}),
+        }
 
 
 class EmailChangeForm(TailwindFormMixin, forms.Form):

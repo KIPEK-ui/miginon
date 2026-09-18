@@ -120,6 +120,13 @@ def task_status_update(request, task_id):
         if new_status == Task.Status.DONE and not was_done:
             worker_user = task.assigned_to.user if task.assigned_to_id else request.user
             _reward_task_completion(task, worker_user)
+            if task.repeat_every_days:
+                next_task = task.create_next_occurrence()
+                notify(
+                    request.farm, request.user, Notification.Verb.CREATED, 'task',
+                    f'{next_task.title} (repeats every {task.repeat_every_days}d)',
+                    recipient=next_task.assigned_to.user if next_task.assigned_to_id else None,
+                )
         notify_recipient = None
         if new_status == Task.Status.DONE and task.created_by_id and task.created_by_id != request.user.id:
             notify_recipient = task.created_by

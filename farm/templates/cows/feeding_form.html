@@ -6,13 +6,18 @@
     <h1 class="text-xl font-extrabold text-stone-900 dark:text-stone-100">{% if record %}{% trans "Edit feeding record" %}{% else %}{% trans "Log a feeding record" %}{% endif %}</h1>
     <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{% trans "Pick the block, then select which cows were fed." %}</p>
 
+    <div id="offline-save-banner" hidden class="mt-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+        <ion-icon name="cloud-offline-outline" class="text-base"></ion-icon>
+        {% trans "No signal - saved on this device and will sync automatically once you're back online." %}
+    </div>
+
     {% if form.non_field_errors %}
     <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
         {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
     </div>
     {% endif %}
 
-    <form method="post" class="mt-6" novalidate>
+    <form id="feeding-form" method="post" class="mt-6" novalidate>
         {% csrf_token %}
 
         <div class="mb-4">
@@ -124,4 +129,21 @@
         }
     })();
 </script>
+{% if not record %}
+<script>
+    (function () {
+        var form = document.getElementById('feeding-form');
+        var banner = document.getElementById('offline-save-banner');
+        if (!form || !banner || !window.FarmIQOfflineQueue) return;
+        form.addEventListener('submit', function (e) {
+            if (navigator.onLine) return;
+            e.preventDefault();
+            window.FarmIQOfflineQueue.queueFormSubmission(form).then(function () {
+                banner.hidden = false;
+                form.reset();
+            });
+        });
+    })();
+</script>
+{% endif %}
 {% endblock %}

@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'django_countries',
+    'storages',
 
     # Local apps
     'core',
@@ -91,6 +92,9 @@ INSTALLED_APPS = [
     'advisory',
     'blockchain',
     'creditscore',
+    'website',
+    'geomap',
+    'insights',
 
     'pwa',
 ]
@@ -104,6 +108,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.DemoModeMiddleware',
 ]
 
 ROOT_URLCONF = 'farm.urls'
@@ -192,6 +197,32 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# --- Media storage (S3) -------------------------------------------------------
+# Vercel's filesystem is ephemeral serverless (see the comment on
+# website.models.SitePage), so every uploaded image (farm site photos, and
+# any future user upload) needs real persistent storage rather than
+# MEDIA_ROOT. AWS_STORAGE_BUCKET_NAME being unset (local dev with no .env
+# entry) is the signal that S3 isn't configured yet - MEDIA_ROOT above stays
+# the fallback in that case, so `manage.py test`/local uploads keep working
+# without AWS credentials. See .env.example for what to fill in.
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')  # type: ignore[arg-type]
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')  # type: ignore[arg-type]
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')  # type: ignore[arg-type]
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')  # type: ignore[arg-type]
+AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='')  # type: ignore[arg-type]
+
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_DEFAULT_ACL = None  # bucket policy/ownership settings decide access, not per-object ACLs
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    STORAGES = {
+        'default': {'BACKEND': 'storages.backends.s3.S3Storage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+    _s3_domain = AWS_S3_CUSTOM_DOMAIN or f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    MEDIA_URL = f'https://{_s3_domain}/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -326,3 +357,25 @@ VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='admin@farmiq.solutions')  
 HEDERA_NETWORK = env('HEDERA_NETWORK', default='testnet')  # type: ignore[arg-type]
 HEDERA_OPERATOR_ID = env('HEDERA_OPERATOR_ID', default='')  # type: ignore[arg-type]
 HEDERA_OPERATOR_KEY = env('HEDERA_OPERATOR_KEY', default='')  # type: ignore[arg-type]
+
+# --- TomTom Maps (GeoMap module) -----------------------------------------
+# Powers the GeoMap boundary/field surveying page (see geomap.views) - a
+# custom vector style built in TomTom Maps Maker, loaded client-side with
+# MapLibre GL JS. The key is visible in the browser's network tab like any
+# client-side map SDK key (TomTom scopes/rate-limits it per key, not per
+# request origin secrecy) - it still lives in .env, never hardcoded, so it
+# can be rotated without a code change. See .env.example.
+TOMTOM_API_KEY = env('TOMTOM_API_KEY', default='')  # type: ignore[arg-type]
+TOMTOM_STYLE_ID = env('TOMTOM_STYLE_ID', default='')  # type: ignore[arg-type]
+
+# --- WhatsApp (Meta Cloud API) --------------------------------------------
+# Targeted notifications (see notifications.services.notify) can also go to
+# WhatsApp, same opt-in tier as device push - see notifications/whatsapp.py.
+# Free-form text only works within a 24h customer-initiated session window;
+# anything outside that needs a pre-approved message template in the Meta
+# Business account, which is set up outside this codebase. Empty by default
+# like every other external integration here - notify() just skips the
+# WhatsApp branch until these are filled in. See .env.example.
+WHATSAPP_ACCESS_TOKEN = env('WHATSAPP_ACCESS_TOKEN', default='')  # type: ignore[arg-type]
+WHATSAPP_PHONE_NUMBER_ID = env('WHATSAPP_PHONE_NUMBER_ID', default='')  # type: ignore[arg-type]
+WHATSAPP_API_VERSION = env('WHATSAPP_API_VERSION', default='v20.0')  # type: ignore[arg-type]

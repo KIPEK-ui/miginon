@@ -19,8 +19,14 @@ from inventory.services import record_feed_usage, record_milk_production, revers
 from notifications.models import Notification
 from notifications.services import notify
 
-from .forms import CowForm, CowTransferForm, FeedingRecordForm, MilkRecordForm
-from .models import Cow, CowTransfer, FeedingRecord, FeedingRecordCow, MilkRecord
+from .forms import (
+    CowForm, CowHealthRecordForm, CowTransferForm, CowWeightRecordForm, FeedingRecordForm, MilkRecordForm,
+    ReproductiveEventForm,
+)
+from .models import (
+    Cow, CowHealthRecord, CowTransfer, CowWeightRecord, FeedingRecord, FeedingRecordCow, MilkRecord,
+    ReproductiveEvent,
+)
 
 
 @any_member_required
@@ -72,7 +78,15 @@ def cow_create(request):
 def cow_detail(request, cow_id):
     cow = get_object_or_404(Cow, id=cow_id, farm=request.farm)
     transfers = cow.transfers.select_related('from_block', 'to_block')[:10]
-    return render(request, 'cows/cow_detail.html', {'cow': cow, 'transfers': transfers})
+    weight_records = list(cow.weight_records.all()[:10])
+    for previous, current in zip(weight_records[1:], weight_records):
+        current.change_kg = current.weight_kg - previous.weight_kg
+    return render(request, 'cows/cow_detail.html', {
+        'cow': cow,
+        'transfers': transfers,
+        'weight_records': weight_records,
+        'reproductive_events': cow.reproductive_events.all()[:10],
+    })
 
 
 @edit_delete_required
@@ -372,3 +386,198 @@ def milk_delete(request, record_id):
         notify(request.farm, request.user, Notification.Verb.DELETED, 'milk record', description)
         messages.success(request, _('Milk record deleted.'))
     return redirect('cows:milk_list')
+
+
+@any_member_required
+def health_record_list(request):
+    records = CowHealthRecord.objects.filter(farm=request.farm).select_related('cow', 'disease')[:60]
+    return render(request, 'cows/health_record_list.html', {'records': records})
+
+
+@record_production_required
+def health_record_create(request):
+    if not request.farm.cows.filter(status=Cow.Status.ACTIVE).exists():
+        messages.info(request, _('Add an active cow first.'))
+        return redirect('cows:cow_create')
+
+    form = CowHealthRecordForm(request.POST or None, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        record = form.save(commit=False)
+        record.farm = request.farm
+        record.recorded_by = request.user
+        record.save()
+        notify(
+            request.farm, request.user, Notification.Verb.CREATED, 'health record',
+            f'{record.cow.tag_id} - {record.get_record_type_display()}'
+        )
+        messages.success(
+            request,
+            _('%(type)s logged for %(cow)s.') % {'type': record.get_record_type_display(), 'cow': record.cow}
+        )
+        return redirect('cows:health_record_list')
+    return render(request, 'cows/health_record_form.html', {'form': form})
+
+
+@edit_delete_required
+def health_record_edit(request, record_id):
+    record = get_object_or_404(CowHealthRecord, id=record_id, farm=request.farm)
+    form = CowHealthRecordForm(request.POST or None, instance=record, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        notify(
+            request.farm, request.user, Notification.Verb.UPDATED, 'health record',
+            f'{record.cow.tag_id} - {record.get_record_type_display()}'
+        )
+        messages.success(request, _('Health record updated.'))
+        return redirect('cows:health_record_list')
+    return render(request, 'cows/health_record_form.html', {'form': form, 'record': record})
+
+
+@edit_delete_required
+def health_record_delete(request, record_id):
+    record = get_object_or_404(CowHealthRecord, id=record_id, farm=request.farm)
+    if request.method == 'POST':
+        description = f'{record.cow.tag_id} - {record.get_record_type_display()}'
+        record.delete()
+        notify(request.farm, request.user, Notification.Verb.DELETED, 'health record', description)
+        messages.success(request, _('Health record deleted.'))
+    return redirect('cows:health_record_list')
+
+
+@any_member_required
+def weight_list(request):
+    records = CowWeightRecord.objects.filter(farm=request.farm).select_related('cow')[:60]
+    return render(request, 'cows/weight_list.html', {'records': records})
+
+
+@record_production_required
+def weight_create(request):
+    if not request.farm.cows.filter(status=Cow.Status.ACTIVE).exists():
+        messages.info(request, _('Add an active cow first.'))
+        return redirect('cows:cow_create')
+
+    form = CowWeightRecordForm(request.POST or None, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        record = form.save(commit=False)
+        record.farm = request.farm
+        record.recorded_by = request.user
+        record.save()
+        notify(
+            request.farm, request.user, Notification.Verb.CREATED, 'weight record',
+            f'{record.cow.tag_id} - {record.date} - {record.weight_kg}kg'
+        )
+        messages.success(request, _('Weight logged for %(cow)s.') % {'cow': record.cow})
+        return redirect('cows:weight_list')
+    return render(request, 'cows/weight_form.html', {'form': form})
+
+
+@edit_delete_required
+def weight_edit(request, record_id):
+    record = get_object_or_404(CowWeightRecord, id=record_id, farm=request.farm)
+    form = CowWeightRecordForm(request.POST or None, instance=record, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        notify(
+            request.farm, request.user, Notification.Verb.UPDATED, 'weight record',
+            f'{record.cow.tag_id} - {record.date} - {record.weight_kg}kg'
+        )
+        messages.success(request, _('Weight record updated.'))
+        return redirect('cows:weight_list')
+    return render(request, 'cows/weight_form.html', {'form': form, 'record': record})
+
+
+@edit_delete_required
+def weight_delete(request, record_id):
+    record = get_object_or_404(CowWeightRecord, id=record_id, farm=request.farm)
+    if request.method == 'POST':
+        description = f'{record.cow.tag_id} - {record.date} - {record.weight_kg}kg'
+        record.delete()
+        notify(request.farm, request.user, Notification.Verb.DELETED, 'weight record', description)
+        messages.success(request, _('Weight record deleted.'))
+    return redirect('cows:weight_list')
+
+
+@any_member_required
+def reproduction_list(request):
+    records = ReproductiveEvent.objects.filter(farm=request.farm).select_related('cow')[:60]
+    upcoming = []
+    for cow in request.farm.cows.filter(status=Cow.Status.ACTIVE, gender=Cow.Gender.FEMALE):
+        for label, date in [
+            (_('Expected dry-off'), cow.expected_dry_off_date),
+            (_('Expected calving'), cow.expected_calving_date),
+            (_('Next heat expected'), cow.next_heat_expected),
+        ]:
+            if date:
+                upcoming.append({'cow': cow, 'label': label, 'date': date})
+    upcoming.sort(key=lambda item: item['date'])
+    return render(request, 'cows/reproduction_list.html', {'records': records, 'upcoming': upcoming})
+
+
+@record_production_required
+def reproduction_create(request):
+    if not request.farm.cows.filter(
+        status__in=[Cow.Status.ACTIVE, Cow.Status.DRY], gender=Cow.Gender.FEMALE
+    ).exists():
+        messages.info(request, _('Add an active cow first.'))
+        return redirect('cows:cow_create')
+
+    form = ReproductiveEventForm(request.POST or None, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        record = form.save(commit=False)
+        record.farm = request.farm
+        record.recorded_by = request.user
+        record.save()
+        _sync_cow_from_reproductive_event(record)
+        notify(
+            request.farm, request.user, Notification.Verb.CREATED, 'reproductive event',
+            f'{record.cow.tag_id} - {record.get_event_type_display()} - {record.date}'
+        )
+        messages.success(
+            request,
+            _('%(type)s logged for %(cow)s.') % {'type': record.get_event_type_display(), 'cow': record.cow}
+        )
+        return redirect('cows:reproduction_list')
+    return render(request, 'cows/reproduction_form.html', {'form': form})
+
+
+def _sync_cow_from_reproductive_event(record):
+    """A calving event is what actually keeps Cow.last_calving_date (the
+    milk-prediction model's days-in-milk feature) current without the
+    farmer re-entering it elsewhere; a dry-off event is the only place
+    Cow.Status.DRY - a choice that already existed on the model - ever
+    gets set."""
+    cow = record.cow
+    if record.event_type == ReproductiveEvent.EventType.CALVED:
+        cow.status = Cow.Status.ACTIVE
+        cow.last_calving_date = record.date
+        cow.save(update_fields=['status', 'last_calving_date'])
+    elif record.event_type == ReproductiveEvent.EventType.DRY_OFF:
+        cow.status = Cow.Status.DRY
+        cow.save(update_fields=['status'])
+
+
+@edit_delete_required
+def reproduction_edit(request, record_id):
+    record = get_object_or_404(ReproductiveEvent, id=record_id, farm=request.farm)
+    form = ReproductiveEventForm(request.POST or None, instance=record, farm=request.farm)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        _sync_cow_from_reproductive_event(record)
+        notify(
+            request.farm, request.user, Notification.Verb.UPDATED, 'reproductive event',
+            f'{record.cow.tag_id} - {record.get_event_type_display()} - {record.date}'
+        )
+        messages.success(request, _('Reproductive event updated.'))
+        return redirect('cows:reproduction_list')
+    return render(request, 'cows/reproduction_form.html', {'form': form, 'record': record})
+
+
+@edit_delete_required
+def reproduction_delete(request, record_id):
+    record = get_object_or_404(ReproductiveEvent, id=record_id, farm=request.farm)
+    if request.method == 'POST':
+        description = f'{record.cow.tag_id} - {record.get_event_type_display()} - {record.date}'
+        record.delete()
+        notify(request.farm, request.user, Notification.Verb.DELETED, 'reproductive event', description)
+        messages.success(request, _('Reproductive event deleted.'))
+    return redirect('cows:reproduction_list')

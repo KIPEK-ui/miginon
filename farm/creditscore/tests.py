@@ -14,7 +14,7 @@ from tasks.models import Task
 
 from .explain import plain_language_summary
 from .features import build_farm_raw_features
-from .models import CreditScoreSnapshot
+from .models import CreditScoreSnapshot, DataPartner, DataShareConsent
 from .scoring import MIN_POPULATION_FARMS, compute_population_scores, compute_provisional_score
 from .services import recompute_farm_score
 from .views import _contributions_display
@@ -296,3 +296,168 @@ class RecomputeViewPermissionTests(TestCase):
         response = self.client.post('/credit-score/recompute/', follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(CreditScoreSnapshot.objects.filter(farm=self.farm).count(), 1)
+
+
+class DataPartnerApiTests(TestCase):
+    """Covers the read-only partner API (creditscore.api.farm_score) - the
+    first concrete piece of the data-marketplace model: a partner can only
+    ever see a score for a farm that has actively consented to share with
+    it, and a missing key, a farm that exists without consent, and a farm
+    that doesn't exist at all must all look identical from the outside."""
+
+    def setUp(self):
+        self.farm, self.farmer = _old_farm('Api Farm')
+        _seed_quality(self.farm, 0.6, timezone.now().date())
+        self.partner = DataPartner.objects.create(
+            name='Test SACCO', slug='test-sacco', status=DataPartner.Status.APPROVED
+        )
+
+    def _url(self, farm_id=None):
+        return f'/credit-score/api/farms/{farm_id if farm_id is not None else self.farm.id}/score/'
+
+    def test_missing_api_key_is_rejected(self):
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_api_key_is_rejected(self):
+        response = self.client.get(self._url(), HTTP_X_API_KEY='not-a-real-key')
+        self.assertEqual(response.status_code, 401)
+
+    def test_pending_partner_key_is_rejected(self):
+        self.partner.status = DataPartner.Status.PENDING
+        self.partner.save(update_fields=['status'])
+        response = self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key)
+        self.assertEqual(response.status_code, 401)
+
+    def test_suspended_partner_key_is_rejected(self):
+        self.partner.status = DataPartner.Status.SUSPENDED
+        self.partner.save(update_fields=['status'])
+        response = self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key)
+        self.assertEqual(response.status_code, 401)
+
+    def test_valid_key_without_consent_returns_404_same_as_missing_farm(self):
+        with_consent_response_shape = self.client.get(self._url(farm_id=999999), HTTP_X_API_KEY=self.partner.api_key)
+        without_consent_response = self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key)
+        self.assertEqual(with_consent_response_shape.status_code, 404)
+        self.assertEqual(without_consent_response.status_code, 404)
+        self.assertEqual(with_consent_response_shape.json(), without_consent_response.json())
+
+    @patch('creditscore.services.anchor_hash')
+    def test_consented_farm_returns_score_with_verification_fields(self, mock_anchor):
+        mock_anchor.return_value = {'topic_id': '0.0.999', 'sequence_number': 7, 'consensus_timestamp': '1.1'}
+        recompute_farm_score(self.farm, user=self.farmer)
+        DataShareConsent.objects.create(farm=self.farm, partner=self.partner, granted_by=self.farmer)
+
+        response = self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key)
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body['farm_id'], self.farm.id)
+        self.assertIn('score', body)
+        self.assertEqual(body['verification']['hedera_topic_id'], '0.0.999')
+        self.assertEqual(body['verification']['hedera_sequence_number'], 7)
+
+    @patch('creditscore.services.anchor_hash')
+    def test_revoked_consent_blocks_access_again(self, mock_anchor):
+        mock_anchor.return_value = None
+        recompute_farm_score(self.farm, user=self.farmer)
+        consent = DataShareConsent.objects.create(farm=self.farm, partner=self.partner, granted_by=self.farmer)
+
+        self.assertEqual(self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key).status_code, 200)
+
+        consent.revoked_at = timezone.now()
+        consent.save(update_fields=['revoked_at'])
+        self.assertEqual(self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key).status_code, 404)
+
+    def test_consented_farm_without_a_computed_score_yet_returns_404(self):
+        DataShareConsent.objects.create(farm=self.farm, partner=self.partner, granted_by=self.farmer)
+        response = self.client.get(self._url(), HTTP_X_API_KEY=self.partner.api_key)
+        self.assertEqual(response.status_code, 404)
+
+
+class DataSharingConsentViewTests(TestCase):
+    """The farmer-facing half of the data-partner flow: granting/revoking
+    is scoped to the same manage-tier as recompute (see RecomputeViewPermissionTests
+    above), only ever touches consent for the requester's own active farm,
+    and re-granting after a revoke reactivates the same row rather than
+    erroring on the (farm, partner) unique constraint."""
+
+    def setUp(self):
+        self.farm, self.farmer = _old_farm('Sharing Farm')
+        self.worker = User.objects.create_user(email='sharing_worker@example.com', first_name='Worker')
+        FarmMembership.objects.create(farm=self.farm, user=self.worker, role=FarmRole.WORKER)
+        self.partner = DataPartner.objects.create(
+            name='Sharing SACCO', slug='sharing-sacco', status=DataPartner.Status.APPROVED
+        )
+        self.pending_partner = DataPartner.objects.create(name='Pending SACCO', slug='pending-sacco')
+
+    def _login(self, user):
+        self.client.force_login(user)
+        session = self.client.session
+        session['active_farm_id'] = self.farm.id
+        session.save()
+
+    def test_page_lists_only_approved_partners(self):
+        self._login(self.farmer)
+        response = self.client.get('/credit-score/data-sharing/')
+        self.assertContains(response, 'Sharing SACCO')
+        self.assertNotContains(response, 'Pending SACCO')
+
+    def test_farmer_can_grant_and_revoke(self):
+        self._login(self.farmer)
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/grant/')
+        consent = DataShareConsent.objects.get(farm=self.farm, partner=self.partner)
+        self.assertTrue(consent.is_active)
+        self.assertEqual(consent.granted_by, self.farmer)
+
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/revoke/')
+        consent.refresh_from_db()
+        self.assertFalse(consent.is_active)
+
+    def test_regranting_after_revoke_reactivates_the_same_row(self):
+        self._login(self.farmer)
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/grant/')
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/revoke/')
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/grant/')
+
+        self.assertEqual(DataShareConsent.objects.filter(farm=self.farm, partner=self.partner).count(), 1)
+        self.assertTrue(DataShareConsent.objects.get(farm=self.farm, partner=self.partner).is_active)
+
+    def test_cannot_grant_a_pending_partner(self):
+        self._login(self.farmer)
+        response = self.client.post(f'/credit-score/data-sharing/{self.pending_partner.id}/grant/')
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(DataShareConsent.objects.filter(partner=self.pending_partner).exists())
+
+    def test_worker_cannot_grant(self):
+        self._login(self.worker)
+        self.client.post(f'/credit-score/data-sharing/{self.partner.id}/grant/')
+        self.assertFalse(DataShareConsent.objects.filter(farm=self.farm, partner=self.partner).exists())
+
+
+class PartnerApplicationTests(TestCase):
+    """The self-serve half: anyone can apply, but an application alone
+    never grants API access - see DataPartner's docstring."""
+
+    def test_valid_application_creates_a_pending_partner(self):
+        response = self.client.post('/credit-score/partners/apply/', {
+            'name': 'New Lender Co', 'contact_name': 'Jane Doe', 'contact_email': 'jane@newlender.example',
+        })
+        self.assertEqual(response.status_code, 200)
+        partner = DataPartner.objects.get(name='New Lender Co')
+        self.assertEqual(partner.status, DataPartner.Status.PENDING)
+        self.assertTrue(partner.slug)
+        self.assertTrue(partner.api_key)
+
+    def test_pending_partner_from_application_cannot_use_the_api_yet(self):
+        self.client.post('/credit-score/partners/apply/', {
+            'name': 'Another Lender', 'contact_name': 'John Doe', 'contact_email': 'john@anotherlender.example',
+        })
+        partner = DataPartner.objects.get(name='Another Lender')
+        farm, _user = _old_farm('Applicant Test Farm')
+        response = self.client.get(f'/credit-score/api/farms/{farm.id}/score/', HTTP_X_API_KEY=partner.api_key)
+        self.assertEqual(response.status_code, 401)
+
+    def test_missing_email_is_rejected(self):
+        response = self.client.post('/credit-score/partners/apply/', {'name': 'No Email Co', 'contact_name': 'X'})
+        self.assertEqual(response.status_code, 200)  # re-renders the form with errors
+        self.assertFalse(DataPartner.objects.filter(name='No Email Co').exists())

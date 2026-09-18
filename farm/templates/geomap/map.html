@@ -1,0 +1,369 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "GeoMap" %} - FarmIQ{% endblock %}
+
+{% block extra_head %}
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+    .geomap-vertex {
+        width: 18px; height: 18px; border-radius: 9999px 9999px 9999px 0;
+        background: #dc2626; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+        transform: rotate(45deg); cursor: grab;
+    }
+    .geomap-vertex:active { cursor: grabbing; }
+    .geomap-pill {
+        backdrop-filter: blur(6px);
+    }
+    .maplibregl-popup-content { border-radius: .75rem !important; padding: .75rem 1rem !important; }
+    /* The GeolocateControl's blue dot and accuracy circle are plain DOM
+       markers layered on top of the map canvas - left at their default
+       pointer-events, the accuracy circle (which can cover most of the
+       visible map on a low-accuracy/desktop fix) silently swallows clicks
+       meant for the map underneath, so "tap to add a point" does nothing.
+       Only our own draggable vertex pins (.geomap-vertex) need to stay
+       interactive. */
+    .maplibregl-marker:not(.geomap-vertex) { pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "GeoMap" %}</h1>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
+            {% trans "Walk or tap out your farm's boundary and fields to measure area and perimeter." %}
+        </p>
+    </div>
+</div>
+
+{% if not config.styleUrl %}
+<div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+    {% trans "GeoMap isn't configured yet - a platform admin needs to set TOMTOM_API_KEY and TOMTOM_STYLE_ID." %}
+</div>
+{% else %}
+
+<div id="geomap-shell" class="relative h-[70vh] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-800">
+    <div id="geomap-canvas" class="absolute inset-0"></div>
+
+    <!-- Live readouts, shown only while drawing -->
+    <div id="geomap-readouts" hidden class="pointer-events-none absolute left-1/2 top-3 z-10 flex -translate-x-1/2 gap-2">
+        <div class="geomap-pill flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-sm font-bold text-stone-800 shadow-soft dark:bg-stone-900/95 dark:text-stone-100">
+            <ion-icon name="scan-outline" class="text-base text-emerald-600 dark:text-emerald-400"></ion-icon>
+            <span id="geomap-area-readout">0 m&sup2;</span>
+        </div>
+        <div class="geomap-pill flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-sm font-bold text-stone-800 shadow-soft dark:bg-stone-900/95 dark:text-stone-100">
+            <ion-icon name="resize-outline" class="text-base text-emerald-600 dark:text-emerald-400"></ion-icon>
+            <span id="geomap-perimeter-readout">0 m</span>
+        </div>
+    </div>
+
+    <!-- Cancel drawing -->
+    <button id="geomap-cancel-btn" type="button" hidden
+        class="geomap-pill absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-white/95 px-3 py-2 text-xs font-bold text-stone-700 shadow-soft hover:bg-white dark:bg-stone-900/95 dark:text-stone-200">
+        <ion-icon name="close-outline" class="text-base"></ion-icon> {% trans "Cancel" %}
+    </button>
+
+    <!-- Start drawing -->
+    {% if config.canEdit %}
+    <button id="geomap-start-btn" type="button"
+        class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-soft hover:bg-emerald-800">
+        <ion-icon name="add-outline" class="text-lg"></ion-icon> {% trans "Draw new parcel" %}
+    </button>
+    {% endif %}
+
+    <!-- Add point at current GPS location -->
+    <button id="geomap-locate-fab" type="button" hidden
+        class="absolute bottom-24 right-3 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white text-emerald-700 shadow-soft hover:bg-emerald-50 dark:bg-stone-900 dark:text-emerald-400"
+        title="{% trans 'Add point at my location' %}" aria-label="{% trans 'Add point at my location' %}">
+        <ion-icon name="location-outline" class="text-xl"></ion-icon>
+    </button>
+
+    <!-- Drawing toolbar -->
+    <div id="geomap-draw-toolbar" hidden class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-stone-200 bg-white/95 p-1.5 shadow-soft dark:border-stone-800 dark:bg-stone-900/95">
+        <button id="geomap-undo-btn" type="button" class="flex h-11 w-11 items-center justify-center rounded-full text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800" title="{% trans 'Undo last point' %}" aria-label="{% trans 'Undo last point' %}">
+            <ion-icon name="arrow-undo-outline" class="text-lg"></ion-icon>
+        </button>
+        <button id="geomap-clear-btn" type="button" class="flex h-11 w-11 items-center justify-center rounded-full text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950" title="{% trans 'Clear all points' %}" aria-label="{% trans 'Clear all points' %}">
+            <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+        </button>
+        <button id="geomap-save-btn" type="button" disabled
+            class="flex h-11 items-center gap-1.5 rounded-full bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+            <ion-icon name="save-outline" class="text-base"></ion-icon> {% trans "Save" %}
+        </button>
+        <button id="geomap-unit-btn" type="button" class="flex h-11 w-11 items-center justify-center rounded-full text-xs font-bold text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800" title="{% trans 'Change area unit' %}">
+            m&sup2;
+        </button>
+    </div>
+
+    <!-- Save panel -->
+    <div id="geomap-save-panel" hidden class="absolute inset-x-3 bottom-4 z-20 rounded-2xl border border-stone-200 bg-white p-4 shadow-soft dark:border-stone-800 dark:bg-stone-900 sm:inset-x-auto sm:right-3 sm:w-80">
+        <form id="geomap-parcel-form" method="post" action="{{ config.saveUrl }}">
+            {% csrf_token %}
+            <p class="mb-3 text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Name this parcel" %}</p>
+            {{ form.coordinates_json }}
+            <div class="mb-3">
+                {{ form.name }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.block.id_for_label }}" class="mb-1 block text-xs font-semibold text-stone-500 dark:text-stone-400">{% trans "Link to a block (optional)" %}</label>
+                {{ form.block }}
+            </div>
+            <div class="flex gap-2">
+                <button type="button" id="geomap-save-cancel-btn" class="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800">{% trans "Back" %}</button>
+                <button type="submit" class="flex-1 rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">{% trans "Confirm" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-6">
+    <h2 class="mb-3 text-sm font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Saved parcels" %}</h2>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for parcel in parcels %}
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+            <p class="font-bold text-stone-900 dark:text-stone-100">{{ parcel.name }}</p>
+            {% if parcel.block %}
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Block:" %} {{ parcel.block.name }}</p>
+            {% endif %}
+            <div class="mt-3 flex gap-4 text-sm">
+                <div>
+                    <p class="font-extrabold text-emerald-700 dark:text-emerald-400">{{ parcel.area_ha|floatformat:2 }} {% trans "ha" %}</p>
+                    <p class="text-xs text-stone-400 dark:text-stone-500">{{ parcel.area_sqm|floatformat:0 }} m&sup2;</p>
+                </div>
+                <div>
+                    <p class="font-extrabold text-stone-700 dark:text-stone-300">{{ parcel.perimeter_m|floatformat:0 }} m</p>
+                    <p class="text-xs text-stone-400 dark:text-stone-500">{% trans "perimeter" %}</p>
+                </div>
+            </div>
+            {% if config.canEdit %}
+            <div class="mt-3">
+                {% url 'geomap:parcel_delete' parcel.id as parcel_delete_url %}
+                {% include "partials/delete_button.html" with url=parcel_delete_url label="land parcel" %}
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-sm text-stone-400 dark:text-stone-500">{% trans "No parcels mapped yet - draw one on the map above." %}</p>
+        {% endfor %}
+    </div>
+</div>
+
+{{ config|json_script:"geomap-config" }}
+{{ parcels_data|json_script:"geomap-parcels-data" }}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if config.styleUrl %}
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<script>
+(function () {
+    var DEFAULT_CENTER = [36.817223, -1.286389]; // Nairobi - fallback when the farm has no saved coordinates yet
+    var config = JSON.parse(document.getElementById('geomap-config').textContent);
+    var savedParcels = JSON.parse(document.getElementById('geomap-parcels-data').textContent);
+
+    var map = new maplibregl.Map({
+        container: 'geomap-canvas',
+        style: config.styleUrl,
+        center: config.center || DEFAULT_CENTER,
+        zoom: config.center ? 16 : 6,
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+    var geolocate = new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showAccuracyCircle: true,
+    });
+    map.addControl(geolocate, 'top-right');
+
+    var lastPosition = null;
+    geolocate.on('geolocate', function (e) {
+        lastPosition = [e.coords.longitude, e.coords.latitude];
+    });
+
+    var AREA_UNITS = [
+        { suffix: ' m²', factor: 1 },
+        { suffix: ' ha', factor: 1 / 10000 },
+        { suffix: ' ac', factor: 1 / 4046.8564224 },
+    ];
+    var unitIndex = 0;
+
+    function formatArea(sqm) {
+        var unit = AREA_UNITS[unitIndex];
+        var value = sqm * unit.factor;
+        return value.toLocaleString(undefined, { maximumFractionDigits: unitIndex === 0 ? 0 : 2 }) + unit.suffix;
+    }
+
+    function formatLength(m) {
+        if (m >= 1000) return (m / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' km';
+        return m.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' m';
+    }
+
+    var drawState = { active: false, points: [], markers: [] };
+    var startBtn = document.getElementById('geomap-start-btn');
+    var cancelBtn = document.getElementById('geomap-cancel-btn');
+    var locateFab = document.getElementById('geomap-locate-fab');
+    var toolbar = document.getElementById('geomap-draw-toolbar');
+    var readouts = document.getElementById('geomap-readouts');
+    var areaReadout = document.getElementById('geomap-area-readout');
+    var perimeterReadout = document.getElementById('geomap-perimeter-readout');
+    var undoBtn = document.getElementById('geomap-undo-btn');
+    var clearBtn = document.getElementById('geomap-clear-btn');
+    var saveBtn = document.getElementById('geomap-save-btn');
+    var unitBtn = document.getElementById('geomap-unit-btn');
+    var savePanel = document.getElementById('geomap-save-panel');
+    var saveCancelBtn = document.getElementById('geomap-save-cancel-btn');
+    var coordinatesInput = document.getElementById('id_coordinates_json');
+
+    function closedRing(points) {
+        return points.concat([points[0]]);
+    }
+
+    function updateGeometry() {
+        var features = [];
+        if (drawState.points.length >= 2) {
+            features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: drawState.points } });
+        }
+        if (drawState.points.length >= 3) {
+            features.push({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [closedRing(drawState.points)] } });
+        }
+        map.getSource('geomap-draw').setData({ type: 'FeatureCollection', features: features });
+
+        var areaVal = 0, perimVal = 0;
+        if (drawState.points.length >= 3) {
+            areaVal = turf.area({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [closedRing(drawState.points)] } });
+            perimVal = turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: closedRing(drawState.points) } }, { units: 'meters' });
+        } else if (drawState.points.length === 2) {
+            perimVal = turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: drawState.points } }, { units: 'meters' });
+        }
+        areaReadout.textContent = formatArea(areaVal);
+        perimeterReadout.textContent = formatLength(perimVal);
+        saveBtn.disabled = drawState.points.length < 3;
+    }
+
+    function addPoint(lngLat) {
+        var point = Array.isArray(lngLat) ? lngLat : [lngLat.lng, lngLat.lat];
+        var index = drawState.points.length;
+        drawState.points.push(point);
+        var el = document.createElement('div');
+        el.className = 'geomap-vertex';
+        var marker = new maplibregl.Marker({ element: el, draggable: true })
+            .setLngLat(point)
+            .addTo(map);
+        marker.on('dragend', function () {
+            var ll = marker.getLngLat();
+            drawState.points[index] = [ll.lng, ll.lat];
+            updateGeometry();
+        });
+        drawState.markers.push(marker);
+        updateGeometry();
+    }
+
+    function undoPoint() {
+        if (!drawState.points.length) return;
+        drawState.points.pop();
+        var marker = drawState.markers.pop();
+        if (marker) marker.remove();
+        updateGeometry();
+    }
+
+    function clearDrawing() {
+        drawState.markers.forEach(function (m) { m.remove(); });
+        drawState.points = [];
+        drawState.markers = [];
+        updateGeometry();
+    }
+
+    function setDrawingActive(active) {
+        drawState.active = active;
+        toolbar.hidden = !active;
+        readouts.hidden = !active;
+        cancelBtn.hidden = !active;
+        if (locateFab) locateFab.hidden = !active;
+        if (startBtn) startBtn.hidden = active;
+        savePanel.hidden = true;
+        map.getCanvas().style.cursor = active ? 'crosshair' : '';
+    }
+
+    map.on('load', function () {
+        map.addSource('geomap-draw', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        map.addLayer({ id: 'geomap-draw-fill', type: 'fill', source: 'geomap-draw', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': '#17835a', 'fill-opacity': 0.25 } });
+        map.addLayer({ id: 'geomap-draw-line', type: 'line', source: 'geomap-draw', paint: { 'line-color': '#17835a', 'line-width': 3 } });
+
+        var savedFeatures = savedParcels.map(function (p) {
+            return {
+                type: 'Feature',
+                properties: { id: p.id, name: p.name, area_sqm: p.area_sqm, perimeter_m: p.perimeter_m, block: p.block },
+                geometry: { type: 'Polygon', coordinates: [closedRing(p.coordinates)] },
+            };
+        });
+        map.addSource('geomap-saved', { type: 'geojson', data: { type: 'FeatureCollection', features: savedFeatures } });
+        map.addLayer({ id: 'geomap-saved-fill', type: 'fill', source: 'geomap-saved', paint: { 'fill-color': '#0ea5e9', 'fill-opacity': 0.15 } });
+        map.addLayer({ id: 'geomap-saved-line', type: 'line', source: 'geomap-saved', paint: { 'line-color': '#0284c7', 'line-width': 2 } });
+        map.addLayer({ id: 'geomap-saved-label', type: 'symbol', source: 'geomap-saved', layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, 0.2] }, paint: { 'text-color': '#0c4a6e', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } });
+
+        map.on('click', 'geomap-saved-fill', function (e) {
+            var props = e.features[0].properties;
+            var html = '<p class="font-bold text-stone-900">' + props.name + '</p>' +
+                '<p class="mt-1 text-xs text-stone-500">' + formatArea(props.area_sqm) + ' &middot; ' + formatLength(props.perimeter_m) + '</p>' +
+                (props.block ? '<p class="mt-0.5 text-xs text-stone-400">' + props.block + '</p>' : '');
+            new maplibregl.Popup().setLngLat(e.lngLat).setHTML(html).addTo(map);
+        });
+        map.on('mouseenter', 'geomap-saved-fill', function () { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'geomap-saved-fill', function () { map.getCanvas().style.cursor = drawState.active ? 'crosshair' : ''; });
+
+        geolocate.trigger();
+    });
+
+    map.on('click', function (e) {
+        if (!drawState.active) return;
+        addPoint(e.lngLat);
+    });
+
+    if (startBtn) {
+        startBtn.addEventListener('click', function () {
+            clearDrawing();
+            setDrawingActive(true);
+        });
+    }
+    cancelBtn.addEventListener('click', function () {
+        clearDrawing();
+        setDrawingActive(false);
+    });
+    undoBtn.addEventListener('click', undoPoint);
+    clearBtn.addEventListener('click', clearDrawing);
+    unitBtn.addEventListener('click', function () {
+        unitIndex = (unitIndex + 1) % AREA_UNITS.length;
+        unitBtn.textContent = AREA_UNITS[unitIndex].suffix.trim();
+        updateGeometry();
+    });
+    if (locateFab) {
+        locateFab.addEventListener('click', function () {
+            if (lastPosition) {
+                addPoint(lastPosition);
+            } else if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    lastPosition = [pos.coords.longitude, pos.coords.latitude];
+                    addPoint(lastPosition);
+                }, function () {
+                    alert('{% trans "Could not get your location. Check location permissions and try again." %}');
+                });
+            }
+        });
+    }
+    saveBtn.addEventListener('click', function () {
+        if (drawState.points.length < 3) return;
+        coordinatesInput.value = JSON.stringify(drawState.points);
+        savePanel.hidden = false;
+    });
+    saveCancelBtn.addEventListener('click', function () {
+        savePanel.hidden = true;
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

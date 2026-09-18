@@ -8,4 +8,5 @@ urlpatterns = [
     path('', views.landing, name='landing'),
     path('theme/', views.set_theme, name='set_theme'),
     path('language/', views.set_language, name='set_language'),
+    path('demo/', views.demo_login, name='demo_login'),
 ]

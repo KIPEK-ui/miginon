@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ site.farm.name }}{% if page %} - {{ page.title }}{% endif %}{% endblock %}
+{% block body %}
+<div class="flex min-h-screen flex-col bg-white dark:bg-stone-950">
+    {% if not site.is_published %}
+    {% comment %}
+    Only ever reached by the site's own owner/manager/supervisor previewing
+    before publishing - the public route 404s for everyone else while
+    unpublished, see website.views._can_preview_unpublished.
+    {% endcomment %}
+    <div class="flex items-center justify-center gap-1.5 bg-amber-400 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-amber-950">
+        <ion-icon name="eye-outline"></ion-icon> {% trans "Draft preview - not visible to the public yet" %}
+    </div>
+    {% endif %}
+    <header class="border-b border-stone-100 dark:border-stone-800">
+        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+            <a href="{% url 'website_public:home' site.slug %}" class="flex items-center gap-2">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl {{ site.theme_palette.mark_bg }} text-sm font-extrabold text-white">
+                    {{ site.farm.name|slice:":1" }}
+                </span>
+                <span class="text-base font-extrabold text-stone-900 dark:text-stone-100">{{ site.farm.name }}</span>
+            </a>
+            {% if nav_pages %}
+            <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold text-stone-600 dark:text-stone-300">
+                {% for p in nav_pages %}
+                <a href="{% if p.is_homepage %}{% url 'website_public:home' site.slug %}{% else %}{% url 'website_public:page' site.slug p.slug %}{% endif %}"
+                   class="{{ site.theme_palette.nav_hover }} {% if page.id == p.id %}{{ site.theme_palette.accent_text }}{% endif %}">
+                    {{ p.title }}
+                </a>
+                {% endfor %}
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="flex-1">
+        {% block site_content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-stone-100 py-6 dark:border-stone-800">
+        <div class="mx-auto flex max-w-5xl flex-col items-center gap-1 px-4 text-center text-xs text-stone-400 sm:px-6 dark:text-stone-500">
+            <p>&copy; {% now "Y" %} {{ site.farm.name }}</p>
+            <a href="{% url 'core:landing' %}" class="font-semibold hover:text-stone-600 dark:hover:text-stone-300">{% trans "Powered by FarmIQ" %}</a>
+        </div>
+    </footer>
+</div>
+{% endblock %}

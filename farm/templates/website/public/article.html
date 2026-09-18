@@ -1,0 +1,22 @@
+{% extends "website/public_base.html" %}
+{% block site_content %}
+{% if page.display_image_url %}
+<div class="h-56 w-full overflow-hidden sm:h-72">
+    <img src="{{ page.display_image_url }}" alt="{{ page.title }}" class="h-full w-full object-cover">
+</div>
+{% endif %}
+<article class="mx-auto max-w-2xl px-4 {% if page.display_image_url %}-mt-10{% endif %} py-14 sm:px-6 sm:py-20">
+    <div class="{% if page.display_image_url %}rounded-3xl bg-white p-6 shadow-soft dark:bg-stone-900 sm:p-10{% endif %}">
+        <h1 class="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 sm:text-4xl" style="text-wrap: balance;">{{ page.headline|default:page.title }}</h1>
+        {% if page.subheading %}
+        <p class="mt-3 text-lg text-stone-500 dark:text-stone-400">{{ page.subheading }}</p>
+        {% endif %}
+        {% if page.body %}
+        <div class="mt-8 space-y-4 text-base leading-relaxed text-stone-700 dark:text-stone-300" style="white-space: pre-line;">{{ page.body }}</div>
+        {% endif %}
+        {% if page.cta_label and page.cta_url %}
+        <a href="{{ page.cta_url }}" class="mt-8 inline-flex rounded-full {{ site.theme_palette.accent_bg }} px-6 py-3 text-sm font-bold text-white">{{ page.cta_label }}</a>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}

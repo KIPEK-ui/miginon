@@ -39,11 +39,25 @@
             <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Gender" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.get_gender_display }}</dd></div>
             <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Breed" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.breed|default:"—" }}</dd></div>
             <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Date of birth" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.date_of_birth|default:"—" }}</dd></div>
-            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Last calving" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.last_calving_date|default:"—" }}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Last calving" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.last_calving_date|default:"—" }}{% if cow.days_in_milk is not None %} <span class="text-xs font-normal text-stone-400 dark:text-stone-500">({% blocktrans with days=cow.days_in_milk %}{{ days }} days in milk{% endblocktrans %})</span>{% endif %}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Sire" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{% if cow.sire %}<a href="{% url 'cows:cow_detail' cow.sire_id %}" class="hover:text-emerald-700 dark:hover:text-emerald-400">{{ cow.sire.tag_id }}</a>{% else %}{{ cow.sire_name|default:"—" }}{% endif %}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Dam" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{% if cow.dam %}<a href="{% url 'cows:cow_detail' cow.dam_id %}" class="hover:text-emerald-700 dark:hover:text-emerald-400">{{ cow.dam.tag_id }}</a>{% else %}—{% endif %}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Registration no." %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.registration_number|default:"—" }}</dd></div>
             <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Added" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.created_at|date:"d M Y" }}</dd></div>
         </dl>
         {% if cow.notes %}<p class="mt-6 rounded-xl bg-stone-50 p-4 text-sm text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ cow.notes }}</p>{% endif %}
     </div>
+
+    {% if cow.expected_calving_date or cow.expected_dry_off_date or cow.next_heat_expected %}
+    <div class="mt-6 rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+        <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Reproductive status" %}</h2>
+        <div class="mt-4 grid grid-cols-3 gap-4 text-sm">
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Next heat expected" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.next_heat_expected|default:"—" }}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Expected dry-off" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.expected_dry_off_date|default:"—" }}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Expected calving" %}</dt><dd class="mt-1 font-semibold text-stone-800 dark:text-stone-200">{{ cow.expected_calving_date|default:"—" }}</dd></div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if transfers %}
     <div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
@@ -63,6 +77,39 @@
         </div>
     </div>
     {% endif %}
+
+    <div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+        <div class="flex items-center justify-between border-b border-stone-100 px-6 py-4 dark:border-stone-800">
+            <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Health records" %}</h2>
+            {% if active_membership.can_record_production %}
+            <a href="{% url 'cows:health_record_create' %}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">{% trans "+ Log" %}</a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">
+                    <tr>
+                        <th class="px-6 py-3">{% trans "Date" %}</th>
+                        <th class="px-6 py-3">{% trans "Type" %}</th>
+                        <th class="px-6 py-3">{% trans "Description" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
+                    {% for h in cow.health_records.all|slice:":10" %}
+                    <tr>
+                        <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ h.date }}</td>
+                        <td class="px-6 py-3">
+                            <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ h.get_record_type_display }}</span>
+                        </td>
+                        <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ h.description }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="px-6 py-8 text-center text-stone-400 dark:text-stone-500">{% trans "No health records yet." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
         <div class="border-b border-stone-100 px-6 py-4 dark:border-stone-800">
@@ -88,6 +135,76 @@
                     </tr>
                     {% empty %}
                     <tr><td colspan="3" class="px-6 py-8 text-center text-stone-400 dark:text-stone-500">{% trans "No milk records yet." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+        <div class="flex items-center justify-between border-b border-stone-100 px-6 py-4 dark:border-stone-800">
+            <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Weight records" %}</h2>
+            {% if active_membership.can_record_production %}
+            <a href="{% url 'cows:weight_create' %}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">{% trans "+ Log" %}</a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">
+                    <tr>
+                        <th class="px-6 py-3">{% trans "Date" %}</th>
+                        <th class="px-6 py-3">{% trans "Method" %}</th>
+                        <th class="px-6 py-3">{% trans "Weight" %}</th>
+                        <th class="px-6 py-3">{% trans "Change" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
+                    {% for w in weight_records %}
+                    <tr>
+                        <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ w.date }}</td>
+                        <td class="px-6 py-3">
+                            <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ w.get_method_display }}</span>
+                        </td>
+                        <td class="px-6 py-3 font-bold text-emerald-700 dark:text-emerald-400">{{ w.weight_kg }} kg</td>
+                        <td class="px-6 py-3 text-stone-500 dark:text-stone-400">
+                            {% if w.change_kg is not None %}{% if w.change_kg > 0 %}+{% endif %}{{ w.change_kg }} kg{% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-8 text-center text-stone-400 dark:text-stone-500">{% trans "No weight records yet." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+        <div class="flex items-center justify-between border-b border-stone-100 px-6 py-4 dark:border-stone-800">
+            <h2 class="font-bold text-stone-900 dark:text-stone-100">{% trans "Breeding events" %}</h2>
+            {% if active_membership.can_record_production %}
+            <a href="{% url 'cows:reproduction_create' %}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">{% trans "+ Log" %}</a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-stone-50 text-xs font-bold uppercase tracking-wide text-stone-400 dark:bg-stone-800 dark:text-stone-500">
+                    <tr>
+                        <th class="px-6 py-3">{% trans "Date" %}</th>
+                        <th class="px-6 py-3">{% trans "Event" %}</th>
+                        <th class="px-6 py-3">{% trans "Notes" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
+                    {% for e in reproductive_events %}
+                    <tr>
+                        <td class="px-6 py-3 text-stone-600 dark:text-stone-300">{{ e.date }}</td>
+                        <td class="px-6 py-3">
+                            <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{{ e.get_event_type_display }}</span>
+                        </td>
+                        <td class="px-6 py-3 text-stone-500 dark:text-stone-400">{{ e.notes|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="px-6 py-8 text-center text-stone-400 dark:text-stone-500">{% trans "No breeding events logged yet." %}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

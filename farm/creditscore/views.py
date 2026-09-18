@@ -1,10 +1,11 @@
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from farms.permissions import any_member_required, manage_records_required
 
-from .models import CreditScoreSnapshot
+from .models import CreditScoreSnapshot, DataPartner, DataShareConsent
 from .services import recompute_farm_score
 
 
@@ -54,3 +55,55 @@ def recompute(request):
             _('Credit score recomputed: %(score)s (%(tier)s).') % {'score': snapshot.score, 'tier': snapshot.get_tier_display()}
         )
     return redirect('creditscore:overview')
+
+
+# Gated at the same tier as recompute above (Farmer/Manager/Supervisor) -
+# deciding to hand a lender read access to the farm's score is the same
+# class of decision as deciding what the score itself should reflect, not
+# something a Worker should be able to do.
+@manage_records_required
+def data_sharing(request):
+    farm = request.farm
+    partners = DataPartner.objects.filter(status=DataPartner.Status.APPROVED).order_by('name')
+    consents = {c.partner_id: c for c in DataShareConsent.objects.filter(farm=farm)}
+    # Merged here rather than in the template - Django templates can't
+    # index a dict by a loop variable without a custom filter, and this is
+    # simpler than adding one just for this.
+    rows = [{'partner': p, 'consent': consents.get(p.id)} for p in partners]
+    return render(request, 'creditscore/data_sharing.html', {'rows': rows})
+
+
+@manage_records_required
+def grant_consent(request, partner_id):
+    if request.method != 'POST':
+        return redirect('creditscore:data_sharing')
+
+    partner = get_object_or_404(DataPartner, id=partner_id, status=DataPartner.Status.APPROVED)
+    # get_or_create rather than always creating a new row: the unique
+    # (farm, partner) constraint means re-sharing with a partner you'd
+    # previously revoked has to reactivate that same row, not fail on a
+    # duplicate - see DataShareConsent's docstring on keeping one row per
+    # pair for the audit trail.
+    consent, created = DataShareConsent.objects.get_or_create(
+        farm=request.farm, partner=partner, defaults={'granted_by': request.user}
+    )
+    if not created and not consent.is_active:
+        consent.revoked_at = None
+        consent.granted_by = request.user
+        consent.save(update_fields=['revoked_at', 'granted_by'])
+    messages.success(request, _('Sharing enabled with %(partner)s.') % {'partner': partner.name})
+    return redirect('creditscore:data_sharing')
+
+
+@manage_records_required
+def revoke_consent(request, partner_id):
+    if request.method != 'POST':
+        return redirect('creditscore:data_sharing')
+
+    consent = get_object_or_404(
+        DataShareConsent, farm=request.farm, partner_id=partner_id, revoked_at__isnull=True
+    )
+    consent.revoked_at = timezone.now()
+    consent.save(update_fields=['revoked_at'])
+    messages.info(request, _('Sharing stopped with %(partner)s.') % {'partner': consent.partner.name})
+    return redirect('creditscore:data_sharing')

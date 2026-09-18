@@ -80,6 +80,68 @@ class Guide(models.Model):
         return youtube_search_url(self.search_terms)
 
 
+class LearningPath(models.Model):
+    slug = models.SlugField(unique=True)
+    title = models.CharField(max_length=150)
+    description = models.CharField(max_length=255)
+    icon = models.CharField(max_length=50, default='school-outline')
+
+    class Meta:
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+
+class LearningLesson(models.Model):
+    path = models.ForeignKey(LearningPath, on_delete=models.CASCADE, related_name='lessons')
+    order = models.PositiveIntegerField()
+    title = models.CharField(max_length=150)
+    icon = models.CharField(max_length=50, default='book-outline')
+    summary = models.CharField(max_length=255)
+    content = models.TextField(
+        help_text=_('One paragraph or bullet per line. A line starting with "## " renders as a subheading.')
+    )
+    key_terms = models.TextField(
+        blank=True, help_text=_('One "Term: definition" per line - renders as a glossary block. Optional.')
+    )
+    search_terms = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        unique_together = ('path', 'order')
+        ordering = ['path', 'order']
+
+    def __str__(self):
+        return f'{self.path.title} - {self.order}. {self.title}'
+
+    def content_blocks(self):
+        """Split into (is_heading, text) pairs so the template can render
+        "## " lines as subheadings without a template-side string check."""
+        blocks = []
+        for line in self.content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith('## '):
+                blocks.append({'heading': True, 'text': line[3:].strip()})
+            else:
+                blocks.append({'heading': False, 'text': line})
+        return blocks
+
+    def key_terms_list(self):
+        terms = []
+        for line in self.key_terms.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            term, sep, definition = line.partition(':')
+            terms.append({'term': term.strip(), 'definition': definition.strip() if sep else ''})
+        return terms
+
+    def youtube_search_url(self):
+        return youtube_search_url(self.search_terms)
+
+
 class AgriCenter(models.Model):
     name = models.CharField(max_length=150)
     county = models.CharField(max_length=100)
@@ -100,3 +162,26 @@ class AgriCenter(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.county})'
+
+
+class CropSuitability(models.Model):
+    """Which crops suit a given county - static reference data seeded by
+    migration (see advisory/migrations/0004_seed_crop_suitability.py), same
+    pattern as AgriCenter/DiseaseCatalog above. Authored per agro-ecological
+    zone (`zone`, kept for transparency) and expanded to one row per
+    (county, crop_name) so a lookup by farms.Farm.county - the reliable
+    signup-time location field, unlike lat/lon which isn't always geocoded -
+    stays a simple filter (see advisory.services.recommended_crops_for_county)."""
+
+    county = models.CharField(max_length=100, help_text=_('Matches a key in farms.kenya_data.COUNTY_TOWNS.'))
+    zone = models.CharField(max_length=100, help_text=_('The agro-ecological zone this recommendation is based on.'))
+    crop_name = models.CharField(max_length=100)
+    notes = models.CharField(max_length=255, help_text=_('Why this crop suits the zone.'))
+    planting_season = models.CharField(max_length=100, blank=True, help_text=_('e.g. "March-May long rains"'))
+
+    class Meta:
+        ordering = ['county', 'crop_name']
+        verbose_name_plural = 'Crop suitability'
+
+    def __str__(self):
+        return f'{self.crop_name} - {self.county}'

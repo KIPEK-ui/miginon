@@ -1,0 +1,37 @@
+{% extends "website/public_base.html" %}
+{% load i18n %}
+{% block site_content %}
+<section class="relative overflow-hidden {% if not page.display_image_url %}bg-gradient-to-br {{ site.theme_palette.gradient }}{% endif %} text-white">
+    {% if page.display_image_url %}
+    <img src="{{ page.display_image_url }}" alt="" class="absolute inset-0 h-full w-full object-cover">
+    <div class="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-950/70 to-stone-900/40"></div>
+    {% else %}
+    <div class="pointer-events-none absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15), transparent 45%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1), transparent 40%);"></div>
+    {% endif %}
+    <div class="relative mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32">
+        {% if site.tagline %}
+        <span class="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">{{ site.tagline }}</span>
+        {% endif %}
+        <h1 class="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-6xl" style="text-wrap: balance;">{{ page.headline|default:page.title }}</h1>
+        {% if page.subheading %}
+        <p class="mx-auto mt-5 max-w-2xl text-base text-white/85 sm:text-lg">{{ page.subheading }}</p>
+        {% endif %}
+        <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+            {% if page.cta_label and page.cta_url %}
+            <a href="{{ page.cta_url }}" class="inline-flex rounded-full {{ site.theme_palette.cta }} px-7 py-3 text-sm font-bold shadow-soft transition">{{ page.cta_label }}</a>
+            {% endif %}
+            {% for p in nav_pages %}
+            {% if not p.is_homepage %}
+            <a href="{% url 'website_public:page' site.slug p.slug %}" class="inline-flex items-center gap-1 rounded-full border border-white/25 px-5 py-3 text-sm font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/10">{{ p.title }}</a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% if page.body %}
+<section class="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+    <div class="prose prose-stone mx-auto text-base leading-relaxed text-stone-600 dark:text-stone-300" style="white-space: pre-line;">{{ page.body }}</div>
+</section>
+{% endif %}
+{% endblock %}

@@ -5,10 +5,12 @@ from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.views.decorators.http import require_POST
 
 from core.email import send_styled_email_safely
 from farms.kenya_data import COUNTY_TOWNS
@@ -476,6 +478,18 @@ def settings_notifications(request):
         form.save()
         messages.success(request, _('Notification preference updated.'))
     return redirect('accounts:settings')
+
+
+@require_POST
+@login_required
+def mark_tour_seen(request):
+    """Called by the driver.js dashboard walkthrough (see
+    templates/farms/dashboard.html) once it finishes or is skipped, so it
+    never replays on a later visit."""
+    if not request.user.has_seen_dashboard_tour:
+        request.user.has_seen_dashboard_tour = True
+        request.user.save(update_fields=['has_seen_dashboard_tour'])
+    return JsonResponse({'ok': True})
 
 
 @login_required

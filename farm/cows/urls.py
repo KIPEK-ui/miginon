@@ -21,4 +21,19 @@ urlpatterns = [
     path('milk/add/', views.milk_create, name='milk_create'),
     path('milk/<int:record_id>/edit/', views.milk_edit, name='milk_edit'),
     path('milk/<int:record_id>/delete/', views.milk_delete, name='milk_delete'),
+
+    path('health/', views.health_record_list, name='health_record_list'),
+    path('health/add/', views.health_record_create, name='health_record_create'),
+    path('health/<int:record_id>/edit/', views.health_record_edit, name='health_record_edit'),
+    path('health/<int:record_id>/delete/', views.health_record_delete, name='health_record_delete'),
+
+    path('weight/', views.weight_list, name='weight_list'),
+    path('weight/add/', views.weight_create, name='weight_create'),
+    path('weight/<int:record_id>/edit/', views.weight_edit, name='weight_edit'),
+    path('weight/<int:record_id>/delete/', views.weight_delete, name='weight_delete'),
+
+    path('reproduction/', views.reproduction_list, name='reproduction_list'),
+    path('reproduction/add/', views.reproduction_create, name='reproduction_create'),
+    path('reproduction/<int:record_id>/edit/', views.reproduction_edit, name='reproduction_edit'),
+    path('reproduction/<int:record_id>/delete/', views.reproduction_delete, name='reproduction_delete'),
 ]

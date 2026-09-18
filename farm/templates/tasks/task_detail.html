@@ -52,6 +52,15 @@
                 <dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Due date" %}</dt>
                 <dd class="mt-1 text-sm text-stone-800 dark:text-stone-200">{{ task.due_date|default:"—" }}</dd>
             </div>
+            {% if task.repeat_every_days %}
+            <div>
+                <dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Repeats" %}</dt>
+                <dd class="mt-1 flex items-center gap-1 text-sm text-stone-800 dark:text-stone-200">
+                    <ion-icon name="repeat-outline" class="text-xs text-emerald-600 dark:text-emerald-400"></ion-icon>
+                    {% blocktrans with days=task.repeat_every_days %}Every {{ days }} days{% endblocktrans %}
+                </dd>
+            </div>
+            {% endif %}
             <div>
                 <dt class="text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{% trans "Assigned by" %}</dt>
                 <dd class="mt-1 text-sm text-stone-800 dark:text-stone-200">{{ task.created_by.get_short_name|default:"—" }}</dd>

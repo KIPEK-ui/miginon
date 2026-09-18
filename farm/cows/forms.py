@@ -2,22 +2,31 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy as _
 
+from advisory.models import DiseaseCatalog
 from core.formhelpers import TailwindFormMixin
 from farms.models import Block
 
-from .models import Cow, FeedingRecord, MilkRecord, session_for_time
+from .models import (
+    Cow, CowHealthRecord, CowWeightRecord, FeedingRecord, MilkRecord, ReproductiveEvent, session_for_time,
+)
+from .services import estimate_weight_from_girth
 
 
 class CowForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Cow
-        fields = ['block', 'tag_id', 'name', 'category', 'gender', 'breed', 'date_of_birth', 'last_calving_date', 'status']
+        fields = [
+            'block', 'tag_id', 'name', 'category', 'gender', 'breed', 'date_of_birth', 'last_calving_date',
+            'status', 'sire', 'dam', 'sire_name', 'registration_number',
+        ]
         widgets = {
             'tag_id': forms.TextInput(attrs={'placeholder': _('e.g. C-014')}),
             'name': forms.TextInput(attrs={'placeholder': _('Optional')}),
             'breed': forms.TextInput(attrs={'placeholder': _('e.g. Friesian')}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
             'last_calving_date': forms.DateInput(attrs={'type': 'date'}),
+            'sire_name': forms.TextInput(attrs={'placeholder': _('e.g. an AI code, if the sire is not in this herd')}),
+            'registration_number': forms.TextInput(attrs={'placeholder': _('Optional')}),
         }
 
     def __init__(self, *args, farm=None, **kwargs):
@@ -25,6 +34,8 @@ class CowForm(TailwindFormMixin, forms.ModelForm):
         self.farm = farm
         if farm is not None:
             self.fields['block'].queryset = farm.blocks.all()
+            self.fields['sire'].queryset = farm.cows.filter(gender=Cow.Gender.MALE).exclude(pk=self.instance.pk)
+            self.fields['dam'].queryset = farm.cows.filter(gender=Cow.Gender.FEMALE).exclude(pk=self.instance.pk)
 
     def clean_tag_id(self):
         # ModelForm's automatic unique_together validation excludes any field
@@ -153,6 +164,80 @@ class MilkRecordForm(TailwindFormMixin, forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class CowHealthRecordForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = CowHealthRecord
+        fields = ['cow', 'record_type', 'disease', 'description', 'date', 'next_due_date']
+        widgets = {
+            'description': forms.TextInput(attrs={'placeholder': _('e.g. East Coast Fever vaccine, booster dose')}),
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'next_due_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['disease'].required = False
+        self.fields['disease'].queryset = DiseaseCatalog.objects.filter(category=DiseaseCatalog.Category.DAIRY)
+        if farm is not None:
+            self.fields['cow'].queryset = farm.cows.filter(status=Cow.Status.ACTIVE).order_by('block__name', 'tag_id')
+
+
+class CowWeightRecordForm(TailwindFormMixin, forms.ModelForm):
+    cow = CowChoiceField(queryset=Cow.objects.none())
+
+    class Meta:
+        model = CowWeightRecord
+        fields = ['cow', 'date', 'method', 'heart_girth_cm', 'weight_kg', 'body_condition_score', 'notes']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.TextInput(attrs={'placeholder': _('Optional')}),
+        }
+
+    field_order = ['cow', 'date', 'method', 'heart_girth_cm', 'weight_kg', 'body_condition_score', 'notes']
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['weight_kg'].required = False
+        if farm is not None:
+            self.fields['cow'].queryset = (
+                farm.cows.filter(status=Cow.Status.ACTIVE).select_related('block').order_by('block__name', 'tag_id')
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        girth = cleaned.get('heart_girth_cm')
+        if not cleaned.get('weight_kg'):
+            if cleaned.get('method') == CowWeightRecord.Method.TAPE and girth:
+                cleaned['weight_kg'] = estimate_weight_from_girth(girth)
+            else:
+                self.add_error(
+                    'weight_kg', gettext('Enter a weight, or a heart-girth measurement to estimate it from.')
+                )
+        return cleaned
+
+
+class ReproductiveEventForm(TailwindFormMixin, forms.ModelForm):
+    cow = CowChoiceField(queryset=Cow.objects.none())
+
+    class Meta:
+        model = ReproductiveEvent
+        fields = ['cow', 'event_type', 'date', 'sire', 'sire_name', 'notes']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'sire_name': forms.TextInput(attrs={'placeholder': _('e.g. an AI code, for Service/Insemination')}),
+            'notes': forms.TextInput(attrs={'placeholder': _('Optional')}),
+        }
+
+    def __init__(self, *args, farm=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if farm is not None:
+            self.fields['cow'].queryset = (
+                farm.cows.filter(status__in=[Cow.Status.ACTIVE, Cow.Status.DRY], gender=Cow.Gender.FEMALE)
+                .select_related('block').order_by('block__name', 'tag_id')
+            )
+            self.fields['sire'].queryset = farm.cows.filter(gender=Cow.Gender.MALE)
 
 
 class CowTransferForm(TailwindFormMixin, forms.Form):

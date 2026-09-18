@@ -22,6 +22,9 @@ BOTTOM_NAV_MODULES = {
     'advisory': {'icon': 'school-outline', 'label': _('Advisory'), 'url': 'advisory:home'},
     'blockchain': {'icon': 'wallet-outline', 'label': _('Wallet'), 'url': 'blockchain:wallet'},
     'creditscore': {'icon': 'speedometer-outline', 'label': _('Credit score'), 'url': 'creditscore:overview'},
+    'website': {'icon': 'globe-outline', 'label': _('Website'), 'url': 'website:site_settings'},
+    'geomap': {'icon': 'locate-outline', 'label': _('GeoMap'), 'url': 'geomap:map'},
+    'insights': {'icon': 'bulb-outline', 'label': _('Insights'), 'url': 'insights:overview'},
 }
 RECENT_MODULES_SESSION_KEY = 'recent_module_history'
 RECENT_MODULES_SHOWN = 4
@@ -62,6 +65,8 @@ def active_farm(request):
         farm=active_membership.farm
     ).aggregate(total=Sum('amount'))['total'] or 0
 
+    from core.demo import is_demo_user
+
     return {
         'my_memberships': memberships,
         'active_membership': active_membership,
@@ -70,6 +75,7 @@ def active_farm(request):
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
         'fiq_balance': fiq_balance,
         'recent_modules': _track_and_get_recent_modules(request),
+        'is_demo': is_demo_user(user),
     }
 
 

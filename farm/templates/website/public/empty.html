@@ -1,0 +1,11 @@
+{% extends "website/public_base.html" %}
+{% load i18n %}
+{% block site_content %}
+<div class="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6">
+    <span class="flex h-14 w-14 items-center justify-center rounded-full bg-stone-100 text-stone-400 dark:bg-stone-800 dark:text-stone-500">
+        <ion-icon name="construct-outline" class="text-2xl"></ion-icon>
+    </span>
+    <h1 class="mt-5 text-xl font-extrabold text-stone-900 dark:text-stone-100">{% trans "This site is still being built" %}</h1>
+    <p class="mt-2 text-sm text-stone-500 dark:text-stone-400">{% blocktrans with name=site.farm.name %}{{ name }} hasn't published a homepage yet.{% endblocktrans %}</p>
+</div>
+{% endblock %}

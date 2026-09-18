@@ -1,0 +1,55 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{{ lesson.title }} - {{ path.title }} - FarmIQ{% endblock %}
+{% block app_content %}
+<a href="{% url 'advisory:learning_path_detail' path.slug %}" class="mb-4 inline-block text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">&larr; {{ path.title }}</a>
+
+<div class="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900 sm:p-8">
+    <div class="flex items-center gap-4">
+        <span class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+            <ion-icon name="{{ lesson.icon }}" class="text-2xl"></ion-icon>
+        </span>
+        <div>
+            <p class="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">{% trans "Lesson" %} {{ lesson.order }}</p>
+            <h1 class="text-xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{{ lesson.title }}</h1>
+        </div>
+    </div>
+
+    <div class="mt-6 space-y-3">
+        {% for block in lesson.content_blocks %}
+        {% if block.heading %}
+        <p class="pt-2 text-xs font-bold uppercase tracking-wide text-stone-400 dark:text-stone-500">{{ block.text }}</p>
+        {% else %}
+        <p class="text-sm leading-relaxed text-stone-700 dark:text-stone-300">{{ block.text }}</p>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if lesson.key_terms_list %}
+    <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
+        <p class="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">{% trans "Key terms" %}</p>
+        <dl class="mt-2 space-y-1.5 text-sm">
+            {% for item in lesson.key_terms_list %}
+            <div><dt class="inline font-bold text-emerald-900 dark:text-emerald-200">{{ item.term }}</dt><dd class="inline text-emerald-800 dark:text-emerald-300"> — {{ item.definition }}</dd></div>
+            {% endfor %}
+        </dl>
+    </div>
+    {% endif %}
+
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-5 dark:border-stone-800">
+        {% if lesson.youtube_search_url %}
+        <a href="{{ lesson.youtube_search_url }}" target="_blank" rel="noopener" class="flex items-center gap-1.5 rounded-full border border-stone-200 px-3 py-2 text-xs font-bold text-stone-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-stone-700 dark:text-stone-300 dark:hover:border-red-900 dark:hover:bg-red-950 dark:hover:text-red-400">
+            <ion-icon name="logo-youtube" class="text-sm"></ion-icon> {% trans "Related videos" %}
+        </a>
+        {% else %}<span></span>{% endif %}
+        <div class="flex items-center gap-3">
+            {% if previous_lesson %}
+            <a href="{% url 'advisory:lesson_detail' path.slug previous_lesson.order %}" class="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">&larr; {% trans "Previous" %}</a>
+            {% endif %}
+            {% if next_lesson %}
+            <a href="{% url 'advisory:lesson_detail' path.slug next_lesson.order %}" class="rounded-full bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">{% trans "Next lesson" %} &rarr;</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

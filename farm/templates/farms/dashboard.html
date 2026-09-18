@@ -1,6 +1,13 @@
 {% extends "app_base.html" %}
 {% load i18n %}
 {% block title %}{% trans "Home" %} - {{ farm.name }}{% endblock %}
+
+{% if show_tour %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+{% endblock %}
+{% endif %}
+
 {% block app_content %}
 <div class="mb-6 flex items-start justify-between gap-3">
     <div>
@@ -31,7 +38,7 @@ module actually does.
 <div class="grid grid-flow-row-dense grid-cols-2 gap-3 lg:grid-cols-4">
 
     {% if quick_actions %}
-    <details class="group relative row-span-2 min-h-[280px] rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/40 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/50 dark:to-emerald-900/20">
+    <details data-tour="quick-actions" class="group relative row-span-2 min-h-[280px] rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/40 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/50 dark:to-emerald-900/20">
         <summary class="flex min-h-[280px] cursor-pointer list-none flex-col justify-between gap-4 rounded-2xl p-5">
             <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
                 <ion-icon name="add-outline" class="text-2xl"></ion-icon>
@@ -66,7 +73,7 @@ module actually does.
         </div>
     </a>
 
-    <a href="{% url 'cows:cow_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'cows:cow_list' %}" data-tour="herd-tile" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
             <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
@@ -90,7 +97,7 @@ module actually does.
         </div>
     </a>
 
-    <a href="{% url 'cows:milk_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'cows:milk_list' %}" data-tour="milk-tile" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
             <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                 <ion-icon name="water-outline" class="text-xl"></ion-icon>
@@ -103,7 +110,7 @@ module actually does.
         </div>
     </a>
 
-    <a href="{% url 'tasks:task_list' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+    <a href="{% url 'tasks:task_list' %}" data-tour="tasks-tile" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
         <div class="flex items-center justify-between">
             <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
                 <ion-icon name="checkbox-outline" class="text-xl"></ion-icon>
@@ -157,6 +164,16 @@ module actually does.
         <div>
             <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Credit score" %}</p>
             <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% if latest_credit_score %}{{ latest_credit_score.get_tier_display }}{% else %}{% trans "AI score from your real farm history" %}{% endif %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'geomap:map' %}" data-tour="geomap-tile" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
+            <ion-icon name="locate-outline" class="text-xl"></ion-icon>
+        </span>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "GeoMap" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Survey boundaries with GPS" %}</p>
         </div>
     </a>
 
@@ -215,6 +232,31 @@ module actually does.
             <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Analytics, AI predictions & exports" %}</p>
         </div>
     </a>
+
+    <a href="{% url 'insights:overview' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <div class="flex items-center justify-between">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600 dark:bg-yellow-950/40 dark:text-yellow-400">
+                <ion-icon name="bulb-outline" class="text-xl"></ion-icon>
+            </span>
+            {% if insight_count %}
+            <span class="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">{{ insight_count }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Insights" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "What your farm's data is telling you" %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'website:site_settings' %}" class="flex min-h-[132px] flex-col justify-between gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm hover:border-emerald-200 dark:border-stone-800/60 dark:bg-stone-900 dark:hover:border-emerald-800">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400">
+            <ion-icon name="globe-outline" class="text-xl"></ion-icon>
+        </span>
+        <div>
+            <p class="text-sm font-bold text-stone-900 dark:text-stone-100">{% trans "Website" %}</p>
+            <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{% trans "Publish your farm's public site" %}</p>
+        </div>
+    </a>
     {% endif %}
 
     {% if membership.can_manage_workers %}
@@ -256,3 +298,52 @@ module actually does.
 
 </div>
 {% endblock %}
+
+{% if show_tour %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+<script>
+(function () {
+    if (!window.driver || !window.driver.js) return;
+
+    function getCsrfToken() {
+        var match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function markSeen() {
+        fetch('{% url "accounts:mark_tour_seen" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+        }).catch(function () { /* best-effort - a retry next load is harmless */ });
+    }
+
+    var stepDefs = [
+        { selector: '[data-tour="quick-actions"]', title: '{% trans "Log a record" %}', description: '{% trans "Milk, feed, crops, stock or an expense - everything starts here." %}' },
+        { selector: '[data-tour="herd-tile"]', title: '{% trans "Your herd" %}', description: '{% trans "Every cow, organized by block." %}' },
+        { selector: '[data-tour="milk-tile"]', title: '{% trans "Milk records" %}', description: '{% trans "Yield logged per cow, per session." %}' },
+        { selector: '[data-tour="geomap-tile"]', title: '{% trans "GeoMap" %}', description: '{% trans "Walk your farm boundary with GPS to measure area and perimeter." %}' },
+        { selector: '[data-tour="tasks-tile"]', title: '{% trans "Tasks" %}', description: '{% trans "Assign work and track what your team has done." %}' },
+        { selector: '[data-tour="farm-switcher"]', title: '{% trans "Your farms" %}', description: '{% trans "Switch farms or add another one here." %}' },
+        { selector: '[data-tour="notifications"]', title: '{% trans "Activity feed" %}', description: '{% trans "Everything happening on your farm, in one place." %}' },
+    ];
+
+    var steps = stepDefs
+        .filter(function (s) { return document.querySelector(s.selector); })
+        .map(function (s) { return { element: s.selector, popover: { title: s.title, description: s.description } }; });
+
+    if (!steps.length) { markSeen(); return; }
+
+    var tour = window.driver.js.driver({
+        showProgress: true,
+        nextBtnText: '{% trans "Next" %}',
+        prevBtnText: '{% trans "Back" %}',
+        doneBtnText: '{% trans "Done" %}',
+        steps: steps,
+        onDestroyed: markSeen,
+    });
+    tour.drive();
+})();
+</script>
+{% endblock %}
+{% endif %}

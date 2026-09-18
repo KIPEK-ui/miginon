@@ -1,0 +1,48 @@
+{% extends "app_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Data sharing" %} - FarmIQ{% endblock %}
+{% block app_content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">{% trans "Data sharing" %}</h1>
+        <p class="mt-1 max-w-xl text-sm text-stone-500 dark:text-stone-400">{% trans "Choose which lenders and other approved partners can look up your farm's credit score. Nothing is shared until you turn it on here, and you can stop at any time." %}</p>
+    </div>
+    <a href="{% url 'creditscore:overview' %}" class="text-sm font-semibold text-cyan-700 hover:text-cyan-900 dark:text-cyan-400 dark:hover:text-cyan-300">← {% trans "Back to credit score" %}</a>
+</div>
+
+{% if rows %}
+<div class="rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+    <ul class="divide-y divide-stone-100 dark:divide-stone-800">
+        {% for row in rows %}
+        <li class="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+            <div>
+                <p class="font-bold text-stone-900 dark:text-stone-100">{{ row.partner.name }}</p>
+                <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+                    {% if row.consent and row.consent.is_active %}
+                    {% blocktrans with date=row.consent.granted_at|date:"d M Y" %}Sharing since {{ date }}{% endblocktrans %}
+                    {% else %}
+                    {% trans "Not currently shared" %}
+                    {% endif %}
+                </p>
+            </div>
+            {% if row.consent and row.consent.is_active %}
+            <form method="post" action="{% url 'creditscore:revoke_consent' row.partner.id %}">
+                {% csrf_token %}
+                <button type="submit" class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400">{% trans "Stop sharing" %}</button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'creditscore:grant_consent' row.partner.id %}">
+                {% csrf_token %}
+                <button type="submit" class="rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-500">{% trans "Share my score" %}</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
+    {% trans "No approved data partners yet - check back once a lender or insurer has been onboarded." %}
+</div>
+{% endif %}
+{% endblock %}

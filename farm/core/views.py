@@ -1,8 +1,11 @@
 from django.conf import settings
+from django.contrib.auth import login as django_login
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext_lazy as _
 
 from accounts.models import User
+
+from .demo import get_or_create_demo_farm
 
 THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
 
@@ -87,3 +90,17 @@ def landing(request):
     ]
 
     return render(request, 'core/landing.html', {'features': features, 'steps': steps})
+
+
+def demo_login(request):
+    """Public, no-signup entry point into a real, populated farm - signs the
+    visitor into the shared demo account (core.demo.get_or_create_demo_farm,
+    idempotent) and drops them straight on the dashboard. Every other view
+    in the app runs completely unmodified from here; the only thing that
+    makes this safe to leave open to the internet is
+    core.middleware.DemoModeMiddleware blocking that account from ever
+    saving a change."""
+    farm, user = get_or_create_demo_farm()
+    django_login(request, user)
+    request.session['active_farm_id'] = farm.id
+    return redirect('farms:dashboard')
